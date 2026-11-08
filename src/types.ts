@@ -43,3 +43,20 @@ export interface SeriesDraft {
   warnings: string[]
   selectedIds: string[]
 }
+
+export interface GoogleUser {
+  sub: string
+  name: string
+  email: string
+  picture?: string
+}
+
+export interface SyncConfig {
+  token: string
+  repo: string
+  branch: string
+  path: string
+  auto: boolean
+  sha?: string
+  lastSyncedAt?: number
+}

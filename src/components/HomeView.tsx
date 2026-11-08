@@ -1,5 +1,5 @@
 import { continueWatching } from '../lib/series'
-import type { Filter, Series } from '../types'
+import type { Filter, GoogleUser, Series } from '../types'
 import { ContinueCard } from './ContinueCard'
 import { EmptyState } from './EmptyState'
 import { FilterChips } from './FilterChips'
@@ -15,6 +15,9 @@ interface HomeViewProps {
   filter: Filter
   canInstall: boolean
   apiKeyConfigured: boolean
+  googleUser: GoogleUser | null
+  syncDirty: boolean
+  syncBusy: boolean
   onQueryChange: (value: string) => void
   onFilterChange: (filter: Filter) => void
   onOpen: (series: Series) => void
@@ -23,6 +26,7 @@ interface HomeViewProps {
   onAdd: () => void
   onInstall: () => void
   onOpenSettings: () => void
+  onOpenAccount: () => void
 }
 
 export function HomeView({
@@ -32,6 +36,9 @@ export function HomeView({
   filter,
   canInstall,
   apiKeyConfigured,
+  googleUser,
+  syncDirty,
+  syncBusy,
   onQueryChange,
   onFilterChange,
   onOpen,
@@ -40,6 +47,7 @@ export function HomeView({
   onAdd,
   onInstall,
   onOpenSettings,
+  onOpenAccount,
 }: HomeViewProps) {
   const continueList = continueWatching(allSeries).slice(0, 8)
   const showContinue = query.trim().length === 0 && filter === 'all' && continueList.length > 0
@@ -62,6 +70,10 @@ export function HomeView({
         title="CdramaList"
         canInstall={canInstall}
         onInstall={onInstall}
+        user={googleUser}
+        syncDirty={syncDirty}
+        syncBusy={syncBusy}
+        onOpenAccount={onOpenAccount}
       />
 
       <section className="px-4 pt-5">

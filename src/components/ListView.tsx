@@ -1,5 +1,5 @@
 import { statusMeta, statusOrder } from '../lib/status'
-import type { Series, SeriesStatus } from '../types'
+import type { GoogleUser, Series, SeriesStatus } from '../types'
 import { EmptyState } from './EmptyState'
 import * as Icon from './Icons'
 import { SeriesCard } from './SeriesCard'
@@ -8,19 +8,27 @@ import { TopBar } from './TopBar'
 interface ListViewProps {
   groups: Record<SeriesStatus, Series[]>
   canInstall: boolean
+  googleUser: GoogleUser | null
+  syncDirty: boolean
+  syncBusy: boolean
   onOpen: (series: Series) => void
   onToggleFavorite: (id: string) => void
   onInstall: () => void
   onAdd: () => void
+  onOpenAccount: () => void
 }
 
 export function ListView({
   groups,
   canInstall,
+  googleUser,
+  syncDirty,
+  syncBusy,
   onOpen,
   onToggleFavorite,
   onInstall,
   onAdd,
+  onOpenAccount,
 }: ListViewProps) {
   const savedCount = statusOrder.reduce(
     (total, status) => total + groups[status].length,
@@ -34,6 +42,10 @@ export function ListView({
         title="Mi lista"
         canInstall={canInstall}
         onInstall={onInstall}
+        user={googleUser}
+        syncDirty={syncDirty}
+        syncBusy={syncBusy}
+        onOpenAccount={onOpenAccount}
       />
 
       {savedCount === 0 ? (

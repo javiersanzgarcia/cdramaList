@@ -239,3 +239,60 @@ export function RotateCcw(props: IconProps) {
     </Svg>
   )
 }
+
+export function User(props: IconProps) {
+  return (
+    <Svg {...props}>
+      <circle cx="12" cy="8" r="4" />
+      <path d="M4.5 20a7.5 7.5 0 0 1 15 0" />
+    </Svg>
+  )
+}
+
+export function Cloud(props: IconProps) {
+  return (
+    <Svg {...props}>
+      <path d="M7 18.5a4.5 4.5 0 0 1-.7-8.95A6 6 0 0 1 17.8 8.6 4 4 0 0 1 17 18.5H7Z" />
+    </Svg>
+  )
+}
+
+export function CloudOff(props: IconProps) {
+  return (
+    <Svg {...props}>
+      <path d="M3 3l18 18" />
+      <path d="M7 18.5a4.5 4.5 0 0 1-.7-8.95 6 6 0 0 1 2.2-2.6" />
+      <path d="M10.3 5.2A6 6 0 0 1 17.8 8.6 4 4 0 0 1 18.5 16" />
+      <path d="M7 18.5h9" />
+    </Svg>
+  )
+}
+
+export function LogOut(props: IconProps) {
+  return (
+    <Svg {...props}>
+      <path d="M15 4h3a1 1 0 0 1 1 1v14a1 1 0 0 1-1 1h-3" />
+      <path d="M10 16l4-4-4-4" />
+      <path d="M14 12H3" />
+    </Svg>
+  )
+}
+
+export function RefreshCw(props: IconProps) {
+  return (
+    <Svg {...props}>
+      <path d="M21 12a9 9 0 0 1-15.5 6.2L3 16" />
+      <path d="M3 12a9 9 0 0 1 15.5-6.2L21 8" />
+      <path d="M3 21v-5h5M21 3v5h-5" />
+    </Svg>
+  )
+}
+
+export function Shield(props: IconProps) {
+  return (
+    <Svg {...props}>
+      <path d="M12 3l7 3v5.5c0 4.2-2.9 7.6-7 9.5-4.1-1.9-7-5.3-7-9.5V6l7-3Z" />
+      <path d="m9 12 2 2 4-4" />
+    </Svg>
+  )
+}

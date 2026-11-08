@@ -43,3 +43,17 @@ export function formatDate(iso?: string): string | undefined {
     year: 'numeric',
   })
 }
+
+export function formatDateTime(value?: number | string): string | undefined {
+  if (value === undefined || value === null || value === '') return undefined
+
+  const date = new Date(value)
+  if (Number.isNaN(date.getTime())) return undefined
+
+  return date.toLocaleString('es-ES', {
+    day: 'numeric',
+    month: 'short',
+    hour: '2-digit',
+    minute: '2-digit',
+  })
+}

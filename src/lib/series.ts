@@ -173,3 +173,84 @@ export function mergeSeries(
     updatedAt: Date.now(),
   }
 }
+
+export function isSeries(value: unknown): value is Series {
+  if (!value || typeof value !== 'object') return false
+  const item = value as Record<string, unknown>
+  return (
+    typeof item.id === 'string' &&
+    typeof item.title === 'string' &&
+    Array.isArray(item.parts) &&
+    Array.isArray(item.watched)
+  )
+}
+
+export function normalizeSeries(value: Series): Series {
+  const now = Date.now()
+
+  return {
+    id: value.id,
+    title: value.title.trim() || 'Serie sin título',
+    channelId: value.channelId,
+    channelTitle: value.channelTitle || 'YouTube',
+    channelUrl: value.channelUrl,
+    thumbnail: value.thumbnail,
+    parts: value.parts
+      .filter(
+        (part) => part && typeof part.videoId === 'string' && part.videoId.length > 0,
+      )
+      .map((part) => ({
+        videoId: part.videoId,
+        title:
+          typeof part.title === 'string' && part.title.length > 0
+            ? part.title
+            : 'Vídeo de YouTube',
+        partNumber:
+          typeof part.partNumber === 'number' ? part.partNumber : undefined,
+        totalParts: typeof part.totalParts === 'number' ? part.totalParts : undefined,
+        isFinal: Boolean(part.isFinal),
+        durationSeconds:
+          typeof part.durationSeconds === 'number' ? part.durationSeconds : undefined,
+        publishedAt:
+          typeof part.publishedAt === 'string' ? part.publishedAt : undefined,
+        thumbnail: typeof part.thumbnail === 'string' ? part.thumbnail : undefined,
+        addedAt: typeof part.addedAt === 'number' ? part.addedAt : now,
+      })),
+    watched: value.watched.filter((id) => typeof id === 'string'),
+    favorite: Boolean(value.favorite),
+    createdAt: typeof value.createdAt === 'number' ? value.createdAt : now,
+    updatedAt: typeof value.updatedAt === 'number' ? value.updatedAt : now,
+    lastOpenedAt:
+      typeof value.lastOpenedAt === 'number' ? value.lastOpenedAt : undefined,
+  }
+}
+
+export function combineSeries(current: Series, incoming: Series): Series {
+  const newer = incoming.updatedAt >= current.updatedAt ? incoming : current
+  const older = newer === incoming ? current : incoming
+  const lastOpenedAt = Math.max(current.lastOpenedAt ?? 0, incoming.lastOpenedAt ?? 0)
+
+  return {
+    ...older,
+    ...newer,
+    id: current.id,
+    createdAt: Math.min(current.createdAt, incoming.createdAt),
+    favorite: current.favorite || incoming.favorite,
+    parts: mergeParts(current.parts, incoming.parts),
+    watched: [...new Set([...current.watched, ...incoming.watched])],
+    updatedAt: Math.max(current.updatedAt, incoming.updatedAt),
+    lastOpenedAt: lastOpenedAt > 0 ? lastOpenedAt : undefined,
+  }
+}
+
+export function mergeSeriesCollections(local: Series[], remote: Series[]): Series[] {
+  const byId = new Map(local.map((item) => [item.id, item]))
+
+  for (const incoming of remote) {
+    const previous = byId.get(incoming.id)
+    byId.set(incoming.id, previous ? combineSeries(previous, incoming) : incoming)
+  }
+
+  return [...byId.values()].sort((a, b) => b.updatedAt - a.updatedAt)
+}
+

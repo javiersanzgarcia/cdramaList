@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import type { GoogleUser } from '../types'
 import * as Icon from './Icons'
 import { TopBar } from './TopBar'
 
@@ -8,11 +9,16 @@ interface SettingsViewProps {
   watchedPartsCount: number
   favoriteCount: number
   canInstall: boolean
+  googleUser: GoogleUser | null
+  syncEnabled: boolean
+  syncDirty: boolean
+  syncBusy: boolean
   onApiKeyChange: (key: string) => void
   onInstall: () => void
   onReset: () => void
   onExport: () => void
   onImport: (file: File) => void
+  onOpenAccount: () => void
 }
 
 export function SettingsView({
@@ -21,11 +27,16 @@ export function SettingsView({
   watchedPartsCount,
   favoriteCount,
   canInstall,
+  googleUser,
+  syncEnabled,
+  syncDirty,
+  syncBusy,
   onApiKeyChange,
   onInstall,
   onReset,
   onExport,
   onImport,
+  onOpenAccount,
 }: SettingsViewProps) {
   const [draftKey, setDraftKey] = useState(apiKey)
   const [showKey, setShowKey] = useState(false)
@@ -47,7 +58,9 @@ export function SettingsView({
 
   function handleReset() {
     const confirmed = window.confirm(
-      '¿Seguro que quieres borrar todas tus series y tu progreso? Esta acción no se puede deshacer.',
+      syncEnabled
+        ? '¿Seguro que quieres borrar todas tus series y tu progreso? Si la sincronización automática está activa, también se borrarán en la nube.'
+        : '¿Seguro que quieres borrar todas tus series y tu progreso? Esta acción no se puede deshacer.',
     )
     if (confirmed) onReset()
   }
@@ -59,9 +72,58 @@ export function SettingsView({
         title="Ajustes"
         canInstall={canInstall}
         onInstall={onInstall}
+        user={googleUser}
+        syncDirty={syncDirty}
+        syncBusy={syncBusy}
+        onOpenAccount={onOpenAccount}
       />
 
       <div className="space-y-4 px-4 pt-5">
+        <section className="rounded-3xl border border-zinc-800 bg-zinc-900/60 p-4">
+          <button
+            type="button"
+            onClick={onOpenAccount}
+            className="flex w-full items-center gap-3 text-left"
+          >
+            {googleUser?.picture ? (
+              <img
+                src={googleUser.picture}
+                alt=""
+                referrerPolicy="no-referrer"
+                className="size-12 shrink-0 rounded-full object-cover ring-1 ring-zinc-700"
+              />
+            ) : (
+              <div className="grid size-12 shrink-0 place-items-center rounded-full bg-zinc-800 text-zinc-300">
+                <Icon.User className="size-6" />
+              </div>
+            )}
+            <div className="min-w-0 flex-1">
+              <h2 className="text-sm font-semibold text-zinc-200">
+                Cuenta y sincronización
+              </h2>
+              <p className="truncate text-xs text-zinc-500">
+                {googleUser ? googleUser.email : 'Inicia sesión con Google'}
+              </p>
+              <p
+                className={`mt-0.5 text-[11px] ${
+                  syncEnabled
+                    ? syncDirty
+                      ? 'text-rose-300'
+                      : 'text-emerald-300'
+                    : 'text-zinc-600'
+                }`}
+              >
+                {syncEnabled
+                  ? syncDirty
+                    ? 'Cambios pendientes de subir'
+                    : 'Sincronización activa'
+                  : 'Solo en este dispositivo'}
+              </p>
+            </div>
+            <Icon.ChevronRight className="size-5 shrink-0 text-zinc-500" />
+          </button>
+        </section>
+
         <section className="rounded-3xl border border-zinc-800 bg-zinc-900/60 p-4">
           <div className="flex items-center gap-3">
             <div className="grid size-12 place-items-center rounded-2xl bg-gradient-to-br from-rose-500 to-amber-400 text-xl font-black text-white shadow-lg shadow-rose-500/25">
@@ -69,7 +131,7 @@ export function SettingsView({
             </div>
             <div>
               <p className="font-semibold">CdramaList</p>
-              <p className="text-xs text-zinc-500">Versión 0.2.0 · PWA</p>
+              <p className="text-xs text-zinc-500">Versión 0.3.0 · PWA</p>
             </div>
           </div>
           <p className="mt-3 text-sm leading-relaxed text-zinc-400">
