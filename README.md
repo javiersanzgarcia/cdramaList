@@ -2,6 +2,8 @@
 
 Aplicación móvil (PWA) para descubrir, guardar y seguir tus dramas chinos favoritos. Funciona sin conexión y guarda tu progreso en el dispositivo.
 
+**Demo:** https://javiersanzgarcia.github.io/cdramaList/
+
 ## Stack
 
 - **React 19** + **TypeScript**
