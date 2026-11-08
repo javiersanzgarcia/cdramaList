@@ -3,8 +3,26 @@ import react from '@vitejs/plugin-react'
 import { defineConfig } from 'vite'
 import { VitePWA } from 'vite-plugin-pwa'
 
+/**
+ * En GitHub Actions detectamos el nombre del repositorio para servir la app
+ * desde https://<usuario>.github.io/<repo>/.
+ * En local (o en un repo de usuario <usuario>.github.io) usamos la raíz.
+ */
+function resolveBase() {
+  const repo = process.env.GITHUB_REPOSITORY?.split('/')[1]
+
+  if (!process.env.GITHUB_ACTIONS || !repo || repo.endsWith('.github.io')) {
+    return '/'
+  }
+
+  return `/${repo}/`
+}
+
+const base = resolveBase()
+
 // https://vite.dev/config/
 export default defineConfig({
+  base,
   plugins: [
     react(),
     tailwindcss(),
@@ -21,8 +39,8 @@ export default defineConfig({
         background_color: '#09090b',
         display: 'standalone',
         orientation: 'portrait',
-        start_url: '/',
-        scope: '/',
+        start_url: base,
+        scope: base,
         categories: ['entertainment', 'lifestyle'],
         icons: [
           { src: 'pwa-192x192.png', sizes: '192x192', type: 'image/png' },

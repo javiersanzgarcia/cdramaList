@@ -60,6 +60,23 @@ git remote add origin https://github.com/TU_USUARIO/cdramaList.git
 git push -u origin main
 ```
 
-## Despliegue
+## Despliegue en GitHub Pages
 
-Puedes desplegar la carpeta `dist/` en cualquier hosting estático con HTTPS (Netlify, Vercel, Cloudflare Pages, GitHub Pages…). Si usas GitHub Pages en una subruta, configura `base` en `vite.config.ts`.
+El repositorio incluye el workflow `.github/workflows/deploy.yml`, que compila y publica la app en GitHub Pages en cada push a `main`.
+
+1. Sube el repositorio a GitHub (rama `main`).
+2. En GitHub, entra en **Settings → Pages → Build and deployment** y selecciona **GitHub Actions** como *Source*.
+3. Ve a la pestaña **Actions** y espera a que termine el workflow **Deploy to GitHub Pages**.
+4. La app quedará disponible en:
+
+```
+https://TU_USUARIO.github.io/cdramaList/
+```
+
+La URL exacta aparece en el entorno `github-pages` del despliegue.
+
+La ruta base se detecta automáticamente en GitHub Actions a partir del nombre del repositorio (`/cdramaList/`), por lo que no hace falta cambiar `vite.config.ts`. En local se sigue usando `/`.
+
+> Si el repositorio se llama `TU_USUARIO.github.io`, la app se publica en la raíz y el workflow lo detecta automáticamente.
+
+También puedes desplegar la carpeta `dist/` en cualquier otro hosting estático con HTTPS (Netlify, Vercel, Cloudflare Pages…).
