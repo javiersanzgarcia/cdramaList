@@ -1,37 +1,36 @@
 import { statusMeta, statusOrder } from '../lib/status'
-import type { Drama, StatusMap, WatchStatus } from '../types'
-import { DramaCard } from './DramaCard'
+import type { Series, SeriesStatus } from '../types'
 import { EmptyState } from './EmptyState'
 import * as Icon from './Icons'
+import { SeriesCard } from './SeriesCard'
 import { TopBar } from './TopBar'
 
 interface ListViewProps {
-  groups: Record<WatchStatus, Drama[]>
-  statuses: StatusMap
-  favorites: string[]
+  groups: Record<SeriesStatus, Series[]>
   canInstall: boolean
-  onOpen: (drama: Drama) => void
+  onOpen: (series: Series) => void
   onToggleFavorite: (id: string) => void
   onInstall: () => void
-  onExplore: () => void
+  onAdd: () => void
 }
 
 export function ListView({
   groups,
-  statuses,
-  favorites,
   canInstall,
   onOpen,
   onToggleFavorite,
   onInstall,
-  onExplore,
+  onAdd,
 }: ListViewProps) {
-  const savedCount = statusOrder.reduce((total, status) => total + groups[status].length, 0)
+  const savedCount = statusOrder.reduce(
+    (total, status) => total + groups[status].length,
+    0,
+  )
 
   return (
     <>
       <TopBar
-        eyebrow={`${savedCount} ${savedCount === 1 ? 'drama guardado' : 'dramas guardados'}`}
+        eyebrow={`${savedCount} ${savedCount === 1 ? 'serie guardada' : 'series guardadas'}`}
         title="Mi lista"
         canInstall={canInstall}
         onInstall={onInstall}
@@ -42,9 +41,9 @@ export function ListView({
           <EmptyState
             icon={<Icon.Bookmark className="size-6" />}
             title="Tu lista está vacía"
-            description="Marca los dramas que estás viendo, los que quieres empezar o los que ya terminaste. Todo se guarda en tu dispositivo."
-            actionLabel="Explorar dramas"
-            onAction={onExplore}
+            description="Añade las series que estás viendo, las que quieres empezar o las que ya terminaste. Todo se guarda en tu dispositivo."
+            actionLabel="Añadir serie"
+            onAction={onAdd}
           />
         </div>
       ) : (
@@ -63,12 +62,10 @@ export function ListView({
                 </div>
 
                 <div className="grid grid-cols-2 gap-3">
-                  {list.map((drama) => (
-                    <DramaCard
-                      key={drama.id}
-                      drama={drama}
-                      status={statuses[drama.id]}
-                      isFavorite={favorites.includes(drama.id)}
+                  {list.map((item) => (
+                    <SeriesCard
+                      key={item.id}
+                      series={item}
                       onOpen={onOpen}
                       onToggleFavorite={onToggleFavorite}
                     />

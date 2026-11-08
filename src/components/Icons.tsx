@@ -148,3 +148,94 @@ export function Info(props: IconProps) {
     </Svg>
   )
 }
+
+export function Plus(props: IconProps) {
+  return (
+    <Svg {...props}>
+      <path d="M12 5v14M5 12h14" />
+    </Svg>
+  )
+}
+
+export function ChevronLeft(props: IconProps) {
+  return (
+    <Svg {...props}>
+      <path d="m15 5-7 7 7 7" />
+    </Svg>
+  )
+}
+
+export function ExternalLink(props: IconProps) {
+  return (
+    <Svg {...props}>
+      <path d="M14 4h6v6" />
+      <path d="m20 4-9 9" />
+      <path d="M18 13v6a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h6" />
+    </Svg>
+  )
+}
+
+export function Youtube(props: IconProps) {
+  return (
+    <Svg {...props}>
+      <rect x="2.5" y="5.5" width="19" height="13" rx="4" />
+      <path d="m10 9.2 5 2.8-5 2.8V9.2Z" fill="currentColor" stroke="none" />
+    </Svg>
+  )
+}
+
+export function Key(props: IconProps) {
+  return (
+    <Svg {...props}>
+      <circle cx="7.5" cy="15.5" r="3.5" />
+      <path d="m10 13 8.5-8.5M15 8l2 2M17.5 5.5l2 2" />
+    </Svg>
+  )
+}
+
+export function Eye({ filled = false, ...props }: IconProps & { filled?: boolean }) {
+  return (
+    <Svg {...props}>
+      <path d="M2.5 12S6 5.5 12 5.5 21.5 12 21.5 12 18 18.5 12 18.5 2.5 12 2.5 12Z" />
+      <circle cx="12" cy="12" r="3" fill={filled ? 'currentColor' : 'none'} />
+    </Svg>
+  )
+}
+
+export function EyeOff(props: IconProps) {
+  return (
+    <Svg {...props}>
+      <path d="M3 3l18 18" />
+      <path d="M10.6 6c.45-.08.92-.12 1.4-.12 6 0 9.5 6.12 9.5 6.12a17 17 0 0 1-2.1 2.82" />
+      <path d="M6.4 6.8A16.8 16.8 0 0 0 2.5 12S6 18.12 12 18.12c1.55 0 2.95-.4 4.18-1" />
+      <path d="M9.9 9.9a3 3 0 0 0 4.2 4.2" />
+    </Svg>
+  )
+}
+
+export function Upload(props: IconProps) {
+  return (
+    <Svg {...props}>
+      <path d="M12 16V4m0 0 4 4m-4-4L8 8" />
+      <path d="M4 16v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2" />
+    </Svg>
+  )
+}
+
+export function LinkIcon(props: IconProps) {
+  return (
+    <Svg {...props}>
+      <path d="M10 13a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1.7 1.7" />
+      <path d="M14 11a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1.7-1.7" />
+    </Svg>
+  )
+}
+
+export function RotateCcw(props: IconProps) {
+  return (
+    <Svg {...props}>
+      <path d="M3 12a9 9 0 1 0 2.6-6.4" />
+      <path d="M3 4v5h5" />
+    </Svg>
+  )
+}

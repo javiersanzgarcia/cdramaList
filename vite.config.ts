@@ -30,10 +30,10 @@ export default defineConfig({
       registerType: 'autoUpdate',
       includeAssets: ['favicon.svg', 'apple-touch-icon.png'],
       manifest: {
-        name: 'CdramaList — tu lista de dramas chinos',
+        name: 'CdramaList — tus series de YouTube',
         short_name: 'CdramaList',
         description:
-          'Descubre, guarda y sigue tus dramas chinos favoritos desde el móvil, incluso sin conexión.',
+          'Encuentra todas las partes de tus historias de YouTube, guarda tu progreso y míralas dentro de la app.',
         lang: 'es',
         theme_color: '#09090b',
         background_color: '#09090b',
@@ -57,6 +57,20 @@ export default defineConfig({
         globPatterns: ['**/*.{js,css,html,svg,png,ico,woff2}'],
         cleanupOutdatedCaches: true,
         navigateFallback: 'index.html',
+        runtimeCaching: [
+          {
+            urlPattern: /^https:\/\/i\.ytimg\.com\/.*/i,
+            handler: 'CacheFirst',
+            options: {
+              cacheName: 'youtube-thumbnails',
+              expiration: {
+                maxEntries: 200,
+                maxAgeSeconds: 60 * 60 * 24 * 30,
+              },
+              cacheableResponse: { statuses: [0, 200] },
+            },
+          },
+        ],
       },
       devOptions: {
         enabled: false,

@@ -1,11 +1,11 @@
 import type { Filter } from '../types'
 
 const filters: { value: Filter; label: string }[] = [
-  { value: 'all', label: 'Todos' },
-  { value: 'watching', label: 'Viendo' },
-  { value: 'planned', label: 'Pendiente' },
-  { value: 'completed', label: 'Vistos' },
-  { value: 'favorites', label: 'Favoritos' },
+  { value: 'all', label: 'Todas' },
+  { value: 'watching', label: 'En curso' },
+  { value: 'planned', label: 'Pendientes' },
+  { value: 'completed', label: 'Completadas' },
+  { value: 'favorites', label: 'Favoritas' },
 ]
 
 interface FilterChipsProps {

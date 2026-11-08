@@ -1,19 +1,45 @@
-export type WatchStatus = 'watching' | 'planned' | 'completed'
-
-export type Filter = 'all' | WatchStatus | 'favorites'
-
 export type Tab = 'home' | 'list' | 'settings'
 
-export interface Drama {
-  id: string
+export type SeriesStatus = 'watching' | 'planned' | 'completed'
+
+export type Filter = 'all' | SeriesStatus | 'favorites'
+
+export interface Part {
+  videoId: string
   title: string
-  chineseTitle: string
-  year: number
-  episodes: number
-  genres: string[]
-  synopsis: string
-  rating: number
-  gradient: string
+  partNumber?: number
+  totalParts?: number
+  isFinal?: boolean
+  durationSeconds?: number
+  publishedAt?: string
+  thumbnail?: string
+  addedAt: number
 }
 
-export type StatusMap = Record<string, WatchStatus>
+export interface Series {
+  id: string
+  title: string
+  channelId?: string
+  channelTitle: string
+  channelUrl?: string
+  thumbnail?: string
+  parts: Part[]
+  watched: string[]
+  favorite: boolean
+  createdAt: number
+  updatedAt: number
+  lastOpenedAt?: number
+}
+
+export interface SeriesDraft {
+  title: string
+  channelId?: string
+  channelTitle: string
+  channelUrl?: string
+  thumbnail?: string
+  parts: Part[]
+  source: 'playlist' | 'search' | 'manual'
+  existingSeriesId?: string
+  warnings: string[]
+  selectedIds: string[]
+}
