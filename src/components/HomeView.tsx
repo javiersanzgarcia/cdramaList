@@ -1,23 +1,23 @@
-import type { Drama, Filter, StatusMap } from '../types'
-import { DramaCard } from './DramaCard'
-import { EmptyState } from './EmptyState'
-import { FilterChips } from './FilterChips'
-import * as Icon from './Icons'
-import { SearchBar } from './SearchBar'
-import { TopBar } from './TopBar'
+import type { Drama, Filter, StatusMap } from "../types";
+import { DramaCard } from "./DramaCard";
+import { EmptyState } from "./EmptyState";
+import { FilterChips } from "./FilterChips";
+import * as Icon from "./Icons";
+import { SearchBar } from "./SearchBar";
+import { TopBar } from "./TopBar";
 
 interface HomeViewProps {
-  dramas: Drama[]
-  query: string
-  filter: Filter
-  statuses: StatusMap
-  favorites: string[]
-  canInstall: boolean
-  onQueryChange: (value: string) => void
-  onFilterChange: (filter: Filter) => void
-  onOpen: (drama: Drama) => void
-  onToggleFavorite: (id: string) => void
-  onInstall: () => void
+  dramas: Drama[];
+  query: string;
+  filter: Filter;
+  statuses: StatusMap;
+  favorites: string[];
+  canInstall: boolean;
+  onQueryChange: (value: string) => void;
+  onFilterChange: (filter: Filter) => void;
+  onOpen: (drama: Drama) => void;
+  onToggleFavorite: (id: string) => void;
+  onInstall: () => void;
 }
 
 export function HomeView({
@@ -33,11 +33,12 @@ export function HomeView({
   onToggleFavorite,
   onInstall,
 }: HomeViewProps) {
-  const sectionTitle = filter === 'favorites' ? 'Tus favoritos' : 'Dramas para maratonear'
+  const sectionTitle =
+    filter === "favorites" ? "Tus favoritos" : "Dramas para maratonear";
 
   function clearFilters() {
-    onQueryChange('')
-    onFilterChange('all')
+    onQueryChange("");
+    onFilterChange("all");
   }
 
   return (
@@ -61,9 +62,9 @@ export function HomeView({
 
       <section className="px-4 pt-5">
         <div className="flex items-baseline justify-between gap-3">
-          <h3 className="text-sm font-semibold text-zinc-200">{sectionTitle}</h3>
+          <h3 className="text-sm font-semibold text-red-500">{sectionTitle}</h3>
           <span className="shrink-0 text-xs text-zinc-500">
-            {dramas.length} {dramas.length === 1 ? 'resultado' : 'resultados'}
+            {dramas.length} {dramas.length === 1 ? "resultado" : "resultados"}
           </span>
         </div>
 
@@ -87,7 +88,7 @@ export function HomeView({
             description={
               query.length > 0
                 ? `No encontramos dramas para «${query}». Prueba con otro título o género.`
-                : 'Todavía no tienes dramas en este apartado. Marca uno como viendo, pendiente o visto.'
+                : "Todavía no tienes dramas en este apartado. Marca uno como viendo, pendiente o visto."
             }
             actionLabel="Ver todos los dramas"
             onAction={clearFilters}
@@ -95,5 +96,5 @@ export function HomeView({
         )}
       </section>
     </>
-  )
+  );
 }
