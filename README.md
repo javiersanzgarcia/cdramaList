@@ -32,7 +32,7 @@ La clave se guarda solo en el navegador y nunca se sube al repositorio. Sin clav
 El inicio de sesión usa **Google Identity Services** y solo necesita un **Client ID público** (no hay secreto que guardar). Pasos:
 
 1. Entra en [Credenciales de Google Cloud](https://console.cloud.google.com/apis/credentials) y crea o elige un proyecto.
-2. Si es la primera vez, configura la **pantalla de consentimiento** como *External* y añade tu correo como usuario de prueba.
+2. Si es la primera vez, configura la **pantalla de consentimiento** como _External_ y añade tu correo como usuario de prueba.
 3. Pulsa **Crear credenciales → ID de cliente OAuth → Aplicación web**.
 4. En **Orígenes JavaScript autorizados** añade, sin barra final:
    - `https://javiersanzgarcia.github.io`
@@ -59,12 +59,12 @@ La ruta recomendada es `cdramalist/<id-de-google>.json`, que la app rellena auto
 
 ### Cómo funciona
 
-| Acción | Qué hace |
-| --- | --- |
-| **Sincronizar y combinar** | Lee la nube, une las series y el progreso de ambos lados y vuelve a subir el resultado. |
-| **Subir** | Reemplaza el archivo de la nube con las series de este dispositivo. |
-| **Bajar** | Reemplaza las series de este dispositivo con las de la nube. |
-| **Sincronización automática** | Sube los cambios unos 2 segundos después de cada edición. |
+| Acción                        | Qué hace                                                                                |
+| ----------------------------- | --------------------------------------------------------------------------------------- |
+| **Sincronizar y combinar**    | Lee la nube, une las series y el progreso de ambos lados y vuelve a subir el resultado. |
+| **Subir**                     | Reemplaza el archivo de la nube con las series de este dispositivo.                     |
+| **Bajar**                     | Reemplaza las series de este dispositivo con las de la nube.                            |
+| **Sincronización automática** | Sube los cambios unos 2 segundos después de cada edición.                               |
 
 - Si el archivo cambia en la nube mientras tanto, GitHub devuelve un conflicto y la app pide volver a sincronizar.
 - Borrar una serie o pulsar **Borrar series y progreso** con la sincronización automática activa también borra esos datos en la nube.
@@ -110,14 +110,14 @@ src/
 
 ## Datos guardados
 
-| Clave                     | Contenido                                      |
-| ------------------------- | ---------------------------------------------- |
-| `cdramalist:series`       | Series, partes y progreso                      |
-| `cdramalist:apiKey`       | Clave de YouTube Data API v3                   |
-| `cdramalist:googleUser`   | Nombre, correo y foto de la cuenta de Google   |
+| Clave                       | Contenido                                    |
+| --------------------------- | -------------------------------------------- |
+| `cdramalist:series`         | Series, partes y progreso                    |
+| `cdramalist:apiKey`         | Clave de YouTube Data API v3                 |
+| `cdramalist:googleUser`     | Nombre, correo y foto de la cuenta de Google |
 | `cdramalist:googleClientId` | Client ID público de Google                  |
-| `cdramalist:syncConfig`   | Token de GitHub, repositorio, rama y ruta      |
-| `cdramalist:syncDirty`    | Si hay cambios locales pendientes de subir     |
+| `cdramalist:syncConfig`     | Token de GitHub, repositorio, rama y ruta    |
+| `cdramalist:syncDirty`      | Si hay cambios locales pendientes de subir   |
 
 Puedes exportar una copia en JSON desde **Ajustes → Mis datos** e importarla en otro dispositivo. La clave de YouTube y el token de GitHub nunca se incluyen en esa exportación.
 
@@ -134,7 +134,7 @@ La PWA necesita HTTPS (o `localhost`) para registrarse:
 El repositorio incluye el workflow `.github/workflows/deploy.yml`, que compila y publica la app en GitHub Pages en cada push a `main`.
 
 1. Sube el repositorio a GitHub (rama `main`).
-2. En GitHub, entra en **Settings → Pages → Build and deployment** y selecciona **GitHub Actions** como *Source*.
+2. En GitHub, entra en **Settings → Pages → Build and deployment** y selecciona **GitHub Actions** como _Source_.
 3. Opcional: en **Settings → Secrets and variables → Actions → Variables**, crea `VITE_GOOGLE_CLIENT_ID` con tu Client ID. Así el botón de Google aparece ya configurado y no hay que pegarlo en cada dispositivo.
 4. Ve a la pestaña **Actions** y espera a que termine el workflow **Deploy to GitHub Pages**.
 5. La app quedará disponible en:
@@ -146,3 +146,15 @@ https://TU_USUARIO.github.io/cdramaList/
 La ruta base se detecta automáticamente en GitHub Actions a partir del nombre del repositorio (`/cdramaList/`), por lo que no hace falta cambiar `vite.config.ts`. En local se sigue usando `/`.
 
 También puedes desplegar la carpeta `dist/` en cualquier otro hosting estático con HTTPS (Netlify, Vercel, Cloudflare Pages…).
+
+## Pendientes
+
+### Configurar api de google, para iniciar sesión automaticamente
+
+### Configurar la api de youtube automaticamente
+
+### Modificar como se sincronizan las series entre dispositivos por login con google drive en vez de un repo de github
+
+### Añadir botón actualizar serie, para que busque nuevos capitulos
+
+### Modificar modo de búsqueda, para buscar por nombres propios, descripción, nombres de personajes
