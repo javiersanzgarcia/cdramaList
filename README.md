@@ -38,9 +38,15 @@ El inicio de sesión usa **Google Identity Services** y solo necesita un **Clien
    - `https://javiersanzgarcia.github.io`
    - `http://localhost:5173`
 5. Copia el Client ID (termina en `.apps.googleusercontent.com`).
-6. Ábrelo en la app desde el avatar de la esquina → **Cuenta y sincronización** y pégalo.
+6. Configúralo de una de estas formas:
+   - **Local:** crea un `.env` a partir de `.env.example` y pega el valor en `VITE_GOOGLE_CLIENT_ID`.
+     ```bash
+     cp .env.example .env
+     ```
+   - **GitHub Pages:** crea la variable de repositorio `VITE_GOOGLE_CLIENT_ID` en **Settings → Secrets and variables → Actions → Variables** (ver más abajo).
+   - **Sin rebuild:** pégalo desde el avatar de la esquina → **Cuenta y sincronización**.
 
-También puedes configurarlo en el despliegue con la variable de repositorio `VITE_GOOGLE_CLIENT_ID` (ver más abajo).
+El valor de `VITE_GOOGLE_CLIENT_ID` (entorno o build) tiene prioridad sobre el que se guarda en el navegador, así que al desplegar la app el botón de Google aparece ya listo. El archivo `.env` no se sube al repositorio; solo se versiona `.env.example`.
 
 > El login es una identidad de cliente: el JWT se decodifica en el navegador y no se verifica en un servidor. No concede acceso a Google Drive. La protección real de tus datos depende de que el repositorio de sincronización sea privado y de tu token de GitHub.
 
@@ -115,7 +121,7 @@ src/
 | `cdramalist:series`         | Series, partes y progreso                    |
 | `cdramalist:apiKey`         | Clave de YouTube Data API v3                 |
 | `cdramalist:googleUser`     | Nombre, correo y foto de la cuenta de Google |
-| `cdramalist:googleClientId` | Client ID público de Google                  |
+| `cdramalist:googleClientId` | Client ID guardado desde la app (el de `.env`/repo tiene prioridad) |
 | `cdramalist:syncConfig`     | Token de GitHub, repositorio, rama y ruta    |
 | `cdramalist:syncDirty`      | Si hay cambios locales pendientes de subir   |
 

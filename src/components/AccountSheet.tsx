@@ -14,6 +14,7 @@ export interface SyncMessage {
 interface AccountSheetProps {
   user: GoogleUser | null
   clientId: string
+  clientIdLocked: boolean
   syncConfig: SyncConfig
   dirty: boolean
   busy: boolean
@@ -37,6 +38,7 @@ function configKey(config: SyncConfig): string {
 export function AccountSheet({
   user,
   clientId,
+  clientIdLocked,
   syncConfig,
   dirty,
   busy,
@@ -247,34 +249,42 @@ export function AccountSheet({
                   navegador.
                 </p>
 
-                <button
-                  type="button"
-                  onClick={() => setShowClientId((value) => !value)}
-                  className="mt-2 w-full text-center text-[11px] font-medium text-zinc-500 underline decoration-zinc-700 underline-offset-2 transition hover:text-zinc-300"
-                >
-                  {showClientId ? 'Ocultar Client ID' : 'Cambiar Client ID'}
-                </button>
-
-                {showClientId && (
-                  <div className="mt-2 space-y-2">
-                    <input
-                      type="text"
-                      value={draftClientId}
-                      onChange={(event) => setDraftClientId(event.target.value)}
-                      placeholder="1234567890-abc.apps.googleusercontent.com"
-                      autoComplete="off"
-                      spellCheck={false}
-                      className="w-full rounded-2xl border border-zinc-800 bg-zinc-950/70 px-3 py-2.5 text-xs text-zinc-100 outline-none transition placeholder:text-zinc-600 focus:border-rose-500/60 focus:ring-2 focus:ring-rose-500/20"
-                    />
+                {clientIdLocked ? (
+                  <p className="mt-2 text-center text-[11px] font-medium text-emerald-300/80">
+                    Client ID configurado por la aplicación.
+                  </p>
+                ) : (
+                  <>
                     <button
                       type="button"
-                      onClick={saveClientId}
-                      disabled={!draftClientId.trim()}
-                      className="w-full rounded-2xl bg-rose-500 px-4 py-2.5 text-xs font-semibold text-white transition hover:bg-rose-400 active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-40"
+                      onClick={() => setShowClientId((value) => !value)}
+                      className="mt-2 w-full text-center text-[11px] font-medium text-zinc-500 underline decoration-zinc-700 underline-offset-2 transition hover:text-zinc-300"
                     >
-                      Guardar Client ID
+                      {showClientId ? 'Ocultar Client ID' : 'Cambiar Client ID'}
                     </button>
-                  </div>
+
+                    {showClientId && (
+                      <div className="mt-2 space-y-2">
+                        <input
+                          type="text"
+                          value={draftClientId}
+                          onChange={(event) => setDraftClientId(event.target.value)}
+                          placeholder="1234567890-abc.apps.googleusercontent.com"
+                          autoComplete="off"
+                          spellCheck={false}
+                          className="w-full rounded-2xl border border-zinc-800 bg-zinc-950/70 px-3 py-2.5 text-xs text-zinc-100 outline-none transition placeholder:text-zinc-600 focus:border-rose-500/60 focus:ring-2 focus:ring-rose-500/20"
+                        />
+                        <button
+                          type="button"
+                          onClick={saveClientId}
+                          disabled={!draftClientId.trim()}
+                          className="w-full rounded-2xl bg-rose-500 px-4 py-2.5 text-xs font-semibold text-white transition hover:bg-rose-400 active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-40"
+                        >
+                          Guardar Client ID
+                        </button>
+                      </div>
+                    )}
+                  </>
                 )}
               </div>
             ) : (

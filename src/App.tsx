@@ -45,7 +45,7 @@ interface PlayerState {
   index: number
 }
 
-const DEFAULT_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID ?? ''
+const ENV_CLIENT_ID = (import.meta.env.VITE_GOOGLE_CLIENT_ID ?? '').trim()
 
 function emptySyncConfig(sub?: string): SyncConfig {
   return {
@@ -105,11 +105,13 @@ export default function App() {
     null,
     sanitizeGoogleUser,
   )
-  const [googleClientId, setGoogleClientId] = usePersistentState<string>(
-    'cdramalist:googleClientId',
-    DEFAULT_CLIENT_ID,
-    (value) => (typeof value === 'string' ? value : DEFAULT_CLIENT_ID),
-  )
+  const [googleClientIdOverride, setGoogleClientIdOverride] =
+    usePersistentState<string>(
+      'cdramalist:googleClientId',
+      '',
+      (value) => (typeof value === 'string' ? value : ''),
+    )
+  const googleClientId = ENV_CLIENT_ID || googleClientIdOverride
   const [syncConfig, setSyncConfig] = usePersistentState<SyncConfig>(
     'cdramalist:syncConfig',
     emptySyncConfig(),
@@ -376,7 +378,7 @@ export default function App() {
   }
 
   function handleClientIdChange(clientId: string) {
-    setGoogleClientId(clientId)
+    setGoogleClientIdOverride(clientId)
   }
 
   const syncMerge = useCallback(
@@ -773,6 +775,7 @@ export default function App() {
         <AccountSheet
           user={googleUser}
           clientId={googleClientId}
+          clientIdLocked={ENV_CLIENT_ID.length > 0}
           syncConfig={syncConfig}
           dirty={syncDirty}
           busy={syncBusy}
