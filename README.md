@@ -55,13 +55,13 @@ El valor de `VITE_GOOGLE_CLIENT_ID` (entorno o build) tiene prioridad sobre el q
 
 ### Cómo funciona la sincronización
 
-| Acción | Qué hace |
-| --- | --- |
-| **Conectar con Google Drive** | Pide permiso `drive.appdata` y crea o lee `cdramalist.json` en la carpeta privada de la app. |
-| **Sincronizar y combinar** | Lee el archivo de Drive, une las series y el progreso de ambos lados y vuelve a subir el resultado. |
-| **Subir** | Reemplaza el archivo de Drive con las series de este dispositivo. |
-| **Bajar** | Reemplaza las series de este dispositivo con las de Drive. |
-| **Sincronización automática** | Sube los cambios unos 2 segundos después de cada edición. |
+| Acción                        | Qué hace                                                                                            |
+| ----------------------------- | --------------------------------------------------------------------------------------------------- |
+| **Conectar con Google Drive** | Pide permiso `drive.appdata` y crea o lee `cdramalist.json` en la carpeta privada de la app.        |
+| **Sincronizar y combinar**    | Lee el archivo de Drive, une las series y el progreso de ambos lados y vuelve a subir el resultado. |
+| **Subir**                     | Reemplaza el archivo de Drive con las series de este dispositivo.                                   |
+| **Bajar**                     | Reemplaza las series de este dispositivo con las de Drive.                                          |
+| **Sincronización automática** | Sube los cambios unos 2 segundos después de cada edición.                                           |
 
 - Cada cuenta de Google tiene su propio archivo en su propio Drive.
 - El token de acceso se mantiene en memoria y no se guarda en `localStorage`. Al recargar, la app intenta renovarlo sin mostrar ventanas; si Google lo requiere, pulsa **Reconectar**.
@@ -109,12 +109,12 @@ src/
 
 ## Datos guardados
 
-| Clave                       | Contenido                                                           |
-| --------------------------- | ------------------------------------------------------------------- |
-| `cdramalist:series`         | Series, partes y progreso                                           |
-| `cdramalist:apiKey`         | Clave de YouTube Data API v3                                        |
-| `cdramalist:googleUser`     | Nombre, correo y foto de la cuenta de Google                        |
-| `cdramalist:googleClientId` | Client ID guardado desde la app (el de `.env`/repo tiene prioridad) |
+| Clave                       | Contenido                                                              |
+| --------------------------- | ---------------------------------------------------------------------- |
+| `cdramalist:series`         | Series, partes y progreso                                              |
+| `cdramalist:apiKey`         | Clave de YouTube Data API v3                                           |
+| `cdramalist:googleUser`     | Nombre, correo y foto de la cuenta de Google                           |
+| `cdramalist:googleClientId` | Client ID guardado desde la app (el de `.env`/repo tiene prioridad)    |
 | `cdramalist:drive`          | Conexión con Drive: auto-sync, correo, archivo y última sincronización |
 
 Puedes exportar una copia en JSON desde **Ajustes → Mis datos** e importarla en otro dispositivo. La clave de YouTube y el token de Drive nunca se incluyen en esa exportación.
@@ -146,8 +146,6 @@ La ruta base se detecta automáticamente en GitHub Actions a partir del nombre d
 También puedes desplegar la carpeta `dist/` en cualquier otro hosting estático con HTTPS (Netlify, Vercel, Cloudflare Pages…).
 
 ## Pendientes
-
-### Configurar la api de youtube automaticamente
 
 ### Añadir botón actualizar serie, para que busque nuevos capitulos
 
