@@ -10,9 +10,8 @@ PWA para reunir las partes de una historia de YouTube, guardar el progreso y ver
 - **Importa listas de reproducción completas.** Si el canal agrupa las partes en una playlist, se importan todas en orden.
 - **Guarda tu progreso.** Marca partes como vistas, continúa donde lo dejaste y consulta el porcentaje de cada serie.
 - **Reproductor integrado.** Las partes se reproducen dentro de la app y avanzan solas al terminar el vídeo.
-- **Cuenta de Google opcional.** Inicia sesión para identificar tu cuenta y usar una ruta de sincronización propia.
-- **Sincronización sin backend.** Guarda tus series en un JSON dentro de un repositorio de GitHub mediante la API de GitHub y un token fine-grained. Funciona entre móvil y ordenador sin servidor propio.
-- **Todo sigue siendo local por defecto.** Sin cuenta ni token, las series y la clave de API se guardan en `localStorage`.
+- **Sincronización con Google Drive.** Inicia sesión con Google y guarda tus series en un archivo privado de tu Drive (`appDataFolder`). Funciona entre móvil y ordenador sin servidor propio.
+- **Todo sigue siendo local por defecto.** Sin cuenta de Google, las series y la clave de API se guardan en `localStorage`.
 
 ## Clave de YouTube (opcional pero recomendada)
 
@@ -23,60 +22,54 @@ La búsqueda automática usa la [YouTube Data API v3](https://console.cloud.goog
 3. Restringe la clave a los referrers `https://javiersanzgarcia.github.io/*` y `http://localhost:5173/*`.
 4. Pega la clave en **Ajustes** dentro de la app.
 
-La clave se guarda solo en el navegador y nunca se sube al repositorio. Sin clave puedes seguir añadiendo vídeos uno a uno en modo manual.
+La clave se guarda solo en el navegador y nunca se sube a Google Drive. Sin clave puedes seguir añadiendo vídeos uno a uno en modo manual.
 
 > Cada búsqueda consume 100 unidades de la cuota gratuita diaria (10.000). Las peticiones de metadatos consumen mucho menos.
 
-## Cuenta de Google
+## Cuenta de Google y sincronización con Drive
 
-El inicio de sesión usa **Google Identity Services** y solo necesita un **Client ID público** (no hay secreto que guardar). Pasos:
+La sincronización usa **Google Drive** como almacenamiento y **GitHub Pages solo como hosting**. No hay backend propio: el navegador obtiene un access token OAuth2 y escribe un archivo `cdramalist.json` en la carpeta privada `appDataFolder` de tu Drive.
+
+### Activar Google Drive en Google Cloud
 
 1. Entra en [Credenciales de Google Cloud](https://console.cloud.google.com/apis/credentials) y crea o elige un proyecto.
-2. Si es la primera vez, configura la **pantalla de consentimiento** como _External_ y añade tu correo como usuario de prueba.
-3. Pulsa **Crear credenciales → ID de cliente OAuth → Aplicación web**.
-4. En **Orígenes JavaScript autorizados** añade, sin barra final:
+2. Activa la [Google Drive API](https://console.cloud.google.com/apis/library/drive.googleapis.com).
+3. Configura la **pantalla de consentimiento** como _External_ y añade tu correo como usuario de prueba.
+4. En **Permisos o scopes**, añade:
+   - `https://www.googleapis.com/auth/drive.appdata`
+   - `openid`, `email` y `profile` (suelen venir por defecto).
+5. Pulsa **Crear credenciales → ID de cliente OAuth → Aplicación web**.
+6. En **Orígenes JavaScript autorizados** añade, sin barra final:
    - `https://javiersanzgarcia.github.io`
    - `http://localhost:5173`
-5. Copia el Client ID (termina en `.apps.googleusercontent.com`).
-6. Configúralo de una de estas formas:
+7. Copia el Client ID (termina en `.apps.googleusercontent.com`).
+8. Configúralo de una de estas formas:
    - **Local:** crea un `.env` a partir de `.env.example` y pega el valor en `VITE_GOOGLE_CLIENT_ID`.
      ```bash
      cp .env.example .env
      ```
-   - **GitHub Pages:** crea la variable de repositorio `VITE_GOOGLE_CLIENT_ID` en **Settings → Secrets and variables → Actions → Variables** (ver más abajo).
+   - **GitHub Pages:** crea la variable de repositorio `VITE_GOOGLE_CLIENT_ID` en **Settings → Secrets and variables → Actions → Variables**.
    - **Sin rebuild:** pégalo desde el avatar de la esquina → **Cuenta y sincronización**.
 
-El valor de `VITE_GOOGLE_CLIENT_ID` (entorno o build) tiene prioridad sobre el que se guarda en el navegador, así que al desplegar la app el botón de Google aparece ya listo. El archivo `.env` no se sube al repositorio; solo se versiona `.env.example`.
+El valor de `VITE_GOOGLE_CLIENT_ID` (entorno o build) tiene prioridad sobre el que se guarda en el navegador. El archivo `.env` no se sube al repositorio; solo se versiona `.env.example`.
 
-> El login es una identidad de cliente: el JWT se decodifica en el navegador y no se verifica en un servidor. No concede acceso a Google Drive. La protección real de tus datos depende de que el repositorio de sincronización sea privado y de tu token de GitHub.
+### Cómo funciona la sincronización
 
-## Sincronización en GitHub
+| Acción | Qué hace |
+| --- | --- |
+| **Conectar con Google Drive** | Pide permiso `drive.appdata` y crea o lee `cdramalist.json` en la carpeta privada de la app. |
+| **Sincronizar y combinar** | Lee el archivo de Drive, une las series y el progreso de ambos lados y vuelve a subir el resultado. |
+| **Subir** | Reemplaza el archivo de Drive con las series de este dispositivo. |
+| **Bajar** | Reemplaza las series de este dispositivo con las de Drive. |
+| **Sincronización automática** | Sube los cambios unos 2 segundos después de cada edición. |
 
-GitHub Pages es solo lectura para el navegador, así que la app escribe el JSON directamente con la **API de GitHub** usando un token que se guarda únicamente en tu navegador.
+- Cada cuenta de Google tiene su propio archivo en su propio Drive.
+- El token de acceso se mantiene en memoria y no se guarda en `localStorage`. Al recargar, la app intenta renovarlo sin mostrar ventanas; si Google lo requiere, pulsa **Reconectar**.
+- Si no hay conexión, los cambios siguen guardándose en el dispositivo y se suben cuando vuelvas a sincronizar.
+- Borrar una serie o pulsar **Borrar series y progreso** con la sincronización automática activa también borra esos datos en Drive.
+- **Sincronizar y combinar** usa la unión de series y progreso. No resucita una serie borrada si el borrado ya se ha subido, pero si se combina con una copia antigua de Drive puede reaparecer.
 
-1. Crea un repositorio **privado** para los datos, por ejemplo `cdramalist-data`. No necesita GitHub Pages.
-2. Entra en [Fine-grained tokens](https://github.com/settings/personal-access-tokens/new) y crea un token.
-3. En **Repository access** selecciona solo ese repositorio.
-4. En **Permissions → Contents** elige **Read and write**.
-5. En la app, abre **Cuenta y sincronización**, pega el token, el repositorio (`usuario/repositorio`), la rama (`main`) y la ruta del JSON.
-6. Pulsa **Guardar y comprobar**.
-
-La ruta recomendada es `cdramalist/<id-de-google>.json`, que la app rellena automáticamente al iniciar sesión. La sincronización también funciona sin iniciar sesión si escribes una ruta manual; la cuenta de Google solo sirve para identificar al usuario y proponer esa ruta.
-
-### Cómo funciona
-
-| Acción                        | Qué hace                                                                                |
-| ----------------------------- | --------------------------------------------------------------------------------------- |
-| **Sincronizar y combinar**    | Lee la nube, une las series y el progreso de ambos lados y vuelve a subir el resultado. |
-| **Subir**                     | Reemplaza el archivo de la nube con las series de este dispositivo.                     |
-| **Bajar**                     | Reemplaza las series de este dispositivo con las de la nube.                            |
-| **Sincronización automática** | Sube los cambios unos 2 segundos después de cada edición.                               |
-
-- Si el archivo cambia en la nube mientras tanto, GitHub devuelve un conflicto y la app pide volver a sincronizar.
-- Borrar una serie o pulsar **Borrar series y progreso** con la sincronización automática activa también borra esos datos en la nube.
-- **Sincronizar y combinar** usa la unión de series y progreso. No resucita una serie borrada si antes se ha subido el borrado, pero si se combina con una copia antigua de la nube puede reaparecer.
-
-> **Seguridad:** el token se guarda en `localStorage` de este navegador y nunca se incluye en el repositorio ni en la build. Aun así, usa un token limitado al repositorio de datos, mantenlo privado y revócalo en GitHub si sospechas que se ha filtrado. No reutilices un token con acceso a otros repositorios.
+> **Privacidad:** el permiso `drive.appdata` solo da acceso a la carpeta privada de CdramaList. La app no puede leer ni modificar el resto de archivos de tu Google Drive. Si quieres revocar el acceso, hazlo desde [la configuración de tu cuenta de Google](https://myaccount.google.com/permissions).
 
 ## Stack
 
@@ -100,14 +93,14 @@ npm run lint     # lint con oxlint
 ```
 src/
 ├── components/         # UI (HomeView, ListView, SeriesSheet, AccountSheet…)
-├── hooks/              # persistencia local, instalación PWA y hojas modales
+├── hooks/              # persistencia local, sync con Drive, instalación PWA y hojas modales
 ├── lib/
 │   ├── format.ts       # duraciones y fechas
-│   ├── google.ts       # Google Identity Services y decodificación del JWT
+│   ├── google.ts       # OAuth2, token de Drive y datos de la cuenta
 │   ├── parts.ts        # detección de partes y similitud de títulos
 │   ├── series.ts       # progreso, estados, filtros y fusión de series
 │   ├── status.ts       # metadatos de los estados
-│   ├── sync.ts         # cliente de la API de GitHub (pull/push)
+│   ├── drive.ts        # cliente de Google Drive (pull/push en appDataFolder)
 │   └── youtube.ts      # API de YouTube, URLs, búsqueda y playlists
 ├── types.ts
 ├── App.tsx
@@ -122,10 +115,9 @@ src/
 | `cdramalist:apiKey`         | Clave de YouTube Data API v3                                        |
 | `cdramalist:googleUser`     | Nombre, correo y foto de la cuenta de Google                        |
 | `cdramalist:googleClientId` | Client ID guardado desde la app (el de `.env`/repo tiene prioridad) |
-| `cdramalist:syncConfig`     | Token de GitHub, repositorio, rama y ruta                           |
-| `cdramalist:syncDirty`      | Si hay cambios locales pendientes de subir                          |
+| `cdramalist:drive`          | Conexión con Drive: auto-sync, correo, archivo y última sincronización |
 
-Puedes exportar una copia en JSON desde **Ajustes → Mis datos** e importarla en otro dispositivo. La clave de YouTube y el token de GitHub nunca se incluyen en esa exportación.
+Puedes exportar una copia en JSON desde **Ajustes → Mis datos** e importarla en otro dispositivo. La clave de YouTube y el token de Drive nunca se incluyen en esa exportación.
 
 ## Instalar en Android
 
@@ -156,8 +148,6 @@ También puedes desplegar la carpeta `dist/` en cualquier otro hosting estático
 ## Pendientes
 
 ### Configurar la api de youtube automaticamente
-
-### Modificar como se sincronizan las series entre dispositivos por login con google drive en vez de un repo de github
 
 ### Añadir botón actualizar serie, para que busque nuevos capitulos
 

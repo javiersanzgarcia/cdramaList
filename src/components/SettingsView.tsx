@@ -138,7 +138,8 @@ export function SettingsView({
           </div>
           <p className="mt-3 text-sm leading-relaxed text-zinc-400">
             Encuentra todas las partes de tus historias de YouTube y continúa donde lo
-            dejaste. Tus series y tu progreso se guardan en este dispositivo.
+            dejaste. Tus series y tu progreso se guardan en este dispositivo y, si
+            conectas Google Drive, también en tu cuenta.
           </p>
         </section>
 
@@ -212,7 +213,8 @@ export function SettingsView({
               </div>
 
               <p className="mt-2 text-[11px] leading-relaxed text-zinc-600">
-                La clave se guarda solo en este dispositivo y nunca se sube al repositorio.
+                La clave se guarda solo en este dispositivo y nunca se sube a Google
+                Drive.
               </p>
             </div>
           )}

@@ -1,5 +1,5 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { AccountSheet, type SyncMessage } from './components/AccountSheet'
+import { useEffect, useMemo, useState } from 'react'
+import { AccountSheet } from './components/AccountSheet'
 import { AddSeriesSheet } from './components/AddSeriesSheet'
 import { BottomNav } from './components/BottomNav'
 import { HomeView } from './components/HomeView'
@@ -8,9 +8,10 @@ import { ListView } from './components/ListView'
 import { PlayerSheet } from './components/PlayerSheet'
 import { SeriesSheet } from './components/SeriesSheet'
 import { SettingsView } from './components/SettingsView'
+import { useDriveSync } from './hooks/useDriveSync'
 import { useInstallPrompt } from './hooks/useInstallPrompt'
 import { usePersistentState } from './hooks/usePersistentState'
-import { sanitizeGoogleUser, signOutGoogle } from './lib/google'
+import { sanitizeGoogleUser } from './lib/google'
 import {
   createSeries,
   filterSeries,
@@ -21,22 +22,12 @@ import {
   normalizeSeries,
   watchedCount,
 } from './lib/series'
-import {
-  defaultSyncPath,
-  isSyncConfigured,
-  pullRemote,
-  pushRemote,
-  seriesCollectionsEqual,
-  validateSyncConfig,
-  verifySyncConfig,
-} from './lib/sync'
 import type {
   Filter,
   GoogleUser,
   Part,
   Series,
   SeriesDraft,
-  SyncConfig,
   Tab,
 } from './types'
 
@@ -47,47 +38,6 @@ interface PlayerState {
 
 const ENV_CLIENT_ID = (import.meta.env.VITE_GOOGLE_CLIENT_ID ?? '').trim()
 const ENV_YOUTUBE_API_KEY = (import.meta.env.VITE_YOUTUBE_API_KEY ?? '').trim()
-
-function emptySyncConfig(sub?: string): SyncConfig {
-  return {
-    token: '',
-    repo: '',
-    branch: 'main',
-    path: defaultSyncPath(sub),
-    auto: true,
-  }
-}
-
-function sanitizeSyncConfig(value: unknown): SyncConfig {
-  if (!value || typeof value !== 'object') return emptySyncConfig()
-
-  const item = value as Record<string, unknown>
-
-  return {
-    token: typeof item.token === 'string' ? item.token : '',
-    repo: typeof item.repo === 'string' ? item.repo : '',
-    branch:
-      typeof item.branch === 'string' && item.branch.trim()
-        ? item.branch
-        : 'main',
-    path:
-      typeof item.path === 'string' && item.path.trim()
-        ? item.path
-        : defaultSyncPath(),
-    auto: typeof item.auto === 'boolean' ? item.auto : true,
-    sha: typeof item.sha === 'string' ? item.sha : undefined,
-    lastSyncedAt:
-      typeof item.lastSyncedAt === 'number' ? item.lastSyncedAt : undefined,
-  }
-}
-
-function syncKey(config: SyncConfig): string {
-  return `${config.repo}|${config.branch}|${config.path}`
-}
-
-function errorMessage(error: unknown): string {
-  return error instanceof Error ? error.message : 'No se pudo sincronizar.'
-}
 
 export default function App() {
   const [series, setSeries] = usePersistentState<Series[]>(
@@ -114,18 +64,12 @@ export default function App() {
       (value) => (typeof value === 'string' ? value : ''),
     )
   const googleClientId = ENV_CLIENT_ID || googleClientIdOverride
-  const [syncConfig, setSyncConfig] = usePersistentState<SyncConfig>(
-    'cdramalist:syncConfig',
-    emptySyncConfig(),
-    sanitizeSyncConfig,
-  )
-  const [syncDirty, setSyncDirty] = usePersistentState<boolean>(
-    'cdramalist:syncDirty',
-    false,
-    (value) => value === true,
-  )
-  const [syncBusy, setSyncBusy] = useState(false)
-  const [syncMessage, setSyncMessage] = useState<SyncMessage | null>(null)
+  const drive = useDriveSync({
+    clientId: googleClientId,
+    series,
+    setSeries,
+    onUser: setGoogleUser,
+  })
   const [accountOpen, setAccountOpen] = useState(false)
 
   const [query, setQuery] = useState('')
@@ -137,18 +81,20 @@ export default function App() {
   const [addTargetId, setAddTargetId] = useState<string | null>(null)
   const { canInstall, promptInstall } = useInstallPrompt()
 
-  const seriesRef = useRef(series)
-  const revisionRef = useRef(0)
-  const autoErrorRef = useRef(false)
-  const initialSyncRef = useRef<string | null>(null)
-
-  useEffect(() => {
-    seriesRef.current = series
-  }, [series])
-
   useEffect(() => {
     window.scrollTo({ top: 0 })
   }, [tab])
+
+  // Limpia la configuración de la antigua sincronización con GitHub, que
+  // guardaba un token en localStorage y ya no se utiliza.
+  useEffect(() => {
+    try {
+      window.localStorage.removeItem('cdramalist:syncConfig')
+      window.localStorage.removeItem('cdramalist:syncDirty')
+    } catch {
+      // Sin acceso a localStorage: no hay nada que limpiar.
+    }
+  }, [])
 
   const filtered = useMemo(
     () => filterSeries(series, query, filter),
@@ -175,23 +121,15 @@ export default function App() {
     [series],
   )
 
-  function updateSeries(
-    updater: (current: Series[]) => Series[],
-    markDirty = true,
-  ) {
-    revisionRef.current += 1
-    autoErrorRef.current = false
+  function updateSeries(updater: (current: Series[]) => Series[]) {
     setSeries((current) => updater(current))
-    if (markDirty && isSyncConfigured(syncConfig)) setSyncDirty(true)
   }
 
   function touchSeries(id: string) {
-    updateSeries(
-      (current) =>
-        current.map((item) =>
-          item.id === id ? { ...item, lastOpenedAt: Date.now() } : item,
-        ),
-      false,
+    updateSeries((current) =>
+      current.map((item) =>
+        item.id === id ? { ...item, lastOpenedAt: Date.now() } : item,
+      ),
     )
   }
 
@@ -350,317 +288,9 @@ export default function App() {
     setTab('settings')
   }
 
-  function handleSignIn(user: GoogleUser) {
-    setGoogleUser(user)
-    initialSyncRef.current = null
-    setSyncConfig((current) => {
-      if (current.path && current.path !== defaultSyncPath()) return current
-
-      return {
-        ...current,
-        path: defaultSyncPath(user.sub),
-        sha: undefined,
-        lastSyncedAt: undefined,
-      }
-    })
-    setSyncMessage({
-      kind: 'ok',
-      text: `Sesión iniciada como ${user.email}.`,
-    })
-  }
-
-  function handleSignOut() {
-    signOutGoogle()
-    setGoogleUser(null)
-    initialSyncRef.current = null
-    setSyncMessage({
-      kind: 'info',
-      text: 'Has cerrado la sesión. La sincronización configurada se mantiene.',
-    })
-  }
-
   function handleClientIdChange(clientId: string) {
     setGoogleClientIdOverride(clientId)
   }
-
-  const syncMerge = useCallback(
-    async (silent = false) => {
-      if (!isSyncConfigured(syncConfig)) {
-        if (!silent) {
-          setSyncMessage({
-            kind: 'error',
-            text: 'Configura la sincronización antes de continuar.',
-          })
-        }
-        return
-      }
-
-      setSyncBusy(true)
-      try {
-        const remote = await pullRemote(syncConfig)
-        const merged = remote
-          ? mergeSeriesCollections(seriesRef.current, remote.series)
-          : seriesRef.current
-
-        if (remote) setSeries(merged)
-
-        const revision = revisionRef.current
-
-        if (remote && seriesCollectionsEqual(merged, remote.series)) {
-          setSyncConfig((current) => ({
-            ...current,
-            sha: remote.sha,
-            lastSyncedAt: Date.now(),
-          }))
-          autoErrorRef.current = false
-          if (revisionRef.current === revision) setSyncDirty(false)
-          if (!silent) {
-            setSyncMessage({ kind: 'ok', text: 'Todo está sincronizado.' })
-          }
-          return
-        }
-
-        const result = await pushRemote(syncConfig, merged, remote?.sha)
-
-        setSyncConfig((current) => ({
-          ...current,
-          sha: result.sha,
-          lastSyncedAt: Date.now(),
-        }))
-        autoErrorRef.current = false
-        if (revisionRef.current === revision) setSyncDirty(false)
-
-        if (!silent || (remote && remote.series.length > 0)) {
-          setSyncMessage({
-            kind: 'ok',
-            text: remote
-              ? `Sincronizadas ${merged.length} series con la nube.`
-              : `Subidas ${merged.length} series a la nube.`,
-          })
-        }
-      } catch (error) {
-        setSyncMessage({ kind: 'error', text: errorMessage(error) })
-      } finally {
-        setSyncBusy(false)
-      }
-    },
-    [syncConfig, setSeries, setSyncConfig, setSyncDirty],
-  )
-
-  async function handleSaveConfig(next: SyncConfig): Promise<boolean> {
-    const error = validateSyncConfig(next)
-    if (error) {
-      setSyncMessage({ kind: 'error', text: error })
-      return false
-    }
-
-    setSyncBusy(true)
-    try {
-      await verifySyncConfig(next)
-      const remote = await pullRemote(next)
-      const saved: SyncConfig = { ...next, sha: remote?.sha }
-
-      autoErrorRef.current = false
-      setSyncConfig(saved)
-      setSyncMessage({
-        kind: 'ok',
-        text: syncDirty
-          ? 'Conexión verificada. Hay cambios locales: pulsa Sincronizar para combinarlos con la nube.'
-          : remote
-            ? 'Conexión verificada. Sincronizando los datos de la nube…'
-            : 'Conexión verificada. Subiendo tus series…',
-      })
-      return true
-    } catch (error) {
-      setSyncMessage({ kind: 'error', text: errorMessage(error) })
-      return false
-    } finally {
-      setSyncBusy(false)
-    }
-  }
-
-  function handleSyncConfigChange(next: SyncConfig) {
-    const changedTarget =
-      next.repo !== syncConfig.repo ||
-      next.branch !== syncConfig.branch ||
-      next.path !== syncConfig.path
-
-    autoErrorRef.current = false
-    setSyncConfig(
-      changedTarget
-        ? { ...next, sha: undefined, lastSyncedAt: undefined }
-        : next,
-    )
-  }
-
-  function handleSync() {
-    void syncMerge(false)
-  }
-
-  function handleUpload() {
-    if (!isSyncConfigured(syncConfig)) {
-      setSyncMessage({
-        kind: 'error',
-        text: 'Configura la sincronización antes de continuar.',
-      })
-      return
-    }
-
-    const confirmed = window.confirm(
-      `Se reemplazará el archivo de la nube con tus ${seriesRef.current.length} series locales. ¿Continuar?`,
-    )
-    if (!confirmed) return
-
-    void (async () => {
-      setSyncBusy(true)
-      try {
-        let sha = syncConfig.sha
-        if (!sha) {
-          const remote = await pullRemote(syncConfig)
-          sha = remote?.sha
-        }
-
-        const revision = revisionRef.current
-        const result = await pushRemote(syncConfig, seriesRef.current, sha)
-
-        setSyncConfig((current) => ({
-          ...current,
-          sha: result.sha,
-          lastSyncedAt: Date.now(),
-        }))
-        autoErrorRef.current = false
-        if (revisionRef.current === revision) setSyncDirty(false)
-        setSyncMessage({
-          kind: 'ok',
-          text: 'Nube actualizada con las series de este dispositivo.',
-        })
-      } catch (error) {
-        setSyncMessage({ kind: 'error', text: errorMessage(error) })
-      } finally {
-        setSyncBusy(false)
-      }
-    })()
-  }
-
-  function handleDownload() {
-    if (!isSyncConfigured(syncConfig)) {
-      setSyncMessage({
-        kind: 'error',
-        text: 'Configura la sincronización antes de continuar.',
-      })
-      return
-    }
-
-    void (async () => {
-      setSyncBusy(true)
-      try {
-        const remote = await pullRemote(syncConfig)
-
-        if (!remote) {
-          setSyncMessage({
-            kind: 'info',
-            text: 'Todavía no hay datos en la nube.',
-          })
-          return
-        }
-
-        const confirmed = window.confirm(
-          `Se reemplazarán tus ${seriesRef.current.length} series locales por las ${remote.series.length} de la nube. ¿Continuar?`,
-        )
-        if (!confirmed) return
-
-        setSeries(remote.series)
-        setSyncConfig((current) => ({
-          ...current,
-          sha: remote.sha,
-          lastSyncedAt: Date.now(),
-        }))
-        autoErrorRef.current = false
-        setSyncDirty(false)
-        setSyncMessage({
-          kind: 'ok',
-          text: `Descargadas ${remote.series.length} series de la nube.`,
-        })
-      } catch (error) {
-        setSyncMessage({ kind: 'error', text: errorMessage(error) })
-      } finally {
-        setSyncBusy(false)
-      }
-    })()
-  }
-
-  function handleDisconnect() {
-    const confirmed = window.confirm(
-      'Se quitará la configuración de sincronización de este dispositivo. El archivo de GitHub no se borra. ¿Continuar?',
-    )
-    if (!confirmed) return
-
-    initialSyncRef.current = null
-    autoErrorRef.current = false
-    setSyncConfig(emptySyncConfig(googleUser?.sub))
-    setSyncDirty(false)
-    setSyncMessage({
-      kind: 'info',
-      text: 'Sincronización desconectada en este dispositivo.',
-    })
-  }
-
-  useEffect(() => {
-    if (!isSyncConfigured(syncConfig)) return
-    if (syncDirty) return
-
-    const key = syncKey(syncConfig)
-    if (initialSyncRef.current === key) return
-
-    initialSyncRef.current = key
-    void syncMerge(true)
-  }, [syncConfig, syncDirty, syncMerge])
-
-  useEffect(() => {
-    if (!syncDirty) return
-    if (!syncConfig.auto) return
-    if (!isSyncConfigured(syncConfig)) return
-    if (syncBusy || autoErrorRef.current) return
-
-    const timer = window.setTimeout(() => {
-      void (async () => {
-        setSyncBusy(true)
-        try {
-          let sha = syncConfig.sha
-          if (!sha) {
-            const remote = await pullRemote(syncConfig)
-            sha = remote?.sha
-          }
-
-          const revision = revisionRef.current
-          const result = await pushRemote(syncConfig, seriesRef.current, sha)
-
-          setSyncConfig((current) => ({
-            ...current,
-            sha: result.sha,
-            lastSyncedAt: Date.now(),
-          }))
-          autoErrorRef.current = false
-          if (revisionRef.current === revision) setSyncDirty(false)
-          setSyncMessage({ kind: 'ok', text: 'Cambios sincronizados.' })
-        } catch (error) {
-          autoErrorRef.current = true
-          setSyncMessage({ kind: 'error', text: errorMessage(error) })
-        } finally {
-          setSyncBusy(false)
-        }
-      })()
-    }, 2000)
-
-    return () => window.clearTimeout(timer)
-  }, [
-    syncDirty,
-    syncConfig,
-    syncBusy,
-    series,
-    setSyncConfig,
-    setSyncDirty,
-  ])
 
   return (
     <div className="mx-auto flex min-h-dvh w-full max-w-md flex-col bg-zinc-950 pb-24">
@@ -674,8 +304,8 @@ export default function App() {
             canInstall={canInstall}
             apiKeyConfigured={apiKey.length > 0}
             googleUser={googleUser}
-            syncDirty={syncDirty}
-            syncBusy={syncBusy}
+            syncDirty={drive.dirty}
+            syncBusy={drive.busy}
             onQueryChange={setQuery}
             onFilterChange={setFilter}
             onOpen={openSeries}
@@ -693,8 +323,8 @@ export default function App() {
             groups={groups}
             canInstall={canInstall}
             googleUser={googleUser}
-            syncDirty={syncDirty}
-            syncBusy={syncBusy}
+            syncDirty={drive.dirty}
+            syncBusy={drive.busy}
             onOpen={openSeries}
             onToggleFavorite={toggleFavorite}
             onInstall={promptInstall}
@@ -711,9 +341,9 @@ export default function App() {
             favoriteCount={favoriteCount}
             canInstall={canInstall}
             googleUser={googleUser}
-            syncEnabled={isSyncConfigured(syncConfig)}
-            syncDirty={syncDirty}
-            syncBusy={syncBusy}
+            syncEnabled={drive.connected}
+            syncDirty={drive.dirty}
+            syncBusy={drive.busy}
             onApiKeyChange={setApiKeyOverride}
             apiKeyLocked={ENV_YOUTUBE_API_KEY.length > 0}
             onInstall={promptInstall}
@@ -779,20 +409,9 @@ export default function App() {
           user={googleUser}
           clientId={googleClientId}
           clientIdLocked={ENV_CLIENT_ID.length > 0}
-          syncConfig={syncConfig}
-          dirty={syncDirty}
-          busy={syncBusy}
-          message={syncMessage}
+          drive={drive}
           onClose={() => setAccountOpen(false)}
-          onSignIn={handleSignIn}
-          onSignOut={handleSignOut}
           onClientIdChange={handleClientIdChange}
-          onSaveConfig={handleSaveConfig}
-          onSyncConfigChange={handleSyncConfigChange}
-          onSync={handleSync}
-          onUpload={handleUpload}
-          onDownload={handleDownload}
-          onDisconnect={handleDisconnect}
         />
       )}
     </div>

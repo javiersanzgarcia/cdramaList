@@ -51,12 +51,7 @@ export interface GoogleUser {
   picture?: string
 }
 
-export interface SyncConfig {
-  token: string
-  repo: string
-  branch: string
-  path: string
-  auto: boolean
-  sha?: string
-  lastSyncedAt?: number
+export interface SyncMessage {
+  kind: 'ok' | 'error' | 'info'
+  text: string
 }
