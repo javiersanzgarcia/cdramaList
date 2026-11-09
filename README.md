@@ -115,6 +115,8 @@ src/
 | `cdramalist:googleUser` | Nombre, correo y foto de la cuenta de Google                           |
 | `cdramalist:drive`      | Conexión con Drive: auto-sync, correo, archivo y última sincronización |
 
+El token de acceso de Drive se guarda temporalmente en `sessionStorage` (`cdramalist:driveToken`) para que la sincronización siga activa al recargar la página. Caduca en aproximadamente una hora; después hay que pulsar **Reconectar Google Drive**. Nunca se guarda de forma permanente.
+
 Puedes exportar una copia en JSON desde **Ajustes → Mis datos** e importarla en otro dispositivo. La clave de YouTube y el token de Drive nunca se incluyen en esa exportación.
 
 ## Instalar en Android

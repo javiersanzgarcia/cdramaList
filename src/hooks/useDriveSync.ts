@@ -8,12 +8,16 @@ import {
   type SetStateAction,
 } from 'react'
 import {
+  clearStoredDriveToken,
   fetchGoogleUserInfo,
+  loadStoredDriveToken,
   requestDriveToken,
   revokeGoogleToken,
+  storeDriveToken,
   type AccessToken,
 } from '../lib/google'
 import {
+  DriveError,
   pullFromDrive,
   pushToDrive,
   seriesSignature,
@@ -144,13 +148,42 @@ export function useDriveSync({
         return tokenRef.current.token
       }
 
+      const stored = loadStoredDriveToken()
+      if (stored) {
+        tokenRef.current = stored
+        return stored.token
+      }
+
+      // Renovar sin gesto del usuario abre un popup que el navegador bloquea.
+      // Solo pedimos un token nuevo desde una acción explícita (prompt '').
+      if (prompt === 'none') {
+        throw new DriveError(
+          'La sesión de Google Drive ha caducado. Vuelve a conectar para reanudar la sincronización.',
+          'auth',
+        )
+      }
+
       const token = await requestDriveToken(clientId, prompt)
       tokenRef.current = token
+      storeDriveToken(token)
 
       return token.token
     },
     [clientId],
   )
+
+  const handleDriveError = useCallback((cause: unknown) => {
+    // Un 401 significa que el token ya no sirve: forzamos reconectar.
+    if (cause instanceof DriveError && cause.code === 'auth') {
+      tokenRef.current = null
+      clearStoredDriveToken()
+      connectedRef.current = false
+      setConnected(false)
+    }
+
+    setStatus('error')
+    setMessage({ kind: 'error', text: errorMessage(cause) })
+  }, [])
 
   const syncWithToken = useCallback(
     async (
@@ -197,15 +230,14 @@ export function useDriveSync({
 
         return true
       } catch (cause) {
-        setStatus('error')
-        setMessage({ kind: 'error', text: errorMessage(cause) })
+        handleDriveError(cause)
         return false
       } finally {
         runningRef.current = false
         setBusy(false)
       }
     },
-    [saveState, setSeries],
+    [handleDriveError, saveState, setSeries],
   )
 
   const connect = useCallback(async () => {
@@ -243,10 +275,9 @@ export function useDriveSync({
       setBusy(false)
       connectedRef.current = false
       setConnected(false)
-      setStatus('error')
-      setMessage({ kind: 'error', text: errorMessage(cause) })
+      handleDriveError(cause)
     }
-  }, [clientId, getToken, saveState, syncWithToken])
+  }, [clientId, getToken, handleDriveError, saveState, syncWithToken])
 
   const syncNow = useCallback(
     async (seriesOverride?: Series[]) => {
@@ -259,12 +290,11 @@ export function useDriveSync({
         const token = await getToken('')
         return await syncWithToken(token, false, seriesOverride)
       } catch (cause) {
-        setStatus('error')
-        setMessage({ kind: 'error', text: errorMessage(cause) })
+        handleDriveError(cause)
         return false
       }
     },
-    [connect, getToken, syncWithToken],
+    [connect, getToken, handleDriveError, syncWithToken],
   )
 
   const upload = useCallback(async () => {
@@ -300,13 +330,12 @@ export function useDriveSync({
         text: 'Google Drive actualizado con las series de este dispositivo.',
       })
     } catch (cause) {
-      setStatus('error')
-      setMessage({ kind: 'error', text: errorMessage(cause) })
+      handleDriveError(cause)
     } finally {
       runningRef.current = false
       setBusy(false)
     }
-  }, [connect, getToken, saveState])
+  }, [connect, getToken, handleDriveError, saveState])
 
   const download = useCallback(async () => {
     if (!connectedRef.current) {
@@ -353,13 +382,12 @@ export function useDriveSync({
         text: `Descargadas ${remote.series.length} series de Google Drive.`,
       })
     } catch (cause) {
-      setStatus('error')
-      setMessage({ kind: 'error', text: errorMessage(cause) })
+      handleDriveError(cause)
     } finally {
       runningRef.current = false
       setBusy(false)
     }
-  }, [connect, getToken, saveState, setSeries])
+  }, [connect, getToken, handleDriveError, saveState, setSeries])
 
   const pushCurrent = useCallback(async () => {
     if (!connectedRef.current || runningRef.current) return
@@ -378,13 +406,12 @@ export function useDriveSync({
       saveState({ fileId, lastSyncedAt: Date.now(), enabled: true })
       setStatus('synced')
     } catch (cause) {
-      setStatus('error')
-      setMessage({ kind: 'error', text: errorMessage(cause) })
+      handleDriveError(cause)
     } finally {
       runningRef.current = false
       setBusy(false)
     }
-  }, [getToken, saveState])
+  }, [getToken, handleDriveError, saveState])
 
   const disconnect = useCallback(() => {
     const confirmed = window.confirm(
@@ -396,6 +423,7 @@ export function useDriveSync({
     if (token) revokeGoogleToken(token)
 
     tokenRef.current = null
+    clearStoredDriveToken()
     fileIdRef.current = null
     connectedRef.current = false
     setConnected(false)
@@ -419,35 +447,28 @@ export function useDriveSync({
     [saveState],
   )
 
-  // Intenta recuperar la sesión de Google al recargar la página.
+  // Intenta recuperar la sesión de Google al recargar la página usando el
+  // token guardado en la sesión del navegador. No abre ningún popup.
   useEffect(() => {
     if (restoredRef.current || !clientId || !state.enabled) return
     if (connectedRef.current) return
 
     restoredRef.current = true
-    let cancelled = false
 
     void (async () => {
       setStatus('connecting')
 
       try {
         const token = await getToken('none')
-        if (cancelled) return
-
         connectedRef.current = true
         setConnected(true)
         await syncWithToken(token, true)
       } catch {
-        if (cancelled) return
         connectedRef.current = false
         setConnected(false)
         setStatus('disconnected')
       }
     })()
-
-    return () => {
-      cancelled = true
-    }
   }, [clientId, state.enabled, getToken, syncWithToken])
 
   // Subida automática con debounce cuando cambian los datos y hay sesión activa.

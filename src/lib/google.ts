@@ -104,6 +104,52 @@ export interface AccessToken {
   expiresAt: number
 }
 
+const TOKEN_STORAGE_KEY = 'cdramalist:driveToken'
+
+/**
+ * Guarda el token de Drive solo durante la sesión del navegador. Así una
+ * recarga conserva la sincronización sin dejar el token en disco de forma
+ * permanente. El token caduca igualmente en aproximadamente una hora.
+ */
+export function loadStoredDriveToken(): AccessToken | null {
+  try {
+    const raw = window.sessionStorage.getItem(TOKEN_STORAGE_KEY)
+    if (!raw) return null
+
+    const parsed = JSON.parse(raw) as { token?: unknown; expiresAt?: unknown }
+
+    if (typeof parsed.token !== 'string' || typeof parsed.expiresAt !== 'number') {
+      window.sessionStorage.removeItem(TOKEN_STORAGE_KEY)
+      return null
+    }
+
+    if (Date.now() >= parsed.expiresAt) {
+      window.sessionStorage.removeItem(TOKEN_STORAGE_KEY)
+      return null
+    }
+
+    return { token: parsed.token, expiresAt: parsed.expiresAt }
+  } catch {
+    return null
+  }
+}
+
+export function storeDriveToken(token: AccessToken) {
+  try {
+    window.sessionStorage.setItem(TOKEN_STORAGE_KEY, JSON.stringify(token))
+  } catch {
+    // Sin acceso a sessionStorage: el token queda solo en memoria.
+  }
+}
+
+export function clearStoredDriveToken() {
+  try {
+    window.sessionStorage.removeItem(TOKEN_STORAGE_KEY)
+  } catch {
+    // Sin acceso a sessionStorage: no hay nada que borrar.
+  }
+}
+
 /**
  * Pide un access token OAuth2 con permiso sobre la carpeta privada de Drive.
  * - `prompt: ''` muestra el consentimiento solo la primera vez.
