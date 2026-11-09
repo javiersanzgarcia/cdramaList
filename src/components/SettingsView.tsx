@@ -5,6 +5,7 @@ import { TopBar } from './TopBar'
 
 interface SettingsViewProps {
   apiKey: string
+  apiKeyLocked: boolean
   seriesCount: number
   watchedPartsCount: number
   favoriteCount: number
@@ -23,6 +24,7 @@ interface SettingsViewProps {
 
 export function SettingsView({
   apiKey,
+  apiKeyLocked,
   seriesCount,
   watchedPartsCount,
   favoriteCount,
@@ -154,108 +156,66 @@ export function SettingsView({
             </div>
           </div>
 
-          <div className="mt-3">
-            <label
-              htmlFor="youtube-api-key"
-              className="text-xs font-medium text-zinc-400"
-            >
-              Clave de API de YouTube
-            </label>
-            <div className="relative mt-1.5">
-              <Icon.Key className="pointer-events-none absolute left-3.5 top-1/2 size-4 -translate-y-1/2 text-zinc-500" />
-              <input
-                id="youtube-api-key"
-                type={showKey ? 'text' : 'password'}
-                value={draftKey}
-                onChange={(event) => setDraftKey(event.target.value)}
-                placeholder="AIza…"
-                autoComplete="off"
-                spellCheck={false}
-                className="w-full rounded-2xl border border-zinc-800 bg-zinc-950/70 py-3 pl-10 pr-12 text-sm text-zinc-100 outline-none transition placeholder:text-zinc-600 focus:border-rose-500/60 focus:ring-2 focus:ring-rose-500/20"
-              />
-              <button
-                type="button"
-                onClick={() => setShowKey((value) => !value)}
-                aria-label={showKey ? 'Ocultar clave' : 'Mostrar clave'}
-                className="absolute right-2 top-1/2 grid size-8 -translate-y-1/2 place-items-center rounded-full text-zinc-400 transition hover:bg-zinc-800 hover:text-white"
+          {apiKeyLocked ? (
+            <p className="mt-3 rounded-2xl border border-emerald-500/20 bg-emerald-500/10 px-3 py-2 text-[11px] font-medium leading-relaxed text-emerald-300/80">
+              Clave configurada por la aplicación.
+            </p>
+          ) : (
+            <div className="mt-3">
+              <label
+                htmlFor="youtube-api-key"
+                className="text-xs font-medium text-zinc-400"
               >
-                {showKey ? <Icon.EyeOff className="size-4" /> : <Icon.Eye className="size-4" />}
-              </button>
-            </div>
-
-            <div className="mt-2 flex gap-2">
-              <button
-                type="button"
-                onClick={handleSaveKey}
-                disabled={!draftKey.trim() || saved}
-                className="flex flex-1 items-center justify-center gap-2 rounded-2xl bg-rose-500 px-4 py-2.5 text-sm font-semibold text-white shadow-lg shadow-rose-500/20 transition hover:bg-rose-400 active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-40"
-              >
-                {saved ? <Icon.Check className="size-4" /> : <Icon.Key className="size-4" />}
-                {saved ? 'Clave guardada' : 'Guardar clave'}
-              </button>
-              {apiKey.length > 0 && (
+                Clave de API de YouTube
+              </label>
+              <div className="relative mt-1.5">
+                <Icon.Key className="pointer-events-none absolute left-3.5 top-1/2 size-4 -translate-y-1/2 text-zinc-500" />
+                <input
+                  id="youtube-api-key"
+                  type={showKey ? 'text' : 'password'}
+                  value={draftKey}
+                  onChange={(event) => setDraftKey(event.target.value)}
+                  placeholder="AIza…"
+                  autoComplete="off"
+                  spellCheck={false}
+                  className="w-full rounded-2xl border border-zinc-800 bg-zinc-950/70 py-3 pl-10 pr-12 text-sm text-zinc-100 outline-none transition placeholder:text-zinc-600 focus:border-rose-500/60 focus:ring-2 focus:ring-rose-500/20"
+                />
                 <button
                   type="button"
-                  onClick={handleClearKey}
-                  className="rounded-2xl border border-zinc-800 px-4 py-2.5 text-sm font-semibold text-zinc-400 transition hover:border-rose-500/40 hover:text-rose-300 active:scale-[0.99]"
+                  onClick={() => setShowKey((value) => !value)}
+                  aria-label={showKey ? 'Ocultar clave' : 'Mostrar clave'}
+                  className="absolute right-2 top-1/2 grid size-8 -translate-y-1/2 place-items-center rounded-full text-zinc-400 transition hover:bg-zinc-800 hover:text-white"
                 >
-                  Borrar
+                  {showKey ? <Icon.EyeOff className="size-4" /> : <Icon.Eye className="size-4" />}
                 </button>
-              )}
-            </div>
+              </div>
 
-            <p className="mt-2 text-[11px] leading-relaxed text-zinc-600">
-              La clave se guarda solo en este dispositivo y nunca se sube al repositorio.
-            </p>
+              <div className="mt-2 flex gap-2">
+                <button
+                  type="button"
+                  onClick={handleSaveKey}
+                  disabled={!draftKey.trim() || saved}
+                  className="flex flex-1 items-center justify-center gap-2 rounded-2xl bg-rose-500 px-4 py-2.5 text-sm font-semibold text-white shadow-lg shadow-rose-500/20 transition hover:bg-rose-400 active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-40"
+                >
+                  {saved ? <Icon.Check className="size-4" /> : <Icon.Key className="size-4" />}
+                  {saved ? 'Clave guardada' : 'Guardar clave'}
+                </button>
+                {apiKey.length > 0 && (
+                  <button
+                    type="button"
+                    onClick={handleClearKey}
+                    className="rounded-2xl border border-zinc-800 px-4 py-2.5 text-sm font-semibold text-zinc-400 transition hover:border-rose-500/40 hover:text-rose-300 active:scale-[0.99]"
+                  >
+                    Borrar
+                  </button>
+                )}
+              </div>
 
-            <details className="mt-3 rounded-2xl border border-zinc-800 bg-zinc-950/50 p-3 text-xs text-zinc-400">
-              <summary className="cursor-pointer select-none font-medium text-zinc-300">
-                Cómo obtener la clave (2 minutos)
-              </summary>
-              <ol className="mt-2 list-decimal space-y-1.5 pl-4 leading-relaxed">
-                <li>
-                  Entra en{' '}
-                  <a
-                    href="https://console.cloud.google.com/apis/library/youtube.googleapis.com"
-                    target="_blank"
-                    rel="noreferrer"
-                    className="font-medium text-rose-300 underline decoration-rose-300/30 underline-offset-2"
-                  >
-                    YouTube Data API v3
-                  </a>{' '}
-                  y pulsa <span className="text-zinc-200">Habilitar</span>.
-                </li>
-                <li>
-                  Ve a{' '}
-                  <a
-                    href="https://console.cloud.google.com/apis/credentials"
-                    target="_blank"
-                    rel="noreferrer"
-                    className="font-medium text-rose-300 underline decoration-rose-300/30 underline-offset-2"
-                  >
-                    Credenciales
-                  </a>{' '}
-                  y crea una <span className="text-zinc-200">clave de API</span>.
-                </li>
-                <li>
-                  Restríngela a los referrers{' '}
-                  <code className="rounded bg-zinc-800 px-1 py-0.5 text-[10px] text-zinc-300">
-                    https://javiersanzgarcia.github.io/*
-                  </code>{' '}
-                  y{' '}
-                  <code className="rounded bg-zinc-800 px-1 py-0.5 text-[10px] text-zinc-300">
-                    http://localhost:5173/*
-                  </code>
-                  .
-                </li>
-                <li>Pega la clave arriba y guarda.</li>
-              </ol>
               <p className="mt-2 text-[11px] leading-relaxed text-zinc-600">
-                Cada búsqueda consume 100 unidades de la cuota gratuita diaria (10.000).
-                Si se agota, la app sigue funcionando en modo manual.
+                La clave se guarda solo en este dispositivo y nunca se sube al repositorio.
               </p>
-            </details>
-          </div>
+            </div>
+          )}
         </section>
 
         <section className="rounded-3xl border border-zinc-800 bg-zinc-900/60 p-4">

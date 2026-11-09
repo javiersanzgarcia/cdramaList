@@ -116,14 +116,14 @@ src/
 
 ## Datos guardados
 
-| Clave                       | Contenido                                    |
-| --------------------------- | -------------------------------------------- |
-| `cdramalist:series`         | Series, partes y progreso                    |
-| `cdramalist:apiKey`         | Clave de YouTube Data API v3                 |
-| `cdramalist:googleUser`     | Nombre, correo y foto de la cuenta de Google |
+| Clave                       | Contenido                                                           |
+| --------------------------- | ------------------------------------------------------------------- |
+| `cdramalist:series`         | Series, partes y progreso                                           |
+| `cdramalist:apiKey`         | Clave de YouTube Data API v3                                        |
+| `cdramalist:googleUser`     | Nombre, correo y foto de la cuenta de Google                        |
 | `cdramalist:googleClientId` | Client ID guardado desde la app (el de `.env`/repo tiene prioridad) |
-| `cdramalist:syncConfig`     | Token de GitHub, repositorio, rama y ruta    |
-| `cdramalist:syncDirty`      | Si hay cambios locales pendientes de subir   |
+| `cdramalist:syncConfig`     | Token de GitHub, repositorio, rama y ruta                           |
+| `cdramalist:syncDirty`      | Si hay cambios locales pendientes de subir                          |
 
 Puedes exportar una copia en JSON desde **Ajustes → Mis datos** e importarla en otro dispositivo. La clave de YouTube y el token de GitHub nunca se incluyen en esa exportación.
 
@@ -154,8 +154,6 @@ La ruta base se detecta automáticamente en GitHub Actions a partir del nombre d
 También puedes desplegar la carpeta `dist/` en cualquier otro hosting estático con HTTPS (Netlify, Vercel, Cloudflare Pages…).
 
 ## Pendientes
-
-### Configurar api de google, para iniciar sesión automaticamente
 
 ### Configurar la api de youtube automaticamente
 

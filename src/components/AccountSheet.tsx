@@ -322,53 +322,6 @@ export function AccountSheet({
                 )}
               </div>
             )}
-
-            <details className="mt-3 rounded-2xl border border-zinc-800 bg-zinc-950/50 p-3 text-xs text-zinc-400">
-              <summary className="cursor-pointer select-none font-medium text-zinc-300">
-                Cómo crear el Client ID de Google (5 minutos)
-              </summary>
-              <ol className="mt-2 list-decimal space-y-1.5 pl-4 leading-relaxed">
-                <li>
-                  Entra en{' '}
-                  <a
-                    href="https://console.cloud.google.com/apis/credentials"
-                    target="_blank"
-                    rel="noreferrer"
-                    className="font-medium text-rose-300 underline decoration-rose-300/30 underline-offset-2"
-                  >
-                    Credenciales de Google Cloud
-                  </a>{' '}
-                  y crea o elige un proyecto.
-                </li>
-                <li>
-                  Si es la primera vez, configura la pantalla de consentimiento como{' '}
-                  <span className="text-zinc-200">External</span> y añade tu correo como
-                  usuario de prueba.
-                </li>
-                <li>
-                  Pulsa <span className="text-zinc-200">Crear credenciales</span> →{' '}
-                  <span className="text-zinc-200">ID de cliente OAuth</span> →{' '}
-                  <span className="text-zinc-200">Aplicación web</span>.
-                </li>
-                <li>
-                  En <span className="text-zinc-200">Orígenes JavaScript autorizados</span>{' '}
-                  añade:
-                  <code className="mt-1 block rounded bg-zinc-800 px-1.5 py-1 text-[10px] text-zinc-300">
-                    https://javiersanzgarcia.github.io
-                  </code>
-                  <code className="mt-1 block rounded bg-zinc-800 px-1.5 py-1 text-[10px] text-zinc-300">
-                    http://localhost:5173
-                  </code>
-                </li>
-                <li>
-                  Copia el Client ID (termina en{' '}
-                  <code className="rounded bg-zinc-800 px-1 py-0.5 text-[10px] text-zinc-300">
-                    .apps.googleusercontent.com
-                  </code>
-                  ) y pégalo arriba.
-                </li>
-              </ol>
-            </details>
           </section>
 
           <section className="rounded-3xl border border-zinc-800 bg-zinc-900/60 p-4">

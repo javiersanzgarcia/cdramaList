@@ -46,6 +46,7 @@ interface PlayerState {
 }
 
 const ENV_CLIENT_ID = (import.meta.env.VITE_GOOGLE_CLIENT_ID ?? '').trim()
+const ENV_YOUTUBE_API_KEY = (import.meta.env.VITE_YOUTUBE_API_KEY ?? '').trim()
 
 function emptySyncConfig(sub?: string): SyncConfig {
   return {
@@ -95,11 +96,12 @@ export default function App() {
     (value) =>
       Array.isArray(value) ? value.filter(isSeries).map(normalizeSeries) : [],
   )
-  const [apiKey, setApiKey] = usePersistentState<string>(
+  const [apiKeyOverride, setApiKeyOverride] = usePersistentState<string>(
     'cdramalist:apiKey',
     '',
     (value) => (typeof value === 'string' ? value : ''),
   )
+  const apiKey = ENV_YOUTUBE_API_KEY || apiKeyOverride
   const [googleUser, setGoogleUser] = usePersistentState<GoogleUser | null>(
     'cdramalist:googleUser',
     null,
@@ -712,7 +714,8 @@ export default function App() {
             syncEnabled={isSyncConfigured(syncConfig)}
             syncDirty={syncDirty}
             syncBusy={syncBusy}
-            onApiKeyChange={setApiKey}
+            onApiKeyChange={setApiKeyOverride}
+            apiKeyLocked={ENV_YOUTUBE_API_KEY.length > 0}
             onInstall={promptInstall}
             onReset={handleReset}
             onExport={handleExport}
