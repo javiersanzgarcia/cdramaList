@@ -72,7 +72,7 @@ export interface DriveSync {
   message: SyncMessage | null
   connect: () => Promise<void>
   disconnect: () => void
-  syncNow: () => Promise<void>
+  syncNow: (seriesOverride?: Series[]) => Promise<boolean>
   upload: () => Promise<void>
   download: () => Promise<void>
   setAuto: (auto: boolean) => void
@@ -153,8 +153,12 @@ export function useDriveSync({
   )
 
   const syncWithToken = useCallback(
-    async (token: string, silent = false) => {
-      if (runningRef.current) return
+    async (
+      token: string,
+      silent = false,
+      seriesOverride?: Series[],
+    ): Promise<boolean> => {
+      if (runningRef.current) return false
 
       runningRef.current = true
       setBusy(true)
@@ -163,7 +167,7 @@ export function useDriveSync({
 
       try {
         const remote = await pullFromDrive(token)
-        const local = seriesRef.current
+        const local = seriesOverride ?? seriesRef.current
         const merged = remote
           ? mergeSeriesCollections(local, remote.series)
           : local
@@ -190,9 +194,12 @@ export function useDriveSync({
               : `Subidas ${merged.length} series a Google Drive.`,
           })
         }
+
+        return true
       } catch (cause) {
         setStatus('error')
         setMessage({ kind: 'error', text: errorMessage(cause) })
+        return false
       } finally {
         runningRef.current = false
         setBusy(false)
@@ -241,20 +248,24 @@ export function useDriveSync({
     }
   }, [clientId, getToken, saveState, syncWithToken])
 
-  const syncNow = useCallback(async () => {
-    if (!connectedRef.current) {
-      await connect()
-      return
-    }
+  const syncNow = useCallback(
+    async (seriesOverride?: Series[]) => {
+      if (!connectedRef.current) {
+        await connect()
+        return connectedRef.current
+      }
 
-    try {
-      const token = await getToken('')
-      await syncWithToken(token)
-    } catch (cause) {
-      setStatus('error')
-      setMessage({ kind: 'error', text: errorMessage(cause) })
-    }
-  }, [connect, getToken, syncWithToken])
+      try {
+        const token = await getToken('')
+        return await syncWithToken(token, false, seriesOverride)
+      } catch (cause) {
+        setStatus('error')
+        setMessage({ kind: 'error', text: errorMessage(cause) })
+        return false
+      }
+    },
+    [connect, getToken, syncWithToken],
+  )
 
   const upload = useCallback(async () => {
     if (!connectedRef.current) {

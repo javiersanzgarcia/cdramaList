@@ -1,4 +1,4 @@
-import type { Part, SeriesDraft } from '../types'
+import type { Part, Series, SeriesDraft } from '../types'
 import { formatDuration, parseIsoDuration } from './format'
 import {
   buildSearchQuery,
@@ -6,6 +6,7 @@ import {
   sharedTokenCount,
   sortParts,
   stripPartMarkers,
+  titleJaccard,
   titleSimilarity,
   tokenCount,
 } from './parts'
@@ -68,6 +69,12 @@ interface PlaylistResource {
 interface SearchItem {
   id: { videoId?: string; playlistId?: string }
   snippet: VideoSnippet
+}
+
+interface ChannelResource {
+  contentDetails?: {
+    relatedPlaylists?: { uploads?: string }
+  }
 }
 
 interface GoogleErrorBody {
@@ -408,6 +415,172 @@ export async function fetchPlaylist(playlistId: string, apiKey: string): Promise
     thumbnail: pickThumbnail(playlist.snippet.thumbnails) ?? parts[0]?.thumbnail,
     parts,
     truncated: items.length >= MAX_PLAYLIST_ITEMS,
+  }
+}
+
+/**
+ * Lee los vídeos recientes del canal usando su playlist de subidas.
+ * Cuesta 1 unidad por página en vez de las 100 de `search.list`.
+ */
+export async function fetchChannelUploads(
+  channelId: string,
+  apiKey: string,
+  limit = MAX_PLAYLIST_ITEMS,
+): Promise<VideoMeta[]> {
+  const channelData = await fetchJson<{ items?: ChannelResource[] }>(
+    'channels',
+    { part: 'contentDetails', id: channelId },
+    apiKey,
+  )
+  const uploads = channelData.items?.[0]?.contentDetails?.relatedPlaylists?.uploads
+
+  if (!uploads) return []
+
+  const items: PlaylistItem[] = []
+  const seenTokens = new Set<string>()
+  let pageToken: string | undefined
+
+  do {
+    const params: Record<string, string> = {
+      part: 'snippet,contentDetails',
+      playlistId: uploads,
+      maxResults: '50',
+    }
+    if (pageToken) params.pageToken = pageToken
+
+    const page = await fetchJson<{ items?: PlaylistItem[]; nextPageToken?: string }>(
+      'playlistItems',
+      params,
+      apiKey,
+    )
+
+    for (const item of page.items ?? []) {
+      if (items.length >= limit) break
+      items.push(item)
+    }
+
+    pageToken = page.nextPageToken
+    if (pageToken && seenTokens.has(pageToken)) pageToken = undefined
+    if (pageToken) seenTokens.add(pageToken)
+  } while (pageToken && items.length < limit)
+
+  const videoIds = items
+    .map((item) => item.contentDetails?.videoId ?? item.snippet.resourceId?.videoId)
+    .filter((id): id is string => Boolean(id))
+
+  const durations = await fetchVideosByIds(videoIds, apiKey).catch(
+    () => new Map<string, VideoMeta>(),
+  )
+
+  const videos: VideoMeta[] = []
+
+  for (const item of items) {
+    const videoId = item.contentDetails?.videoId ?? item.snippet.resourceId?.videoId
+    const title = item.snippet.title
+
+    if (!videoId || title === 'Deleted video' || title === 'Private video') continue
+
+    const ownerId = item.snippet.videoOwnerChannelId ?? item.snippet.channelId ?? channelId
+
+    videos.push({
+      videoId,
+      title,
+      channelId: ownerId,
+      channelTitle: item.snippet.videoOwnerChannelTitle ?? item.snippet.channelTitle ?? '',
+      channelUrl: ownerId ? channelUrlFor(ownerId) : undefined,
+      publishedAt: item.snippet.publishedAt,
+      thumbnail: pickThumbnail(item.snippet.thumbnails) ?? youtubeThumbnail(videoId),
+      durationSeconds: durations.get(videoId)?.durationSeconds,
+    })
+  }
+
+  return videos
+}
+
+export interface SeriesUpdate {
+  parts: Part[]
+  added: Part[]
+  channelId?: string
+  channelTitle?: string
+  channelUrl?: string
+  warnings: string[]
+}
+
+/**
+ * Busca capítulos nuevos de una serie en las subidas recientes de su canal.
+ * Solo añade vídeos cuyo título encaja con la serie o con alguna de sus partes.
+ */
+export async function discoverSeriesUpdates(
+  series: Series,
+  apiKey: string,
+): Promise<SeriesUpdate> {
+  if (series.parts.length === 0) {
+    throw new YouTubeError(
+      'Esta serie no tiene partes que sirvan de referencia para buscar capítulos nuevos.',
+    )
+  }
+
+  let channelId = series.channelId
+  let channelTitle = series.channelTitle
+  let channelUrl = series.channelUrl
+
+  // Las series añadidas a mano pueden no tener canal: lo deducimos de una parte.
+  if (!channelId) {
+    const reference = await fetchVideoMeta(series.parts[0].videoId, apiKey)
+    channelId = reference.channelId
+    channelTitle = channelTitle || reference.channelTitle
+    channelUrl = channelUrl ?? reference.channelUrl
+  }
+
+  if (!channelId) {
+    throw new YouTubeError(
+      'No se ha podido identificar el canal de esta serie. Añádela desde un vídeo del canal para poder actualizarla.',
+    )
+  }
+
+  const uploads = await fetchChannelUploads(channelId, apiKey)
+
+  if (uploads.length === 0) {
+    throw new YouTubeError(
+      'No se han podido leer los vídeos recientes del canal. Comprueba la clave de YouTube.',
+    )
+  }
+
+  const known = new Set(series.parts.map((part) => part.videoId))
+  const references = [series.title, ...series.parts.map((part) => part.title)]
+  const referenceTokenCount = tokenCount(series.title)
+  const minShared = referenceTokenCount <= 2 ? 1 : 2
+
+  const candidates = uploads.filter((video) => {
+    if (known.has(video.videoId)) return false
+
+    const info = detectPart(video.title)
+    const overlap = Math.max(
+      ...references.map((reference) => titleJaccard(reference, video.title)),
+    )
+    const shared = Math.max(
+      ...references.map((reference) => sharedTokenCount(reference, video.title)),
+    )
+
+    if (shared < minShared || overlap < 0.7) return false
+
+    // Sin número de parte ni marca de final, exigimos un título casi idéntico
+    // para no colar vídeos parecidos de otra historia del mismo canal.
+    if (info.partNumber == null && !info.isFinal && overlap < 0.9) return false
+
+    return true
+  })
+
+  const added = candidates.map((video) => toPart(video, detectPart(video.title)))
+
+  return {
+    parts: sortParts([...series.parts, ...added]),
+    added,
+    channelId,
+    channelTitle: channelTitle || undefined,
+    channelUrl,
+    warnings:
+      added.length === 0 ? ['No se han encontrado capítulos nuevos en el canal.'] : [],
   }
 }
 

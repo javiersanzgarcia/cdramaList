@@ -22,6 +22,7 @@ import {
   normalizeSeries,
   watchedCount,
 } from './lib/series'
+import { discoverSeriesUpdates } from './lib/youtube'
 import type {
   Filter,
   GoogleUser,
@@ -204,6 +205,46 @@ export default function App() {
     setAddOpen(true)
   }
 
+  async function handleRefreshSeries(
+    item: Series,
+  ): Promise<{ added: number; synced: boolean }> {
+    if (!apiKey) {
+      throw new Error(
+        'Configura la clave de YouTube en Ajustes para buscar capítulos nuevos.',
+      )
+    }
+
+    const update = await discoverSeriesUpdates(item, apiKey)
+
+    if (update.added.length === 0) return { added: 0, synced: false }
+
+    const next: Series = {
+      ...item,
+      channelId: item.channelId ?? update.channelId,
+      channelTitle:
+        item.channelTitle === 'YouTube' && update.channelTitle
+          ? update.channelTitle
+          : item.channelTitle,
+      channelUrl: item.channelUrl ?? update.channelUrl,
+      parts: update.parts,
+      updatedAt: Date.now(),
+    }
+
+    setSeries((current) =>
+      current.map((existing) => (existing.id === item.id ? next : existing)),
+    )
+
+    let synced = false
+    if (drive.connected) {
+      const nextSeries = series.map((existing) =>
+        existing.id === item.id ? next : existing,
+      )
+      synced = await drive.syncNow(nextSeries)
+    }
+
+    return { added: update.added.length, synced }
+  }
+
   function openAdd() {
     setAddTargetId(null)
     setAddOpen(true)
@@ -370,6 +411,7 @@ export default function App() {
           onToggleFavorite={toggleFavorite}
           onSetWatched={setWatched}
           onAddParts={handleAddParts}
+          onRefresh={handleRefreshSeries}
           onDelete={deleteSeries}
         />
       )}

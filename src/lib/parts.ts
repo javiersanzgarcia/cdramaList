@@ -282,6 +282,25 @@ export function titleSimilarity(a: string, b: string): number {
   return shared / Math.min(first.size, second.size)
 }
 
+/**
+ * Similitud de Jaccard entre las palabras significativas de dos títulos.
+ * A diferencia de `titleSimilarity`, penaliza las palabras de más, así que
+ * sirve para distinguir historias distintas del mismo canal.
+ */
+export function titleJaccard(a: string, b: string): number {
+  const first = new Set(tokenize(a))
+  const second = new Set(tokenize(b))
+
+  if (first.size === 0 || second.size === 0) return 0
+
+  let shared = 0
+  for (const token of first) {
+    if (second.has(token)) shared += 1
+  }
+
+  return shared / (first.size + second.size - shared)
+}
+
 export function sortParts(parts: Part[]): Part[] {
   return [...parts].sort((a, b) => {
     const first = a.partNumber

@@ -19,6 +19,7 @@ interface SeriesSheetProps {
   onToggleFavorite: (id: string) => void
   onSetWatched: (seriesId: string, videoId: string, watched: boolean) => void
   onAddParts: (series: Series) => void
+  onRefresh: (series: Series) => Promise<{ added: number; synced: boolean }>
   onDelete: (id: string) => void
 }
 
@@ -29,9 +30,15 @@ export function SeriesSheet({
   onToggleFavorite,
   onSetWatched,
   onAddParts,
+  onRefresh,
   onDelete,
 }: SeriesSheetProps) {
   const [confirmingDelete, setConfirmingDelete] = useState(false)
+  const [refreshing, setRefreshing] = useState(false)
+  const [refreshMessage, setRefreshMessage] = useState<{
+    kind: 'ok' | 'info' | 'error'
+    text: string
+  } | null>(null)
 
   useSheet(onClose)
 
@@ -65,6 +72,46 @@ export function SeriesSheet({
       return
     }
     onDelete(series.id)
+  }
+
+  async function handleRefresh() {
+    if (refreshing) return
+
+    setRefreshing(true)
+    setRefreshMessage(null)
+
+    try {
+      const result = await onRefresh(series)
+
+      if (result.added === 0) {
+        setRefreshMessage({
+          kind: 'info',
+          text: 'No se han encontrado capítulos nuevos en el canal.',
+        })
+        return
+      }
+
+      const noun =
+        result.added === 1 ? '1 capítulo nuevo' : `${result.added} capítulos nuevos`
+      const verb = result.added === 1 ? 'añadido' : 'añadidos'
+
+      setRefreshMessage({
+        kind: 'ok',
+        text: result.synced
+          ? `${noun} ${verb} y sincronizado con Google Drive.`
+          : `${noun} ${verb}. Se sincronizará con Google Drive en la próxima sincronización.`,
+      })
+    } catch (caught) {
+      setRefreshMessage({
+        kind: 'error',
+        text:
+          caught instanceof Error
+            ? caught.message
+            : 'No se pudo actualizar la serie. Inténtalo de nuevo.',
+      })
+    } finally {
+      setRefreshing(false)
+    }
   }
 
   return (
@@ -282,6 +329,30 @@ export function SeriesSheet({
           )}
 
           <div className="mt-5 space-y-2">
+            <button
+              type="button"
+              onClick={() => void handleRefresh()}
+              disabled={refreshing}
+              className="flex w-full items-center justify-center gap-2 rounded-2xl border border-rose-500/30 bg-rose-500/10 px-4 py-3 text-sm font-semibold text-rose-200 transition hover:border-rose-500/50 hover:bg-rose-500/15 hover:text-white active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              <Icon.RefreshCw className={`size-4 ${refreshing ? 'animate-spin' : ''}`} />
+              {refreshing ? 'Buscando capítulos nuevos…' : 'Actualizar serie'}
+            </button>
+
+            {refreshMessage && (
+              <p
+                className={`rounded-2xl border px-3 py-2 text-[11px] leading-relaxed ${
+                  refreshMessage.kind === 'error'
+                    ? 'border-rose-500/20 bg-rose-500/10 text-rose-200'
+                    : refreshMessage.kind === 'ok'
+                      ? 'border-emerald-400/20 bg-emerald-400/10 text-emerald-200'
+                      : 'border-zinc-700 bg-zinc-950/60 text-zinc-300'
+                }`}
+              >
+                {refreshMessage.text}
+              </p>
+            )}
+
             <button
               type="button"
               onClick={() => onAddParts(series)}

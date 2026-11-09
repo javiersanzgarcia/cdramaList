@@ -108,12 +108,12 @@ src/
 
 ## Datos guardados
 
-| Clave                       | Contenido                                                              |
-| --------------------------- | ---------------------------------------------------------------------- |
-| `cdramalist:series`         | Series, partes y progreso                                              |
-| `cdramalist:apiKey`         | Clave de YouTube Data API v3                                           |
-| `cdramalist:googleUser`     | Nombre, correo y foto de la cuenta de Google                           |
-| `cdramalist:drive`          | Conexión con Drive: auto-sync, correo, archivo y última sincronización |
+| Clave                   | Contenido                                                              |
+| ----------------------- | ---------------------------------------------------------------------- |
+| `cdramalist:series`     | Series, partes y progreso                                              |
+| `cdramalist:apiKey`     | Clave de YouTube Data API v3                                           |
+| `cdramalist:googleUser` | Nombre, correo y foto de la cuenta de Google                           |
+| `cdramalist:drive`      | Conexión con Drive: auto-sync, correo, archivo y última sincronización |
 
 Puedes exportar una copia en JSON desde **Ajustes → Mis datos** e importarla en otro dispositivo. La clave de YouTube y el token de Drive nunca se incluyen en esa exportación.
 
@@ -145,6 +145,4 @@ También puedes desplegar la carpeta `dist/` en cualquier otro hosting estático
 
 ## Pendientes
 
-### Añadir botón actualizar serie, para que busque nuevos capitulos
-
-### Modificar modo de búsqueda, para buscar por nombres propios, descripción, nombres de personajes
+### Modificar modo de búsqueda, para buscar por titulo, titulo relativo, descripción, nombres de personajes
