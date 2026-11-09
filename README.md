@@ -49,9 +49,8 @@ La sincronización usa **Google Drive** como almacenamiento y **GitHub Pages sol
      cp .env.example .env
      ```
    - **GitHub Pages:** crea la variable de repositorio `VITE_GOOGLE_CLIENT_ID` en **Settings → Secrets and variables → Actions → Variables**.
-   - **Sin rebuild:** pégalo desde el avatar de la esquina → **Cuenta y sincronización**.
 
-El valor de `VITE_GOOGLE_CLIENT_ID` (entorno o build) tiene prioridad sobre el que se guarda en el navegador. El archivo `.env` no se sube al repositorio; solo se versiona `.env.example`.
+El Client ID se lee solo de `VITE_GOOGLE_CLIENT_ID` (en local desde `.env`, en Pages desde la variable del repositorio). No se configura desde la app. El archivo `.env` no se sube al repositorio; solo se versiona `.env.example`.
 
 ### Cómo funciona la sincronización
 
@@ -114,7 +113,6 @@ src/
 | `cdramalist:series`         | Series, partes y progreso                                              |
 | `cdramalist:apiKey`         | Clave de YouTube Data API v3                                           |
 | `cdramalist:googleUser`     | Nombre, correo y foto de la cuenta de Google                           |
-| `cdramalist:googleClientId` | Client ID guardado desde la app (el de `.env`/repo tiene prioridad)    |
 | `cdramalist:drive`          | Conexión con Drive: auto-sync, correo, archivo y última sincronización |
 
 Puedes exportar una copia en JSON desde **Ajustes → Mis datos** e importarla en otro dispositivo. La clave de YouTube y el token de Drive nunca se incluyen en esa exportación.
@@ -133,7 +131,7 @@ El repositorio incluye el workflow `.github/workflows/deploy.yml`, que compila y
 
 1. Sube el repositorio a GitHub (rama `main`).
 2. En GitHub, entra en **Settings → Pages → Build and deployment** y selecciona **GitHub Actions** como _Source_.
-3. Opcional: en **Settings → Secrets and variables → Actions → Variables**, crea `VITE_GOOGLE_CLIENT_ID` con tu Client ID. Así el botón de Google aparece ya configurado y no hay que pegarlo en cada dispositivo.
+3. En **Settings → Secrets and variables → Actions → Variables**, crea `VITE_GOOGLE_CLIENT_ID` con tu Client ID. La app lo usa para todo el flujo de Google (cuenta y Drive).
 4. Ve a la pestaña **Actions** y espera a que termine el workflow **Deploy to GitHub Pages**.
 5. La app quedará disponible en:
 

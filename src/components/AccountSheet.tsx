@@ -1,4 +1,3 @@
-import { useState } from 'react'
 import { useSheet } from '../hooks/useSheet'
 import type { DriveSync } from '../hooks/useDriveSync'
 import { formatDateTime } from '../lib/format'
@@ -8,46 +7,23 @@ import * as Icon from './Icons'
 interface AccountSheetProps {
   user: GoogleUser | null
   clientId: string
-  clientIdLocked: boolean
   drive: DriveSync
   onClose: () => void
-  onClientIdChange: (clientId: string) => void
 }
 
 export function AccountSheet({
   user,
   clientId,
-  clientIdLocked,
   drive,
   onClose,
-  onClientIdChange,
 }: AccountSheetProps) {
   useSheet(onClose)
-
-  const [draftClientId, setDraftClientId] = useState(clientId)
-  const [showClientId, setShowClientId] = useState(false)
-  const [clientIdError, setClientIdError] = useState<string | null>(null)
 
   const busy = drive.busy
   const signedIn = Boolean(user) || drive.connected
   const accountName = user?.name ?? drive.email ?? 'Cuenta de Google'
   const accountEmail = user?.email ?? drive.email ?? ''
   const lastSync = formatDateTime(drive.lastSyncedAt ?? undefined)
-
-  function saveClientId() {
-    const value = draftClientId.trim()
-
-    if (!value.endsWith('.apps.googleusercontent.com')) {
-      setClientIdError(
-        'El Client ID de Google debe terminar en .apps.googleusercontent.com.',
-      )
-      return
-    }
-
-    setClientIdError(null)
-    setShowClientId(false)
-    onClientIdChange(value)
-  }
 
   const statusLabel = busy
     ? 'Sincronizando…'
@@ -165,81 +141,11 @@ export function AccountSheet({
               </div>
             )}
 
-            {!clientId ? (
-              <div className="mt-3 space-y-2">
-                <label
-                  htmlFor="google-client-id"
-                  className="text-xs font-medium text-zinc-400"
-                >
-                  Client ID de Google
-                </label>
-                <input
-                  id="google-client-id"
-                  type="text"
-                  value={draftClientId}
-                  onChange={(event) => setDraftClientId(event.target.value)}
-                  placeholder="1234567890-abc.apps.googleusercontent.com"
-                  autoComplete="off"
-                  spellCheck={false}
-                  className="w-full rounded-2xl border border-zinc-800 bg-zinc-950/70 px-3 py-3 text-sm text-zinc-100 outline-none transition placeholder:text-zinc-600 focus:border-rose-500/60 focus:ring-2 focus:ring-rose-500/20"
-                />
-                <button
-                  type="button"
-                  onClick={saveClientId}
-                  disabled={!draftClientId.trim()}
-                  className="flex w-full items-center justify-center gap-2 rounded-2xl bg-rose-500 px-4 py-3 text-sm font-semibold text-white shadow-lg shadow-rose-500/20 transition hover:bg-rose-400 active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-40"
-                >
-                  <Icon.Key className="size-4" />
-                  Guardar Client ID
-                </button>
-
-                {clientIdError && (
-                  <p className="rounded-2xl border border-rose-500/20 bg-rose-500/10 px-3 py-2 text-[11px] leading-relaxed text-rose-200">
-                    {clientIdError}
-                  </p>
-                )}
-              </div>
-            ) : clientIdLocked ? (
-              <p className="mt-3 text-center text-[11px] font-medium text-emerald-300/80">
-                Client ID configurado por la aplicación.
+            {!clientId && (
+              <p className="mt-3 rounded-2xl border border-rose-500/20 bg-rose-500/10 px-3 py-2 text-[11px] leading-relaxed text-rose-200">
+                Falta configurar <code>VITE_GOOGLE_CLIENT_ID</code>. Consulta el README
+                para activar Google Drive.
               </p>
-            ) : (
-              <>
-                <button
-                  type="button"
-                  onClick={() => setShowClientId((value) => !value)}
-                  className="mt-3 w-full text-center text-[11px] font-medium text-zinc-500 underline decoration-zinc-700 underline-offset-2 transition hover:text-zinc-300"
-                >
-                  {showClientId ? 'Ocultar Client ID' : 'Cambiar Client ID'}
-                </button>
-
-                {showClientId && (
-                  <div className="mt-2 space-y-2">
-                    <input
-                      type="text"
-                      value={draftClientId}
-                      onChange={(event) => setDraftClientId(event.target.value)}
-                      placeholder="1234567890-abc.apps.googleusercontent.com"
-                      autoComplete="off"
-                      spellCheck={false}
-                      className="w-full rounded-2xl border border-zinc-800 bg-zinc-950/70 px-3 py-2.5 text-xs text-zinc-100 outline-none transition placeholder:text-zinc-600 focus:border-rose-500/60 focus:ring-2 focus:ring-rose-500/20"
-                    />
-                    <button
-                      type="button"
-                      onClick={saveClientId}
-                      disabled={!draftClientId.trim()}
-                      className="w-full rounded-2xl bg-rose-500 px-4 py-2.5 text-xs font-semibold text-white transition hover:bg-rose-400 active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-40"
-                    >
-                      Guardar Client ID
-                    </button>
-                    {clientIdError && (
-                      <p className="text-[11px] leading-relaxed text-rose-300">
-                        {clientIdError}
-                      </p>
-                    )}
-                  </div>
-                )}
-              </>
             )}
           </section>
 
@@ -394,8 +300,8 @@ export function AccountSheet({
               </div>
             ) : (
               <p className="mt-3 text-sm leading-relaxed text-zinc-400">
-                Falta configurar el Client ID de Google. Consulta el README para activar
-                Google Drive.
+                Falta configurar <code>VITE_GOOGLE_CLIENT_ID</code>. Consulta el README
+                para activar Google Drive.
               </p>
             )}
 

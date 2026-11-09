@@ -57,15 +57,8 @@ export default function App() {
     null,
     sanitizeGoogleUser,
   )
-  const [googleClientIdOverride, setGoogleClientIdOverride] =
-    usePersistentState<string>(
-      'cdramalist:googleClientId',
-      '',
-      (value) => (typeof value === 'string' ? value : ''),
-    )
-  const googleClientId = ENV_CLIENT_ID || googleClientIdOverride
   const drive = useDriveSync({
-    clientId: googleClientId,
+    clientId: ENV_CLIENT_ID,
     series,
     setSeries,
     onUser: setGoogleUser,
@@ -85,12 +78,13 @@ export default function App() {
     window.scrollTo({ top: 0 })
   }, [tab])
 
-  // Limpia la configuración de la antigua sincronización con GitHub, que
-  // guardaba un token en localStorage y ya no se utiliza.
+  // Limpia claves antiguas: el token de GitHub y el Client ID editable, que
+  // ahora se configura solo con VITE_GOOGLE_CLIENT_ID.
   useEffect(() => {
     try {
       window.localStorage.removeItem('cdramalist:syncConfig')
       window.localStorage.removeItem('cdramalist:syncDirty')
+      window.localStorage.removeItem('cdramalist:googleClientId')
     } catch {
       // Sin acceso a localStorage: no hay nada que limpiar.
     }
@@ -288,10 +282,6 @@ export default function App() {
     setTab('settings')
   }
 
-  function handleClientIdChange(clientId: string) {
-    setGoogleClientIdOverride(clientId)
-  }
-
   return (
     <div className="mx-auto flex min-h-dvh w-full max-w-md flex-col bg-zinc-950 pb-24">
       <main className="flex-1">
@@ -407,11 +397,9 @@ export default function App() {
       {accountOpen && (
         <AccountSheet
           user={googleUser}
-          clientId={googleClientId}
-          clientIdLocked={ENV_CLIENT_ID.length > 0}
+          clientId={ENV_CLIENT_ID}
           drive={drive}
           onClose={() => setAccountOpen(false)}
-          onClientIdChange={handleClientIdChange}
         />
       )}
     </div>
