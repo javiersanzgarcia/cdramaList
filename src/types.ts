@@ -24,6 +24,7 @@ export interface Series {
   aliases: string[];
   /** Confianza acumulada en palabras de capítulos aceptados manualmente. */
   keywordConfidence?: Record<string, number>;
+  semanticFingerprint?: SemanticFingerprint;
   channelId?: string;
   channelTitle: string;
   channelUrl?: string;
@@ -34,6 +35,14 @@ export interface Series {
   createdAt: number;
   updatedAt: number;
   lastOpenedAt?: number;
+}
+
+export interface SemanticFingerprint {
+  genres: string[];
+  tropes: string[];
+  roles: string[];
+  settings: string[];
+  plotElements: string[];
 }
 
 export interface SeriesDraft {

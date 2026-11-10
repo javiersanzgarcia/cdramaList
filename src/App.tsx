@@ -43,6 +43,10 @@ interface PlayerState {
 
 const ENV_CLIENT_ID = (import.meta.env.VITE_GOOGLE_CLIENT_ID ?? "").trim();
 const ENV_YOUTUBE_API_KEY = (import.meta.env.VITE_YOUTUBE_API_KEY ?? "").trim();
+const ENV_GEMINI_API_KEY = (import.meta.env.VITE_GEMINI_API_KEY ?? "").trim();
+const ENV_GEMINI_MODEL =
+  (import.meta.env.VITE_GEMINI_MODEL ?? "gemini-2.5-flash").trim() ||
+  "gemini-2.5-flash";
 
 export default function App() {
   const [series, setSeries] = usePersistentState<Series[]>(
@@ -242,9 +246,16 @@ export default function App() {
       );
     }
 
-    const update = await discoverSeriesUpdates(item, apiKey);
+    const update = await discoverSeriesUpdates(
+      item,
+      apiKey,
+      ENV_GEMINI_API_KEY,
+      ENV_GEMINI_MODEL,
+    );
 
-    if (update.added.length === 0) {
+    const learnedFingerprint =
+      !item.semanticFingerprint && Boolean(update.semanticFingerprint);
+    if (update.added.length === 0 && !learnedFingerprint) {
       return {
         added: 0,
         candidates: update.candidates,
@@ -263,6 +274,8 @@ export default function App() {
           : item.channelTitle,
       channelUrl: item.channelUrl ?? update.channelUrl,
       parts: update.parts,
+      semanticFingerprint:
+        update.semanticFingerprint ?? item.semanticFingerprint,
       updatedAt: Date.now(),
     };
 

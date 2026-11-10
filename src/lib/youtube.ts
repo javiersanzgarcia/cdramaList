@@ -1,5 +1,12 @@
-import type { ChapterCandidate, Part, Series, SeriesDraft } from "../types";
+import type {
+  ChapterCandidate,
+  Part,
+  SemanticFingerprint,
+  Series,
+  SeriesDraft,
+} from "../types";
 import { formatDuration, parseIsoDuration } from "./format";
+import { generateSemanticFingerprints, semanticSimilarity } from "./gemini";
 import {
   buildGlobalSearchQuery,
   detectPart,
@@ -576,6 +583,7 @@ export async function fetchChannelUploads(
 }
 
 const MAX_CANDIDATES = 12;
+const MAX_SEMANTIC_CANDIDATES = 12;
 
 export interface SeriesUpdate {
   parts: Part[];
@@ -584,6 +592,7 @@ export interface SeriesUpdate {
   channelId?: string;
   channelTitle?: string;
   channelUrl?: string;
+  semanticFingerprint?: SemanticFingerprint;
   warnings: string[];
 }
 
@@ -730,6 +739,8 @@ function toCandidate(
 export async function discoverSeriesUpdates(
   series: Series,
   apiKey: string,
+  geminiApiKey?: string,
+  geminiModel = "gemini-2.5-flash",
 ): Promise<SeriesUpdate> {
   if (series.parts.length === 0) {
     throw new YouTubeError(
@@ -888,6 +899,7 @@ export async function discoverSeriesUpdates(
 
   const added: Part[] = [];
   const ranked: RankedCandidate[] = [];
+  const semanticPool: RankedCandidate[] = [];
 
   for (const { video, source } of byId.values()) {
     if (known.has(video.videoId)) continue;
@@ -955,8 +967,6 @@ export async function discoverSeriesUpdates(
         (titleOverlap >= 0.45 || (sameChannel && titleOverlap >= 0.3))) ||
       (learningBonus >= 4 && titleShared >= 1);
 
-    if (!descriptionRelevant && !titleRelevant) continue;
-
     const matchedBy: "title" | "description" =
       descriptionRelevant &&
       (descriptionMatch || descriptionOverlap >= titleOverlap)
@@ -974,14 +984,111 @@ export async function discoverSeriesUpdates(
     if (descriptionMatch) score = Math.min(100, score + 12);
     else if (descriptionRelevant) score = Math.min(100, score + 6);
 
-    ranked.push({
+    const candidate: RankedCandidate = {
       video,
       info,
       source,
       score,
       descriptionTitle,
       matchedBy,
-    });
+    };
+
+    if (!descriptionRelevant && !titleRelevant) {
+      if (
+        geminiApiKey &&
+        (info.partNumber != null || info.isFinal || descriptionTitle)
+      ) {
+        semanticPool.push(candidate);
+      }
+      continue;
+    }
+
+    ranked.push(candidate);
+  }
+
+  let semanticFingerprint = series.semanticFingerprint;
+  if (geminiApiKey) {
+    const lexicalCandidates = [...ranked]
+      .sort((a, b) => b.score - a.score)
+      .slice(0, MAX_SEMANTIC_CANDIDATES);
+    const candidatesForFingerprint = [
+      ...lexicalCandidates,
+      ...semanticPool
+        .sort((a, b) => b.score - a.score)
+        .slice(0, MAX_SEMANTIC_CANDIDATES),
+    ].filter(
+      (candidate, index, candidates) =>
+        candidates.findIndex(
+          (other) => other.video.videoId === candidate.video.videoId,
+        ) === index,
+    );
+    const entries = [
+      ...(!semanticFingerprint
+        ? [
+            {
+              id: "series",
+              text: [
+                series.title,
+                ...manualAliases,
+                ...descriptionTitles,
+                ...series.parts.slice(0, 10).map((part) => part.title),
+              ].join("\n"),
+            },
+          ]
+        : []),
+      ...candidatesForFingerprint.map((candidate) => ({
+        id: candidate.video.videoId,
+        text: [candidate.video.title, candidate.descriptionTitle]
+          .filter(Boolean)
+          .join("\n"),
+      })),
+    ];
+
+    if (entries.length > 0) {
+      try {
+        const fingerprints = await generateSemanticFingerprints(
+          geminiApiKey,
+          entries,
+          geminiModel,
+        );
+        semanticFingerprint = fingerprints.get("series") ?? semanticFingerprint;
+
+        if (semanticFingerprint) {
+          const rankedById = new Map(
+            ranked.map((candidate, index) => [candidate.video.videoId, index]),
+          );
+
+          for (const candidate of candidatesForFingerprint) {
+            const similarity = semanticSimilarity(
+              semanticFingerprint,
+              fingerprints.get(candidate.video.videoId),
+            );
+            if (similarity < 0.3) continue;
+
+            const existingIndex = rankedById.get(candidate.video.videoId);
+            const baseScore =
+              existingIndex == null
+                ? Math.max(candidate.score, 30)
+                : candidate.score;
+            const enhanced = {
+              ...candidate,
+              score: Math.min(100, baseScore + Math.round(similarity * 35)),
+            };
+
+            if (existingIndex == null) {
+              rankedById.set(candidate.video.videoId, ranked.length);
+              ranked.push(enhanced);
+            } else {
+              ranked[existingIndex] = enhanced;
+            }
+          }
+        }
+      } catch {
+        warnings.push(
+          "No se pudo analizar la similitud semántica con Gemini; se usarán las coincidencias habituales.",
+        );
+      }
+    }
   }
 
   ranked.sort((a, b) => b.score - a.score);
@@ -1012,6 +1119,7 @@ export async function discoverSeriesUpdates(
     channelId,
     channelTitle: channelTitle || undefined,
     channelUrl,
+    semanticFingerprint,
     warnings,
   };
 }

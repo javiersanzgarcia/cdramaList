@@ -1,4 +1,5 @@
 import type { Filter, Part, Series, SeriesDraft, SeriesStatus } from "../types";
+import { normalizeSemanticFingerprint } from "./gemini";
 import { extractKeywords, sortParts, titleSimilarity } from "./parts";
 import { statusOrder } from "./status";
 
@@ -335,6 +336,9 @@ export function normalizeSeries(value: Series): Series {
     title: value.title.trim() || "Serie sin título",
     aliases: normalizeAliases(value.aliases),
     keywordConfidence: normalizeKeywordConfidence(value.keywordConfidence),
+    semanticFingerprint: normalizeSemanticFingerprint(
+      value.semanticFingerprint,
+    ),
     channelId: value.channelId,
     channelTitle: value.channelTitle || "YouTube",
     channelUrl: value.channelUrl,
@@ -402,6 +406,7 @@ export function combineSeries(current: Series, incoming: Series): Series {
       current.keywordConfidence,
       incoming.keywordConfidence,
     ),
+    semanticFingerprint: newer.semanticFingerprint ?? older.semanticFingerprint,
     parts: mergeParts(current.parts, incoming.parts),
     watched: [...new Set([...current.watched, ...incoming.watched])],
     updatedAt: Math.max(current.updatedAt, incoming.updatedAt),

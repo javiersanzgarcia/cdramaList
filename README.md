@@ -28,6 +28,15 @@ La búsqueda automática usa la [YouTube Data API v3](https://console.cloud.goog
 
 La clave se guarda solo en el navegador y nunca se sube a Google Drive. Sin clave puedes seguir añadiendo vídeos uno a uno en modo manual.
 
+## Fingerprint semántico con Gemini (opcional)
+
+Gemini clasifica títulos y descripciones en etiquetas abiertas agrupadas por géneros, tropos, roles, escenarios y elementos de trama; no depende de una lista cerrada. Puede reconocer, por ejemplo, `engineer`, `transmigration`, `modern_person_in_past`, `rebirth`, `ancient_china`, `cultivation`, `secretary` o `revenge`, y añadir otros conceptos relevantes. El fingerprint de la serie se genera una vez y se guarda con ella; en cada actualización se clasifican en una sola petición los candidatos encontrados y se comparan sus etiquetas. Sin clave, o si Gemini no está disponible, se mantiene la búsqueda habitual.
+
+1. Obtén una clave de Gemini API en [Google AI Studio](https://aistudio.google.com/apikey) y habilita el acceso a Gemini API.
+2. Añade `VITE_GEMINI_API_KEY` a `.env` localmente. Puedes elegir otro modelo con `VITE_GEMINI_MODEL`; por defecto se usa `gemini-2.5-flash`.
+
+Los títulos enviados a Gemini salen del dispositivo. Como Vite inserta las variables `VITE_*` en el código del navegador, la clave será visible en una PWA publicada; úsala solo para pruebas personales y no publiques una clave compartida. La cuota y disponibilidad gratuitas dependen de Google y pueden cambiar.
+
 > Cada búsqueda consume 100 unidades de la cuota gratuita diaria (10.000). Las peticiones de metadatos consumen mucho menos. **Actualizar serie** hace una sola búsqueda global por actualización.
 
 ## Buscar capítulos nuevos
@@ -39,6 +48,7 @@ Al **añadir una serie** desde un vídeo y al pulsar **Actualizar serie** se usa
 - Hace una búsqueda global en YouTube con el título principal y añade el título real extraído de las descripciones como referencia. Si no hay título en las descripciones, sigue usando el título principal (una sola consulta por actualización).
 - Busca también por los **alias manuales** de cada serie. Puedes añadir otros títulos de la misma historia (traducciones o títulos alternativos) desde la ficha de la serie; se combinan con el título principal en la misma consulta OR, así que no se multiplican las llamadas a la API.
 - Amplía la búsqueda con **sinónimos en español** de las palabras principales del título (por ejemplo, `lluvia` → `precipitación`, `aguacero`, `chaparrón`; `apocalipsis` → `catástrofe`, `cataclismo`), porque las traducciones automáticas suelen cambiar unas palabras por otras. Los sinónimos se consultan en [rae-api.com](https://rae-api.com), se guardan en caché durante 60 días y, si la API falla o se agota su cuota, la búsqueda continúa con el título original.
+- Si se configura Gemini, genera el fingerprint semántico de la serie en el primer refresco y clasifica en lote los candidatos para priorizar historias con atributos compartidos. El fingerprint queda guardado con la serie y se sincroniza con Drive.
 - Añade automáticamente solo los vídeos cuyo título base coincide exactamente con el de la serie o con uno de sus alias (por ejemplo, «Mi drama» → «Mi drama - Parte 3» o «Mi drama | Final»).
 - Las coincidencias por el título de la descripción y el resto de coincidencias parciales aparecen como **posibles capítulos**: puedes revisar el vídeo, ver el título detectado en la descripción, escribir o editar el número de capítulo, marcarlo como final, añadirlo o descartarlo. Al añadir una serie, los candidatos se incorporan a la vista previa y se guardan junto con ella.
 
