@@ -5,14 +5,11 @@ import {
   persist,
   type StateStorage,
 } from "zustand/middleware";
-import { sanitizeGoogleUser } from "../lib/google";
-import { isSeries, normalizeSeries } from "../lib/series";
-import type {
-  DrivePersistenceState,
-  GoogleUser,
-  Series,
-  SynonymCacheEntry,
-} from "../types";
+import { sanitizeGoogleUser } from "../features/sync/model/google";
+import { isSeries, normalizeSeries } from "../features/series/model/series";
+import type { SynonymCacheEntry } from "../features/discovery/types";
+import type { Series } from "../features/series/types";
+import type { DrivePersistenceState, GoogleUser } from "../features/sync/types";
 
 const STORE_KEY = "cdramalist:zustand";
 const STORE_VERSION = 1;

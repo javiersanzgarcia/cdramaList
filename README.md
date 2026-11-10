@@ -121,22 +121,20 @@ npm run lint     # lint con oxlint
 
 ## Estructura
 
-```~~txt~~
+```text
 src/
-├── components/         # UI (HomeView, ListView, SeriesSheet, AccountSheet…)
-├── hooks/              # persistencia local, sync con Drive, instalación PWA y hojas modales
-├── store/              # estado global Zustand persistido
-├── lib/
-│   ├── format.ts       # duraciones y fechas
-│   ├── google.ts       # OAuth2, token de Drive y datos de la cuenta
-│   ├── parts.ts        # detección de partes y similitud de títulos
-│   ├── series.ts       # progreso, estados, filtros y fusión de series
-│   ├── status.ts       # metadatos de los estados
-│   ├── drive.ts        # cliente de Google Drive (pull/push en appDataFolder)
-│   └── youtube.ts      # API de YouTube, URLs, búsqueda y playlists
-├── types.ts
-├── App.tsx
-└── index.css           # Tailwind + tema
+├── app/                 # composición raíz, navegación y tipos de aplicación
+├── features/
+│   ├── discovery/       # model/ (API, playlists, ranking, Gemini), types.ts
+│   ├── library/         # componentes del inicio, lista y tarjetas
+│   ├── playback/        # componentes de reproducción
+│   ├── series/          # components/, model/ (partes, títulos, progreso), types.ts
+│   ├── settings/        # componentes de ajustes y cuenta
+│   └── sync/            # hooks/, model/, types.ts para Google Drive
+├── shared/              # UI, hooks y utilidades reutilizables
+├── store/               # Zustand persistido y migración de localStorage
+├── App.tsx               # composición de features
+└── index.css             # Tailwind y tema
 ```
 
 ## Datos guardados
