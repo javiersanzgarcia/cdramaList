@@ -12,11 +12,49 @@ interface GeminiResponse {
   error?: { message?: string };
 }
 
+interface GeminiFetchResult {
+  response: Response;
+  body: GeminiResponse;
+}
+
+const GEMINI_TIMEOUT_MS = 30_000;
+
 function retryDelay(response: Response): number {
   const retryAfter = Number(response.headers.get("Retry-After"));
   return Number.isFinite(retryAfter) && retryAfter >= 0
     ? Math.min(retryAfter * 1000, 5000)
     : 1000;
+}
+
+async function fetchGeminiResponse(
+  url: string,
+  options: RequestInit,
+  timeoutMs: number,
+): Promise<GeminiFetchResult> {
+  const controller = new AbortController();
+  let timedOut = false;
+  const timeout = setTimeout(() => {
+    timedOut = true;
+    controller.abort();
+  }, timeoutMs);
+
+  try {
+    const response = await fetch(url, {
+      ...options,
+      signal: controller.signal,
+    });
+    const body = (await response.json().catch(() => ({}))) as GeminiResponse;
+    return { response, body };
+  } catch (cause) {
+    if (timedOut) {
+      throw new Error(
+        "Gemini agotó el tiempo máximo de respuesta de 30 segundos.",
+      );
+    }
+    throw cause;
+  } finally {
+    clearTimeout(timeout);
+  }
 }
 
 const FINGERPRINT_CATEGORIES: Array<keyof SemanticFingerprint> = [
@@ -136,13 +174,28 @@ export async function generateSemanticFingerprints(
     }),
   };
 
-  let response = await fetch(url, options);
-  if (response.status === 429 || response.status === 503) {
-    await new Promise((resolve) => setTimeout(resolve, retryDelay(response)));
-    response = await fetch(url, options);
+  const deadline = Date.now() + GEMINI_TIMEOUT_MS;
+  const request = () =>
+    fetchGeminiResponse(url, options, Math.max(1, deadline - Date.now()));
+
+  let result = await request();
+  if (result.response.status === 429 || result.response.status === 503) {
+    const waitMs = Math.min(
+      retryDelay(result.response),
+      Math.max(0, deadline - Date.now()),
+    );
+    if (waitMs > 0) {
+      await new Promise((resolve) => setTimeout(resolve, waitMs));
+    }
+    if (Date.now() >= deadline) {
+      throw new Error(
+        "Gemini agotó el tiempo máximo de respuesta de 30 segundos.",
+      );
+    }
+    result = await request();
   }
 
-  const body = (await response.json().catch(() => ({}))) as GeminiResponse;
+  const { response, body } = result;
   if (!response.ok) {
     throw new Error(
       body.error?.message ?? `Gemini respondió con código ${response.status}.`,
