@@ -27,24 +27,6 @@ const FINGERPRINT_CATEGORIES: Array<keyof SemanticFingerprint> = [
   "plotElements",
 ];
 
-const LEGACY_ATTRIBUTES: Record<string, [keyof SemanticFingerprint, string]> = {
-  romance: ["genres", "romance"],
-  ceo: ["roles", "ceo"],
-  wealthyLead: ["roles", "billionaire"],
-  poorGirl: ["roles", "poor_heroine"],
-  secretary: ["roles", "secretary"],
-  orphan: ["roles", "orphan"],
-  revenge: ["tropes", "revenge"],
-  twins: ["plotElements", "twins"],
-  marriage: ["tropes", "marriage"],
-  heiress: ["roles", "heiress"],
-  supernatural: ["genres", "supernatural"],
-  historical: ["settings", "historical"],
-  crime: ["genres", "crime"],
-  comedy: ["genres", "comedy"],
-  mystery: ["genres", "mystery"],
-};
-
 const fingerprintProperties = Object.fromEntries(
   FINGERPRINT_CATEGORIES.map((key) => [
     key,
@@ -86,21 +68,9 @@ export function normalizeSemanticFingerprint(
     ]),
   ) as unknown as SemanticFingerprint;
 
-  let valid = FINGERPRINT_CATEGORIES.some((category) =>
+  const valid = FINGERPRINT_CATEGORIES.some((category) =>
     Array.isArray(record[category]),
   );
-
-  for (const [attribute, [category, tag]] of Object.entries(
-    LEGACY_ATTRIBUTES,
-  )) {
-    if (record[attribute] !== true) continue;
-    fingerprint[category].push(tag);
-    valid = true;
-  }
-
-  for (const category of FINGERPRINT_CATEGORIES) {
-    fingerprint[category] = normalizeTags(fingerprint[category]);
-  }
 
   return valid ? fingerprint : undefined;
 }
