@@ -161,7 +161,7 @@ El repositorio incluye el workflow `.github/workflows/deploy.yml`, que compila y
 
 1. Sube el repositorio a GitHub (rama `main`).
 2. En GitHub, entra en **Settings → Pages → Build and deployment** y selecciona **GitHub Actions** como _Source_.
-3. En **Settings → Secrets and variables → Actions → Variables**, crea `VITE_GOOGLE_CLIENT_ID` con tu Client ID. La app lo usa para todo el flujo de Google (cuenta y Drive).
+3. En **Settings → Secrets and variables → Actions → Variables**, crea `VITE_GOOGLE_CLIENT_ID` con tu Client ID. Para Gemini, añade `VITE_GEMINI_API_KEY` y, opcionalmente, `VITE_GEMINI_MODEL` (por defecto `gemini-2.5-flash`). La clave de Gemini se incluirá en el JavaScript público de Pages; no uses una clave compartida si no aceptas esa exposición.
 4. Ve a la pestaña **Actions** y espera a que termine el workflow **Deploy to GitHub Pages**.
 5. La app quedará disponible en:
 
