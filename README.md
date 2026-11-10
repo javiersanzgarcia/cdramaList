@@ -2,7 +2,7 @@
 
 PWA para reunir las partes de una historia de YouTube, guardar el progreso y verlas dentro de la app con el reproductor embebido de YouTube.
 
-**Demo:** https://javiersanzgarcia.github.io/cdramaList/
+**Demo:** <https://javiersanzgarcia.github.io/cdramaList/>
 
 ## Qué hace
 
@@ -74,9 +74,11 @@ La sincronización usa **Google Drive** como almacenamiento y **GitHub Pages sol
 7. Copia el Client ID (termina en `.apps.googleusercontent.com`).
 8. Configúralo de una de estas formas:
    - **Local:** crea un `.env` a partir de `.env.example` y pega el valor en `VITE_GOOGLE_CLIENT_ID`.
+
      ```bash
      cp .env.example .env
      ```
+
    - **GitHub Pages:** crea la variable de repositorio `VITE_GOOGLE_CLIENT_ID` en **Settings → Secrets and variables → Actions → Variables**.
 
 El Client ID se lee solo de `VITE_GOOGLE_CLIENT_ID` (en local desde `.env`, en Pages desde la variable del repositorio). No se configura desde la app. El archivo `.env` no se sube al repositorio; solo se versiona `.env.example`.
@@ -119,7 +121,7 @@ npm run lint     # lint con oxlint
 
 ## Estructura
 
-```
+```~~txt~~
 src/
 ├── components/         # UI (HomeView, ListView, SeriesSheet, AccountSheet…)
 ├── hooks/              # persistencia local, sync con Drive, instalación PWA y hojas modales
@@ -165,7 +167,7 @@ El repositorio incluye el workflow `.github/workflows/deploy.yml`, que compila y
 4. Ve a la pestaña **Actions** y espera a que termine el workflow **Deploy to GitHub Pages**.
 5. La app quedará disponible en:
 
-```
+```~~txt~~
 https://TU_USUARIO.github.io/cdramaList/
 ```
 
