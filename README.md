@@ -33,7 +33,7 @@ La clave se guarda solo en el navegador y nunca se sube a Google Drive. Sin clav
 Gemini clasifica títulos y descripciones en etiquetas abiertas agrupadas por géneros, tropos, roles, escenarios y elementos de trama; no depende de una lista cerrada. Puede reconocer, por ejemplo, `engineer`, `transmigration`, `modern_person_in_past`, `rebirth`, `ancient_china`, `cultivation`, `secretary` o `revenge`, y añadir otros conceptos relevantes. El fingerprint de la serie se genera una vez y se guarda con ella; en cada actualización se clasifican en una sola petición los candidatos encontrados y se comparan sus etiquetas. Sin clave, o si Gemini no está disponible, se mantiene la búsqueda habitual.
 
 1. Obtén una clave de Gemini API en [Google AI Studio](https://aistudio.google.com/apikey) y habilita el acceso a Gemini API.
-2. Añade `VITE_GEMINI_API_KEY` a `.env` localmente. Puedes elegir otro modelo con `VITE_GEMINI_MODEL`; por defecto se usa `gemini-2.5-flash`.
+2. Añade `VITE_GEMINI_API_KEY` a `.env` localmente. Puedes elegir otro modelo con `VITE_GEMINI_MODEL`; por defecto se usa `gemini-3.8-flash`.
 
 Los títulos enviados a Gemini salen del dispositivo. Como Vite inserta las variables `VITE_*` en el código del navegador, la clave será visible en una PWA publicada; úsala solo para pruebas personales y no publiques una clave compartida. La cuota y disponibilidad gratuitas dependen de Google y pueden cambiar.
 
@@ -161,7 +161,7 @@ El repositorio incluye el workflow `.github/workflows/deploy.yml`, que compila y
 
 1. Sube el repositorio a GitHub (rama `main`).
 2. En GitHub, entra en **Settings → Pages → Build and deployment** y selecciona **GitHub Actions** como _Source_.
-3. En **Settings → Secrets and variables → Actions → Variables**, crea `VITE_GOOGLE_CLIENT_ID` con tu Client ID. Para Gemini, añade `VITE_GEMINI_API_KEY` y, opcionalmente, `VITE_GEMINI_MODEL` (por defecto `gemini-2.5-flash`). La clave de Gemini se incluirá en el JavaScript público de Pages; no uses una clave compartida si no aceptas esa exposición.
+3. En **Settings → Secrets and variables → Actions → Variables**, crea `VITE_GOOGLE_CLIENT_ID` con tu Client ID. Para Gemini, añade `VITE_GEMINI_API_KEY` y, opcionalmente, `VITE_GEMINI_MODEL` (por defecto `gemini-3.8-flash`). La clave de Gemini se incluirá en el JavaScript público de Pages; no uses una clave compartida si no aceptas esa exposición.
 4. Ve a la pestaña **Actions** y espera a que termine el workflow **Deploy to GitHub Pages**.
 5. La app quedará disponible en:
 

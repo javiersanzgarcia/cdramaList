@@ -740,7 +740,7 @@ export async function discoverSeriesUpdates(
   series: Series,
   apiKey: string,
   geminiApiKey?: string,
-  geminiModel = "gemini-2.5-flash",
+  geminiModel = "gemini-3.8-flash",
 ): Promise<SeriesUpdate> {
   if (series.parts.length === 0) {
     throw new YouTubeError(
@@ -1083,9 +1083,16 @@ export async function discoverSeriesUpdates(
             }
           }
         }
-      } catch {
+      } catch (cause) {
+        const detail =
+          cause instanceof Error
+            ? cause.message
+            : "Error desconocido al consultar Gemini.";
+        const safeDetail = detail
+          .replace(/AIza[\w-]{20,}/g, "[clave oculta]")
+          .slice(0, 240);
         warnings.push(
-          "No se pudo analizar la similitud semántica con Gemini; se usarán las coincidencias habituales.",
+          `No se pudo analizar la similitud semántica con Gemini (${safeDetail}); se usarán las coincidencias habituales.`,
         );
       }
     }

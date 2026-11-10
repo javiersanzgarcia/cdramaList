@@ -44,9 +44,13 @@ interface PlayerState {
 const ENV_CLIENT_ID = (import.meta.env.VITE_GOOGLE_CLIENT_ID ?? "").trim();
 const ENV_YOUTUBE_API_KEY = (import.meta.env.VITE_YOUTUBE_API_KEY ?? "").trim();
 const ENV_GEMINI_API_KEY = (import.meta.env.VITE_GEMINI_API_KEY ?? "").trim();
+const CONFIGURED_GEMINI_MODEL = (
+  import.meta.env.VITE_GEMINI_MODEL ?? ""
+).trim();
 const ENV_GEMINI_MODEL =
-  (import.meta.env.VITE_GEMINI_MODEL ?? "gemini-2.5-flash").trim() ||
-  "gemini-2.5-flash";
+  !CONFIGURED_GEMINI_MODEL || CONFIGURED_GEMINI_MODEL === "gemini-2.5-flash"
+    ? "gemini-3.8-flash"
+    : CONFIGURED_GEMINI_MODEL;
 
 export default function App() {
   const [series, setSeries] = usePersistentState<Series[]>(
