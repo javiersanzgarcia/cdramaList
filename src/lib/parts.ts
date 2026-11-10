@@ -1,8 +1,37 @@
 import type { Part } from "../types";
 
 const PART_KEYWORD =
-  /\b(?:parte|part|episodio|episode|temporada|season|temp|cap[ií]tulo|chapter|cap|ep|p)\s*[#.:-]?\s*(\d{1,3})(?:\s*(?:de|\/)\s*(\d{1,3}))?/i;
+  /\b(?:parte|part|episodio|episode|temporada|season|volume|vol|temp|cap[ií]tulo|chapter|cap|ep|pt|p|e)\s*[#.:-]?\s*(\d{1,3})(?!\d)(?:\s*(?:de|\/)\s*(\d{1,3}))?/i;
 const PART_KEYWORD_GLOBAL = new RegExp(PART_KEYWORD.source, "gi");
+const PART_WORD_NUMBERS: Record<string, number> = {
+  one: 1,
+  two: 2,
+  three: 3,
+  four: 4,
+  five: 5,
+  six: 6,
+  seven: 7,
+  eight: 8,
+  nine: 9,
+  ten: 10,
+  eleven: 11,
+  twelve: 12,
+  thirteen: 13,
+  fourteen: 14,
+  fifteen: 15,
+  sixteen: 16,
+  seventeen: 17,
+  eighteen: 18,
+  nineteen: 19,
+  twenty: 20,
+};
+const PART_WORD_PATTERN = `\\b(?:part|pt)\\.?\\s+(${Object.keys(PART_WORD_NUMBERS).join("|")})\\b`;
+const PART_WORD = new RegExp(PART_WORD_PATTERN, "i");
+const PART_WORD_GLOBAL = new RegExp(PART_WORD_PATTERN, "gi");
+const CHINESE_PART = /第([0-9零〇一二两三四五六七八九十百千]+)集/u;
+const CHINESE_PART_GLOBAL = new RegExp(CHINESE_PART.source, "gu");
+const KOREAN_PART = /(?:^|[^\p{L}\p{N}])(\d{1,3})화(?![\p{L}\p{N}])/u;
+const KOREAN_PART_GLOBAL = /(?:^|[^\p{L}\p{N}])\d{1,3}화(?![\p{L}\p{N}])/gu;
 const FRACTION_GLOBAL = /\b(\d{1,3})\s*\/\s*(\d{1,3})\b/g;
 const OF_GLOBAL = /\b(\d{1,3})\s*(?:de|of)\s*(\d{1,3})\b/gi;
 const PAREN_GLOBAL = /\(\s*(\d{1,3})\s*\)/g;
@@ -159,6 +188,39 @@ export interface PartInfo {
   isFinal: boolean;
 }
 
+function parseChineseNumber(value: string): number {
+  if (/^\d+$/.test(value)) return Number(value);
+
+  const digits: Record<string, number> = {
+    零: 0,
+    〇: 0,
+    一: 1,
+    二: 2,
+    两: 2,
+    三: 3,
+    四: 4,
+    五: 5,
+    六: 6,
+    七: 7,
+    八: 8,
+    九: 9,
+  };
+  const units: Record<string, number> = { 十: 10, 百: 100, 千: 1000 };
+  let total = 0;
+  let current = 0;
+
+  for (const character of value) {
+    if (character in digits) {
+      current = digits[character];
+    } else if (character in units) {
+      total += (current || 1) * units[character];
+      current = 0;
+    }
+  }
+
+  return total + current;
+}
+
 export function detectPart(title: string): PartInfo {
   const keyword = PART_KEYWORD.exec(title);
   if (keyword) {
@@ -167,6 +229,24 @@ export function detectPart(title: string): PartInfo {
       totalParts: keyword[2] ? Number(keyword[2]) : undefined,
       isFinal: false,
     };
+  }
+
+  const wordNumber = PART_WORD.exec(title);
+  if (wordNumber) {
+    return {
+      partNumber: PART_WORD_NUMBERS[wordNumber[1].toLowerCase()],
+      isFinal: false,
+    };
+  }
+
+  const chinesePart = CHINESE_PART.exec(title);
+  if (chinesePart) {
+    return { partNumber: parseChineseNumber(chinesePart[1]), isFinal: false };
+  }
+
+  const koreanPart = KOREAN_PART.exec(title);
+  if (koreanPart) {
+    return { partNumber: Number(koreanPart[1]), isFinal: false };
   }
 
   const fraction = FRACTION.exec(title);
@@ -346,6 +426,9 @@ export function stripPartMarkers(title: string): string {
     )
     .replace(/https?:\/\/\S+/gi, " ")
     .replace(PART_KEYWORD_GLOBAL, " ")
+    .replace(PART_WORD_GLOBAL, " ")
+    .replace(CHINESE_PART_GLOBAL, " ")
+    .replace(KOREAN_PART_GLOBAL, " ")
     .replace(FRACTION_GLOBAL, " ")
     .replace(OF_GLOBAL, " ")
     .replace(PAREN_GLOBAL, " ")
