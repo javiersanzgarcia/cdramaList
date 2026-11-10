@@ -1,12 +1,12 @@
-import { useState } from 'react'
-import type { FormEvent } from 'react'
+import { useState } from "react";
+import type { FormEvent } from "react";
 import {
   buildCandidateState,
   parseCandidateNumber,
   validateCandidateNumber,
-} from '../lib/candidates'
-import { formatDuration } from '../lib/format'
-import { partLabel } from '../lib/parts'
+} from "../lib/candidates";
+import { formatDuration } from "../lib/format";
+import { partLabel } from "../lib/parts";
 import {
   isSeriesComplete,
   MAX_SERIES_ALIASES,
@@ -14,32 +14,28 @@ import {
   normalizeAliases,
   progressPercent,
   watchedCount,
-} from '../lib/series'
-import { channelUrlFor } from '../lib/youtube'
-import type {
-  ChapterCandidate,
-  Series,
-  SeriesRefreshResult,
-} from '../types'
-import { useSheet } from '../hooks/useSheet'
-import { CandidateCard } from './CandidateCard'
-import * as Icon from './Icons'
+} from "../lib/series";
+import { channelUrlFor } from "../lib/youtube";
+import type { ChapterCandidate, Series, SeriesRefreshResult } from "../types";
+import { useSheet } from "../hooks/useSheet";
+import { CandidateCard } from "./CandidateCard";
+import * as Icon from "./Icons";
 
 interface SeriesSheetProps {
-  series: Series
-  onClose: () => void
-  onPlay: (series: Series, index: number) => void
-  onToggleFavorite: (id: string) => void
-  onSetWatched: (seriesId: string, videoId: string, watched: boolean) => void
-  onAddParts: (series: Series) => void
-  onRefresh: (series: Series) => Promise<SeriesRefreshResult>
+  series: Series;
+  onClose: () => void;
+  onPlay: (series: Series, index: number) => void;
+  onToggleFavorite: (id: string) => void;
+  onSetWatched: (seriesId: string, videoId: string, watched: boolean) => void;
+  onAddParts: (series: Series) => void;
+  onRefresh: (series: Series) => Promise<SeriesRefreshResult>;
   onAddCandidate: (
     series: Series,
     candidate: ChapterCandidate,
     options: { partNumber?: number; isFinal?: boolean },
-  ) => Promise<{ synced: boolean }>
-  onUpdateAliases: (seriesId: string, aliases: string[]) => void
-  onDelete: (id: string) => void
+  ) => Promise<{ synced: boolean }>;
+  onUpdateAliases: (seriesId: string, aliases: string[]) => void;
+  onDelete: (id: string) => void;
 }
 
 export function SeriesSheet({
@@ -54,224 +50,231 @@ export function SeriesSheet({
   onUpdateAliases,
   onDelete,
 }: SeriesSheetProps) {
-  const [confirmingDelete, setConfirmingDelete] = useState(false)
-  const [refreshing, setRefreshing] = useState(false)
+  const [confirmingDelete, setConfirmingDelete] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
   const [refreshMessage, setRefreshMessage] = useState<{
-    kind: 'ok' | 'info' | 'error'
-    text: string
-  } | null>(null)
-  const [candidates, setCandidates] = useState<ChapterCandidate[]>([])
-  const [candidateNumbers, setCandidateNumbers] = useState<Record<string, string>>(
+    kind: "ok" | "info" | "error";
+    text: string;
+  } | null>(null);
+  const [candidates, setCandidates] = useState<ChapterCandidate[]>([]);
+  const [candidateNumbers, setCandidateNumbers] = useState<
+    Record<string, string>
+  >({});
+  const [candidateFinal, setCandidateFinal] = useState<Record<string, boolean>>(
     {},
-  )
-  const [candidateFinal, setCandidateFinal] = useState<Record<string, boolean>>({})
-  const [addingCandidateId, setAddingCandidateId] = useState<string | null>(null)
+  );
+  const [addingCandidateId, setAddingCandidateId] = useState<string | null>(
+    null,
+  );
   const [candidateMessage, setCandidateMessage] = useState<{
-    kind: 'ok' | 'error'
-    text: string
-  } | null>(null)
-  const [aliasDraft, setAliasDraft] = useState('')
-  const [aliasMessage, setAliasMessage] = useState<string | null>(null)
+    kind: "ok" | "error";
+    text: string;
+  } | null>(null);
+  const [aliasDraft, setAliasDraft] = useState("");
+  const [aliasMessage, setAliasMessage] = useState<string | null>(null);
 
-  useSheet(onClose)
+  useSheet(onClose);
 
-  const total = series.parts.length
-  const watched = watchedCount(series)
-  const complete = isSeriesComplete(series)
-  const nextIndex = nextPartIndex(series)
-  const nextPart = series.parts[nextIndex]
-  const progress = progressPercent(series)
-  const aliases = series.aliases ?? []
+  const total = series.parts.length;
+  const watched = watchedCount(series);
+  const complete = isSeriesComplete(series);
+  const nextIndex = nextPartIndex(series);
+  const nextPart = series.parts[nextIndex];
+  const progress = progressPercent(series);
+  const aliases = series.aliases ?? [];
 
   const channelUrl =
-    series.channelUrl ?? (series.channelId ? channelUrlFor(series.channelId) : undefined)
+    series.channelUrl ??
+    (series.channelId ? channelUrlFor(series.channelId) : undefined);
 
   const totalDuration = series.parts.reduce(
     (sum, part) => sum + (part.durationSeconds ?? 0),
     0,
-  )
-  const totalLabel = formatDuration(totalDuration)
+  );
+  const totalLabel = formatDuration(totalDuration);
 
   const continueLabel = complete
-    ? 'Volver a ver desde el principio'
+    ? "Volver a ver desde el principio"
     : watched === 0
-      ? 'Empezar la serie'
+      ? "Empezar la serie"
       : nextPart
         ? `Continuar en ${partLabel(nextPart, nextIndex)}`
-        : 'Empezar la serie'
+        : "Empezar la serie";
 
   function handleDelete() {
     if (!confirmingDelete) {
-      setConfirmingDelete(true)
-      return
+      setConfirmingDelete(true);
+      return;
     }
-    onDelete(series.id)
+    onDelete(series.id);
   }
 
   function handleAddAlias(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault()
+    event.preventDefault();
 
-    const alias = aliasDraft.trim().replace(/\s+/g, ' ')
-    if (alias.length < 2) return
+    const alias = aliasDraft.trim().replace(/\s+/g, " ");
+    if (alias.length < 2) return;
 
-    const key = alias.toLowerCase()
+    const key = alias.toLowerCase();
     if (key === series.title.trim().toLowerCase()) {
-      setAliasMessage('El alias no puede ser igual al título principal.')
-      return
+      setAliasMessage("El alias no puede ser igual al título principal.");
+      return;
     }
 
     if (aliases.some((item) => item.toLowerCase() === key)) {
-      setAliasMessage('Ese alias ya está añadido.')
-      return
+      setAliasMessage("Ese alias ya está añadido.");
+      return;
     }
 
     if (aliases.length >= MAX_SERIES_ALIASES) {
-      setAliasMessage(`Puedes añadir hasta ${MAX_SERIES_ALIASES} alias.`)
-      return
+      setAliasMessage(`Puedes añadir hasta ${MAX_SERIES_ALIASES} alias.`);
+      return;
     }
 
-    onUpdateAliases(series.id, normalizeAliases([...aliases, alias]))
-    setAliasDraft('')
-    setAliasMessage(null)
+    onUpdateAliases(series.id, normalizeAliases([...aliases, alias]));
+    setAliasDraft("");
+    setAliasMessage(null);
   }
 
   function removeAlias(alias: string) {
     onUpdateAliases(
       series.id,
       aliases.filter((item) => item !== alias),
-    )
-    setAliasMessage(null)
+    );
+    setAliasMessage(null);
   }
 
-  function prepareCandidates(list: ChapterCandidate[], parts: Series['parts']) {
-    const { numbers, finals } = buildCandidateState(list, parts)
-    setCandidates(list)
-    setCandidateNumbers(numbers)
-    setCandidateFinal(finals)
-    setCandidateMessage(null)
+  function prepareCandidates(list: ChapterCandidate[], parts: Series["parts"]) {
+    const { numbers, finals } = buildCandidateState(list, parts);
+    setCandidates(list);
+    setCandidateNumbers(numbers);
+    setCandidateFinal(finals);
+    setCandidateMessage(null);
   }
 
   function discardCandidate(videoId: string) {
     setCandidates((current) =>
       current.filter((candidate) => candidate.videoId !== videoId),
-    )
+    );
     setCandidateNumbers((current) => {
-      const next = { ...current }
-      delete next[videoId]
-      return next
-    })
+      const next = { ...current };
+      delete next[videoId];
+      return next;
+    });
     setCandidateFinal((current) => {
-      const next = { ...current }
-      delete next[videoId]
-      return next
-    })
+      const next = { ...current };
+      delete next[videoId];
+      return next;
+    });
   }
 
   async function handleAddCandidate(candidate: ChapterCandidate) {
-    if (addingCandidateId) return
+    if (addingCandidateId) return;
 
-    const raw = candidateNumbers[candidate.videoId] ?? ''
+    const raw = candidateNumbers[candidate.videoId] ?? "";
     const numberError = validateCandidateNumber(
       raw,
       series.parts,
       candidateNumbers,
       candidate.videoId,
-    )
+    );
 
     if (numberError) {
-      setCandidateMessage({ kind: 'error', text: numberError })
-      return
+      setCandidateMessage({ kind: "error", text: numberError });
+      return;
     }
 
-    const partNumber = parseCandidateNumber(raw)
+    const partNumber = parseCandidateNumber(raw);
 
-    setAddingCandidateId(candidate.videoId)
-    setCandidateMessage(null)
-    setRefreshMessage(null)
+    setAddingCandidateId(candidate.videoId);
+    setCandidateMessage(null);
+    setRefreshMessage(null);
 
     try {
       const result = await onAddCandidate(series, candidate, {
         partNumber,
         isFinal: candidateFinal[candidate.videoId] ?? candidate.isFinal,
-      })
+      });
 
-      discardCandidate(candidate.videoId)
+      discardCandidate(candidate.videoId);
       setCandidateMessage({
-        kind: 'ok',
+        kind: "ok",
         text: result.synced
-          ? 'Capítulo añadido y sincronizado con Google Drive.'
-          : 'Capítulo añadido. Se sincronizará con Google Drive en la próxima sincronización.',
-      })
+          ? "Capítulo añadido y sincronizado. Esta coincidencia mejorará futuras sugerencias de la serie."
+          : "Capítulo añadido. Esta coincidencia mejorará futuras sugerencias de la serie y se sincronizará con Google Drive.",
+      });
     } catch (caught) {
       setCandidateMessage({
-        kind: 'error',
+        kind: "error",
         text:
           caught instanceof Error
             ? caught.message
-            : 'No se pudo añadir el capítulo. Inténtalo de nuevo.',
-      })
+            : "No se pudo añadir el capítulo. Inténtalo de nuevo.",
+      });
     } finally {
-      setAddingCandidateId(null)
+      setAddingCandidateId(null);
     }
   }
 
   async function handleRefresh() {
-    if (refreshing) return
+    if (refreshing) return;
 
-    setRefreshing(true)
-    setRefreshMessage(null)
-    setCandidateMessage(null)
+    setRefreshing(true);
+    setRefreshMessage(null);
+    setCandidateMessage(null);
 
     try {
-      const result = await onRefresh(series)
-      prepareCandidates(result.candidates, result.parts)
+      const result = await onRefresh(series);
+      prepareCandidates(result.candidates, result.parts);
       const warningText =
-        result.warnings.length > 0 ? ` ${result.warnings.join(' ')}` : ''
+        result.warnings.length > 0 ? ` ${result.warnings.join(" ")}` : "";
 
       if (result.added === 0 && result.candidates.length === 0) {
         setRefreshMessage({
-          kind: 'info',
+          kind: "info",
           text: `No se han encontrado capítulos nuevos ni candidatos.${warningText}`,
-        })
-        return
+        });
+        return;
       }
 
       if (result.added === 0) {
         const noun =
           result.candidates.length === 1
-            ? '1 posible capítulo'
-            : `${result.candidates.length} posibles capítulos`
+            ? "1 posible capítulo"
+            : `${result.candidates.length} posibles capítulos`;
         setRefreshMessage({
-          kind: 'info',
+          kind: "info",
           text: `No hay coincidencias exactas. Revisa ${noun} más abajo y valídalos manualmente.${warningText}`,
-        })
-        return
+        });
+        return;
       }
 
       const noun =
-        result.added === 1 ? '1 capítulo nuevo' : `${result.added} capítulos nuevos`
-      const verb = result.added === 1 ? 'añadido' : 'añadidos'
+        result.added === 1
+          ? "1 capítulo nuevo"
+          : `${result.added} capítulos nuevos`;
+      const verb = result.added === 1 ? "añadido" : "añadidos";
       const extra =
         result.candidates.length > 0
-          ? ` Además hay ${result.candidates.length === 1 ? '1 posible capítulo' : `${result.candidates.length} posibles capítulos`} para revisar.`
-          : ''
+          ? ` Además hay ${result.candidates.length === 1 ? "1 posible capítulo" : `${result.candidates.length} posibles capítulos`} para revisar.`
+          : "";
 
       setRefreshMessage({
-        kind: 'ok',
+        kind: "ok",
         text: result.synced
           ? `${noun} ${verb} y sincronizado con Google Drive.${extra}${warningText}`
           : `${noun} ${verb}. Se sincronizará con Google Drive en la próxima sincronización.${extra}${warningText}`,
-      })
+      });
     } catch (caught) {
       setRefreshMessage({
-        kind: 'error',
+        kind: "error",
         text:
           caught instanceof Error
             ? caught.message
-            : 'No se pudo actualizar la serie. Inténtalo de nuevo.',
-      })
+            : "No se pudo actualizar la serie. Inténtalo de nuevo.",
+      });
     } finally {
-      setRefreshing(false)
+      setRefreshing(false);
     }
   }
 
@@ -293,7 +296,7 @@ export function SeriesSheet({
         <div className="sticky top-0 z-10 flex items-center justify-between gap-3 border-b border-zinc-800/80 bg-zinc-900/95 px-4 py-3 backdrop-blur-xl">
           <div className="min-w-0">
             <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-rose-400">
-              {complete ? 'Completada' : 'Tu serie'}
+              {complete ? "Completada" : "Tu serie"}
             </p>
             <h2 id="series-sheet-title" className="truncate text-lg font-bold">
               {series.title}
@@ -316,7 +319,7 @@ export function SeriesSheet({
                 src={series.thumbnail}
                 alt=""
                 onError={(event) => {
-                  event.currentTarget.style.display = 'none'
+                  event.currentTarget.style.display = "none";
                 }}
                 className="absolute inset-0 size-full object-cover"
               />
@@ -331,13 +334,13 @@ export function SeriesSheet({
               type="button"
               onClick={() => onToggleFavorite(series.id)}
               aria-label={
-                series.favorite ? 'Quitar de favoritas' : 'Añadir a favoritas'
+                series.favorite ? "Quitar de favoritas" : "Añadir a favoritas"
               }
               aria-pressed={series.favorite}
               className={`absolute right-2.5 top-2.5 grid size-9 place-items-center rounded-full backdrop-blur transition active:scale-90 ${
                 series.favorite
-                  ? 'bg-rose-500 text-white'
-                  : 'bg-black/50 text-white/80 hover:text-white'
+                  ? "bg-rose-500 text-white"
+                  : "bg-black/50 text-white/80 hover:text-white"
               }`}
             >
               <Icon.Heart filled={series.favorite} className="size-4" />
@@ -358,7 +361,7 @@ export function SeriesSheet({
             <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-zinc-800">
               <div
                 className={`h-full rounded-full transition-all ${
-                  complete ? 'bg-emerald-400' : 'bg-rose-500'
+                  complete ? "bg-emerald-400" : "bg-rose-500"
                 }`}
                 style={{ width: `${progress}%` }}
               />
@@ -394,7 +397,9 @@ export function SeriesSheet({
               <p className="mt-0.5 text-[11px] text-zinc-500">Vistas</p>
             </div>
             <div className="rounded-2xl bg-zinc-950/60 p-3 ring-1 ring-zinc-800">
-              <p className="text-lg font-bold text-zinc-100">{totalLabel ?? '—'}</p>
+              <p className="text-lg font-bold text-zinc-100">
+                {totalLabel ?? "—"}
+              </p>
               <p className="mt-0.5 text-[11px] text-zinc-500">Duración</p>
             </div>
           </div>
@@ -440,8 +445,8 @@ export function SeriesSheet({
               <input
                 value={aliasDraft}
                 onChange={(event) => {
-                  setAliasDraft(event.target.value)
-                  setAliasMessage(null)
+                  setAliasDraft(event.target.value);
+                  setAliasMessage(null);
                 }}
                 placeholder="Ej. Black Rain Apocalypse"
                 aria-label="Nuevo alias"
@@ -459,7 +464,9 @@ export function SeriesSheet({
             </form>
 
             {aliasMessage && (
-              <p className="mt-1.5 text-[11px] text-amber-200/80">{aliasMessage}</p>
+              <p className="mt-1.5 text-[11px] text-amber-200/80">
+                {aliasMessage}
+              </p>
             )}
           </div>
 
@@ -480,8 +487,8 @@ export function SeriesSheet({
           {total > 0 ? (
             <ul className="mt-2 space-y-1">
               {series.parts.map((part, index) => {
-                const isWatched = series.watched.includes(part.videoId)
-                const duration = formatDuration(part.durationSeconds)
+                const isWatched = series.watched.includes(part.videoId);
+                const duration = formatDuration(part.durationSeconds);
 
                 return (
                   <li
@@ -500,7 +507,7 @@ export function SeriesSheet({
                             alt=""
                             loading="lazy"
                             onError={(event) => {
-                              event.currentTarget.style.display = 'none'
+                              event.currentTarget.style.display = "none";
                             }}
                             className="size-full object-cover"
                           />
@@ -514,7 +521,9 @@ export function SeriesSheet({
                         <span className="flex items-center gap-1.5 text-[11px] font-semibold text-rose-300">
                           {partLabel(part, index)}
                           {duration && (
-                            <span className="font-normal text-zinc-600">· {duration}</span>
+                            <span className="font-normal text-zinc-600">
+                              · {duration}
+                            </span>
                           )}
                         </span>
                         <span className="mt-0.5 line-clamp-2 block text-xs leading-snug text-zinc-300">
@@ -525,7 +534,9 @@ export function SeriesSheet({
 
                     <button
                       type="button"
-                      onClick={() => onSetWatched(series.id, part.videoId, !isWatched)}
+                      onClick={() =>
+                        onSetWatched(series.id, part.videoId, !isWatched)
+                      }
                       aria-pressed={isWatched}
                       aria-label={
                         isWatched
@@ -534,19 +545,21 @@ export function SeriesSheet({
                       }
                       className={`mr-1.5 grid size-8 shrink-0 place-items-center rounded-full border transition active:scale-90 ${
                         isWatched
-                          ? 'border-emerald-400/30 bg-emerald-400/15 text-emerald-300'
-                          : 'border-zinc-700 bg-zinc-900 text-zinc-500 hover:text-zinc-300'
+                          ? "border-emerald-400/30 bg-emerald-400/15 text-emerald-300"
+                          : "border-zinc-700 bg-zinc-900 text-zinc-500 hover:text-zinc-300"
                       }`}
                     >
                       <Icon.Check className="size-4" />
                     </button>
                   </li>
-                )
+                );
               })}
             </ul>
           ) : (
             <div className="mt-2 rounded-2xl border border-dashed border-zinc-800 bg-zinc-950/50 px-4 py-8 text-center">
-              <p className="text-sm font-medium text-zinc-300">Esta serie no tiene partes</p>
+              <p className="text-sm font-medium text-zinc-300">
+                Esta serie no tiene partes
+              </p>
               <p className="mt-1 text-xs text-zinc-500">
                 Añade un vídeo o una lista de reproducción para empezar.
               </p>
@@ -560,18 +573,20 @@ export function SeriesSheet({
               disabled={refreshing}
               className="flex w-full items-center justify-center gap-2 rounded-2xl border border-rose-500/30 bg-rose-500/10 px-4 py-3 text-sm font-semibold text-rose-200 transition hover:border-rose-500/50 hover:bg-rose-500/15 hover:text-white active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-60"
             >
-              <Icon.RefreshCw className={`size-4 ${refreshing ? 'animate-spin' : ''}`} />
-              {refreshing ? 'Buscando capítulos nuevos…' : 'Actualizar serie'}
+              <Icon.RefreshCw
+                className={`size-4 ${refreshing ? "animate-spin" : ""}`}
+              />
+              {refreshing ? "Buscando capítulos nuevos…" : "Actualizar serie"}
             </button>
 
             {refreshMessage && (
               <p
                 className={`rounded-2xl border px-3 py-2 text-[11px] leading-relaxed ${
-                  refreshMessage.kind === 'error'
-                    ? 'border-rose-500/20 bg-rose-500/10 text-rose-200'
-                    : refreshMessage.kind === 'ok'
-                      ? 'border-emerald-400/20 bg-emerald-400/10 text-emerald-200'
-                      : 'border-zinc-700 bg-zinc-950/60 text-zinc-300'
+                  refreshMessage.kind === "error"
+                    ? "border-rose-500/20 bg-rose-500/10 text-rose-200"
+                    : refreshMessage.kind === "ok"
+                      ? "border-emerald-400/20 bg-emerald-400/10 text-emerald-200"
+                      : "border-zinc-700 bg-zinc-950/60 text-zinc-300"
                 }`}
               >
                 {refreshMessage.text}
@@ -599,10 +614,9 @@ export function SeriesSheet({
                     <CandidateCard
                       key={candidate.videoId}
                       candidate={candidate}
-                      number={candidateNumbers[candidate.videoId] ?? ''}
+                      number={candidateNumbers[candidate.videoId] ?? ""}
                       isFinal={Boolean(
-                        candidateFinal[candidate.videoId] ??
-                          candidate.isFinal,
+                        candidateFinal[candidate.videoId] ?? candidate.isFinal,
                       )}
                       adding={addingCandidateId === candidate.videoId}
                       busy={addingCandidateId !== null}
@@ -616,8 +630,7 @@ export function SeriesSheet({
                         setCandidateFinal((current) => ({
                           ...current,
                           [candidate.videoId]: !(
-                            current[candidate.videoId] ??
-                            candidate.isFinal
+                            current[candidate.videoId] ?? candidate.isFinal
                           ),
                         }))
                       }
@@ -632,9 +645,9 @@ export function SeriesSheet({
             {candidateMessage && (
               <p
                 className={`rounded-2xl border px-3 py-2 text-[11px] leading-relaxed ${
-                  candidateMessage.kind === 'error'
-                    ? 'border-rose-500/20 bg-rose-500/10 text-rose-200'
-                    : 'border-emerald-400/20 bg-emerald-400/10 text-emerald-200'
+                  candidateMessage.kind === "error"
+                    ? "border-rose-500/20 bg-rose-500/10 text-rose-200"
+                    : "border-emerald-400/20 bg-emerald-400/10 text-emerald-200"
                 }`}
               >
                 {candidateMessage.text}
@@ -655,16 +668,18 @@ export function SeriesSheet({
               onClick={handleDelete}
               className={`flex w-full items-center justify-center gap-2 rounded-2xl border px-4 py-3 text-sm font-semibold transition active:scale-[0.99] ${
                 confirmingDelete
-                  ? 'border-rose-500 bg-rose-500 text-white hover:bg-rose-400'
-                  : 'border-zinc-800 text-zinc-400 hover:border-rose-500/40 hover:text-rose-300'
+                  ? "border-rose-500 bg-rose-500 text-white hover:bg-rose-400"
+                  : "border-zinc-800 text-zinc-400 hover:border-rose-500/40 hover:text-rose-300"
               }`}
             >
               <Icon.Trash className="size-4" />
-              {confirmingDelete ? 'Pulsa otra vez para borrar la serie' : 'Borrar serie'}
+              {confirmingDelete
+                ? "Pulsa otra vez para borrar la serie"
+                : "Borrar serie"}
             </button>
           </div>
         </div>
       </div>
     </div>
-  )
+  );
 }

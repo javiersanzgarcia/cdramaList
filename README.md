@@ -9,6 +9,7 @@ PWA para reunir las partes de una historia de YouTube, guardar el progreso y ver
 - **Encuentra las partes automáticamente.** Pega un enlace de vídeo y la app busca en el canal los vídeos de la misma historia. Reconoce formatos como `Parte 2`, `P2`, `EP2`, `Episode 2`, `E02`, `Vol. 2`, `Pt. 2`, `Part Two`, `第二集`, `第2集`, `2화`, `2/5`, `(2)` y `#2`.
 - **Detecta los capítulos finales.** Identifica marcadores como `Final`, `The End`, `Ending`, `Última Parte`, `Cap Final`, `Episodio Final`, `完结` y `结局`, y marca la parte como final automáticamente.
 - **Relaciona títulos por conceptos.** Ignora emojis, hashtags, caracteres decorativos y diferencias de mayúsculas; compara palabras significativas y reconoce algunas variantes de género, plural y conjugación. Por ejemplo, puede relacionar «CEO millonario enamorado» con «Secretaria pobre enamora al CEO millonario».
+- **Aprende de tus confirmaciones.** Al añadir una sugerencia, sus palabras clave ganan confianza para esa serie; las coincidencias relacionadas se priorizan en próximas búsquedas. La señal se guarda con la serie, se sincroniza con Drive y tiene límites para evitar que crezca sin control.
 - **Importa listas de reproducción completas.** Si el canal agrupa las partes en una playlist, se importan todas en orden.
 - **Guarda tu progreso.** Marca partes como vistas, continúa donde lo dejaste y consulta el porcentaje de cada serie.
 - **Reproductor integrado.** Las partes se reproducen dentro de la app y avanzan solas al terminar el vídeo.

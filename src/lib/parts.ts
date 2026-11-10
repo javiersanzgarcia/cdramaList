@@ -512,6 +512,27 @@ function tokenize(value: string): string[] {
     );
 }
 
+export function extractKeywords(value: string): string[] {
+  return [...new Set(tokenize(value).map(normalizeKeyword))];
+}
+
+export function keywordConfidenceBonus(
+  titles: string[],
+  confidence?: Record<string, number>,
+): number {
+  if (!confidence) return 0;
+
+  const keywords = new Set(titles.flatMap(extractKeywords));
+  let total = 0;
+
+  for (const keyword of keywords) {
+    const score = Object.hasOwn(confidence, keyword) ? confidence[keyword] : 0;
+    total += Math.min(3, Math.max(0, score));
+  }
+
+  return Math.min(12, total * 2);
+}
+
 export function tokenCount(value: string): number {
   return new Set(tokenize(value).map(normalizeKeyword)).size;
 }

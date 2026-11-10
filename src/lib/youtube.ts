@@ -4,6 +4,7 @@ import {
   buildGlobalSearchQuery,
   detectPart,
   extractDescriptionTitle,
+  keywordConfidenceBonus,
   normalizedBaseTitle,
   sharedTokenCount,
   sortParts,
@@ -672,6 +673,7 @@ function candidateScore(
   shared: number,
   referenceTokenCount: number,
   sameChannel: boolean,
+  confidenceBonus: number,
 ): number {
   const sharedRatio =
     referenceTokenCount > 0 ? shared / referenceTokenCount : 0;
@@ -681,7 +683,8 @@ function candidateScore(
       Math.min(sharedRatio, 1) * 20 +
       (info.partNumber != null ? 12 : 0) +
       (info.isFinal ? 5 : 0) +
-      (sameChannel ? 8 : 0),
+      (sameChannel ? 8 : 0) +
+      confidenceBonus,
   );
 }
 
@@ -919,6 +922,10 @@ export async function discoverSeriesUpdates(
           ),
         )
       : 0;
+    const learningBonus = keywordConfidenceBonus(
+      [video.title, ...(descriptionTitle ? [descriptionTitle] : [])],
+      series.keywordConfidence,
+    );
 
     const overlap = Math.max(titleOverlap, descriptionOverlap);
     const shared = Math.max(titleShared, descriptionShared);
@@ -937,14 +944,16 @@ export async function discoverSeriesUpdates(
     const descriptionRelevant = Boolean(
       descriptionTitle &&
       (descriptionMatch ||
-        (descriptionShared >= minShared && descriptionOverlap >= 0.65)),
+        (descriptionShared >= minShared && descriptionOverlap >= 0.65) ||
+        (learningBonus >= 4 && descriptionShared >= 1)),
     );
 
     // El resto solo se propone si comparte palabras suficientes con la serie,
     // ya sea por el título del vídeo o por el título de la descripción.
     const titleRelevant =
-      titleShared >= minShared &&
-      (titleOverlap >= 0.45 || (sameChannel && titleOverlap >= 0.3));
+      (titleShared >= minShared &&
+        (titleOverlap >= 0.45 || (sameChannel && titleOverlap >= 0.3))) ||
+      (learningBonus >= 4 && titleShared >= 1);
 
     if (!descriptionRelevant && !titleRelevant) continue;
 
@@ -960,6 +969,7 @@ export async function discoverSeriesUpdates(
       shared,
       referenceTokenCount,
       sameChannel,
+      learningBonus,
     );
     if (descriptionMatch) score = Math.min(100, score + 12);
     else if (descriptionRelevant) score = Math.min(100, score + 6);
