@@ -6,7 +6,9 @@ PWA para reunir las partes de una historia de YouTube, guardar el progreso y ver
 
 ## Qué hace
 
-- **Encuentra las partes automáticamente.** Pega un enlace de vídeo y la app busca en el canal los vídeos de la misma historia, detecta los números de parte (`Parte 2`, `P2`, `2/5`, `Capítulo 2`, `(2)`, `#2`, `Final`…) y te deja elegir cuáles guardar.
+- **Encuentra las partes automáticamente.** Pega un enlace de vídeo y la app busca en el canal los vídeos de la misma historia. Reconoce formatos como `Parte 2`, `P2`, `EP2`, `Episode 2`, `E02`, `Vol. 2`, `Pt. 2`, `Part Two`, `第二集`, `第2集`, `2화`, `2/5`, `(2)` y `#2`.
+- **Detecta los capítulos finales.** Identifica marcadores como `Final`, `The End`, `Ending`, `Última Parte`, `Cap Final`, `Episodio Final`, `完结` y `结局`, y marca la parte como final automáticamente.
+- **Relaciona títulos por conceptos.** Ignora emojis, hashtags, caracteres decorativos y diferencias de mayúsculas; compara palabras significativas y reconoce algunas variantes de género, plural y conjugación. Por ejemplo, puede relacionar «CEO millonario enamorado» con «Secretaria pobre enamora al CEO millonario».
 - **Importa listas de reproducción completas.** Si el canal agrupa las partes en una playlist, se importan todas en orden.
 - **Guarda tu progreso.** Marca partes como vistas, continúa donde lo dejaste y consulta el porcentaje de cada serie.
 - **Reproductor integrado.** Las partes se reproducen dentro de la app y avanzan solas al terminar el vídeo.
@@ -32,7 +34,7 @@ Al **añadir una serie** desde un vídeo y al pulsar **Actualizar serie** se usa
 
 - Revisa las subidas recientes del canal de la serie.
 - Lee las descripciones de las partes conocidas para extraer el título real del drama (por ejemplo, `【Títulos】 Apocalipsis de la Lluvia Negra`), porque muchos canales usan el título del vídeo solo como resumen.
-- Hace una búsqueda global en YouTube con ese título real; si no hay título en las descripciones, usa el título de la serie (una sola consulta por actualización).
+- Hace una búsqueda global en YouTube con el título principal y añade el título real extraído de las descripciones como referencia. Si no hay título en las descripciones, sigue usando el título principal (una sola consulta por actualización).
 - Busca también por los **alias manuales** de cada serie. Puedes añadir otros títulos de la misma historia (traducciones o títulos alternativos) desde la ficha de la serie; se combinan con el título principal en la misma consulta OR, así que no se multiplican las llamadas a la API.
 - Amplía la búsqueda con **sinónimos en español** de las palabras principales del título (por ejemplo, `lluvia` → `precipitación`, `aguacero`, `chaparrón`; `apocalipsis` → `catástrofe`, `cataclismo`), porque las traducciones automáticas suelen cambiar unas palabras por otras. Los sinónimos se consultan en [rae-api.com](https://rae-api.com), se guardan en caché durante 60 días y, si la API falla o se agota su cuota, la búsqueda continúa con el título original.
 - Añade automáticamente solo los vídeos cuyo título base coincide exactamente con el de la serie o con uno de sus alias (por ejemplo, «Mi drama» → «Mi drama - Parte 3» o «Mi drama | Final»).

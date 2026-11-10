@@ -513,7 +513,7 @@ function tokenize(value: string): string[] {
 }
 
 export function tokenCount(value: string): number {
-  return new Set(tokenize(value)).size;
+  return new Set(tokenize(value).map(normalizeKeyword)).size;
 }
 
 export type TokenAliases = ReadonlyMap<string, string>;
@@ -526,11 +526,29 @@ function applyTokenAliases(
   tokens: Set<string>,
   aliases?: TokenAliases,
 ): Set<string> {
-  if (!aliases || aliases.size === 0) return tokens;
-
   const result = new Set<string>();
-  for (const token of tokens) result.add(aliases.get(token) ?? token);
+  for (const token of tokens) {
+    result.add(normalizeKeyword(aliases?.get(token) ?? token));
+  }
   return result;
+}
+
+function normalizeKeyword(value: string): string {
+  let keyword = value;
+
+  if (keyword.length > 6 && keyword.endsWith("s")) {
+    keyword = keyword.slice(0, -1);
+  }
+
+  if (keyword.length > 7 && /(?:ad[oa]|id[oa]|ando|iendo)$/.test(keyword)) {
+    return keyword.replace(/(?:ad[oa]|id[oa]|ando|iendo)$/, "");
+  }
+
+  if (keyword.length > 6 && /[ao]$/.test(keyword)) {
+    keyword = keyword.slice(0, -1);
+  }
+
+  return keyword;
 }
 
 export function sharedTokenCount(
