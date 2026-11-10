@@ -33,6 +33,7 @@ Al **añadir una serie** desde un vídeo y al pulsar **Actualizar serie** se usa
 - Revisa las subidas recientes del canal de la serie.
 - Lee las descripciones de las partes conocidas para extraer el título real del drama (por ejemplo, `【Títulos】 Apocalipsis de la Lluvia Negra`), porque muchos canales usan el título del vídeo solo como resumen.
 - Hace una búsqueda global en YouTube con ese título real; si no hay título en las descripciones, usa el título de la serie (una sola consulta por actualización).
+- Amplía la búsqueda con **sinónimos en español** de las palabras principales del título (por ejemplo, `lluvia` → `precipitación`, `aguacero`, `chaparrón`; `apocalipsis` → `catástrofe`, `cataclismo`), porque las traducciones automáticas suelen cambiar unas palabras por otras. Los sinónimos se consultan en [rae-api.com](https://rae-api.com), se guardan en caché durante 60 días y, si la API falla o se agota su cuota, la búsqueda continúa con el título original.
 - Añade automáticamente solo los vídeos cuyo título base coincide exactamente con el de la serie (por ejemplo, «Mi drama» → «Mi drama - Parte 3» o «Mi drama | Final»).
 - Las coincidencias por el título de la descripción y el resto de coincidencias parciales aparecen como **posibles capítulos**: puedes revisar el vídeo, ver el título detectado en la descripción, escribir o editar el número de capítulo, marcarlo como final, añadirlo o descartarlo. Al añadir una serie, los candidatos se incorporan a la vista previa y se guardan junto con ella.
 

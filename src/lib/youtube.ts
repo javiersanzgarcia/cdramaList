@@ -11,6 +11,12 @@ import {
   titleJaccard,
   tokenCount,
 } from './parts'
+import {
+  buildSynonymAliases,
+  expandQueryWithSynonyms,
+  fetchSynonyms,
+  pickSynonymWordsFromTexts,
+} from './synonyms'
 
 const API_BASE = 'https://www.googleapis.com/youtube/v3'
 const MAX_PLAYLIST_ITEMS = 200
@@ -708,10 +714,26 @@ export async function discoverSeriesUpdates(
 
   const descriptionReference = pickDescriptionReference(descriptionTitles)
 
+  // Ampliamos el título con sinónimos de la RAE para encontrar también las
+  // traducciones que usan otras palabras («lluvia» → «precipitación»,
+  // «apocalipsis» → «catástrofe»). Si la API falla, seguimos con el título
+  // original: es un extra, no un requisito.
+  const synonymWords = pickSynonymWordsFromTexts([
+    descriptionReference,
+    series.title,
+    ...descriptionTitles,
+    ...series.parts.map((part) => part.title),
+  ])
+  const synonyms = await fetchSynonyms(synonymWords)
+  const aliases = buildSynonymAliases(synonyms)
+
   // Una sola consulta global por actualización: `search.list` cuesta 100
   // unidades de cuota, así que no conviene lanzar varias. Si hay título real en
   // la descripción, es una consulta mucho más precisa que el título-resumen.
-  const query = buildGlobalSearchQuery(descriptionReference ?? series.title)
+  const query = expandQueryWithSynonyms(
+    buildGlobalSearchQuery(descriptionReference ?? series.title),
+    synonyms,
+  )
   const globalResults = query
     ? await searchYouTubeVideos(query, apiKey).catch((cause) => {
         failed = true
@@ -770,22 +792,26 @@ export async function discoverSeriesUpdates(
       : ''
 
     const titleOverlap = Math.max(
-      ...references.map((reference) => titleJaccard(reference, video.title)),
+      ...references.map((reference) =>
+        titleJaccard(reference, video.title, aliases),
+      ),
     )
     const titleShared = Math.max(
-      ...references.map((reference) => sharedTokenCount(reference, video.title)),
+      ...references.map((reference) =>
+        sharedTokenCount(reference, video.title, aliases),
+      ),
     )
     const descriptionOverlap = descriptionTitle
       ? Math.max(
           ...references.map((reference) =>
-            titleJaccard(reference, descriptionTitle),
+            titleJaccard(reference, descriptionTitle, aliases),
           ),
         )
       : 0
     const descriptionShared = descriptionTitle
       ? Math.max(
           ...references.map((reference) =>
-            sharedTokenCount(reference, descriptionTitle),
+            sharedTokenCount(reference, descriptionTitle, aliases),
           ),
         )
       : 0

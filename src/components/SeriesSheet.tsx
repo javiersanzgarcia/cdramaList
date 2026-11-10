@@ -480,9 +480,9 @@ export function SeriesSheet({
                       Posibles capítulos ({candidates.length})
                     </p>
                     <p className="mt-0.5 text-[11px] leading-relaxed text-amber-200/70">
-                      Hemos buscado por el título y por el título real de la
-                      descripción. Revisa el número y añádelos solo si son de
-                      esta serie.
+                      Hemos buscado por el título, por el título real de la
+                      descripción y por sus sinónimos. Revisa el número y
+                      añádelos solo si son de esta serie.
                     </p>
                   </div>
                 </div>
