@@ -12,6 +12,13 @@ interface GeminiResponse {
   error?: { message?: string };
 }
 
+function retryDelay(response: Response): number {
+  const retryAfter = Number(response.headers.get("Retry-After"));
+  return Number.isFinite(retryAfter) && retryAfter >= 0
+    ? Math.min(retryAfter * 1000, 5000)
+    : 1000;
+}
+
 const FINGERPRINT_CATEGORIES: Array<keyof SemanticFingerprint> = [
   "genres",
   "tropes",
@@ -105,61 +112,65 @@ export async function generateSemanticFingerprints(
 ): Promise<Map<string, SemanticFingerprint>> {
   if (!apiKey || entries.length === 0) return new Map();
 
-  const response = await fetch(
-    `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent?key=${encodeURIComponent(apiKey)}`,
-    {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        contents: [
-          {
-            parts: [
-              {
-                text: [
-                  "Create a semantic fingerprint for each short drama-series description.",
-                  "Return concise, reusable English snake_case tags grouped into genres, tropes, roles, settings, and plotElements. These are open categories: add relevant concepts not shown in the examples instead of omitting them.",
-                  "Recognize Chinese-drama concepts across languages. Examples include: roles engineer, scientist, inventor, doctor, ceo, billionaire, secretary, poor_heroine, orphan, heiress, farmer, soldier; tropes transmigration, rebirth, reincarnation, time_travel, modern_person_in_past, body_swap, revenge, contract_marriage, arranged_marriage, hidden_identity, system, raising_children; settings ancient_china, historical_china, republican_era, 1980s_china, modern_city, rural_village, workplace; plotElements twins, secret_child, family_feud, inheritance, cultivation; genres romance, fantasy, historical, comedy, mystery, crime.",
-                  "Only include concepts stated or strongly implied by the text. Do not invent plot details. Return at most 12 tags per category.",
-                  "Return one result for every input id, unchanged, and no extra text.",
-                  JSON.stringify(
-                    entries.map((entry) => ({
-                      id: entry.id,
-                      text: entry.text.slice(0, 1200),
-                    })),
-                  ),
-                ].join("\n"),
-              },
-            ],
-          },
-        ],
-        generationConfig: {
-          temperature: 0,
-          responseMimeType: "application/json",
-          responseSchema: {
-            type: "OBJECT",
-            properties: {
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent?key=${encodeURIComponent(apiKey)}`;
+  const options: RequestInit = {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      contents: [
+        {
+          parts: [
+            {
+              text: [
+                "Create a semantic fingerprint for each short drama-series description.",
+                "Return concise, reusable English snake_case tags grouped into genres, tropes, roles, settings, and plotElements. These are open categories: add relevant concepts not shown in the examples instead of omitting them.",
+                "Recognize Chinese-drama concepts across languages. Examples include: roles engineer, scientist, inventor, doctor, ceo, billionaire, secretary, poor_heroine, orphan, heiress, farmer, soldier; tropes transmigration, rebirth, reincarnation, time_travel, modern_person_in_past, body_swap, revenge, contract_marriage, arranged_marriage, hidden_identity, system, raising_children; settings ancient_china, historical_china, republican_era, 1980s_china, modern_city, rural_village, workplace; plotElements twins, secret_child, family_feud, inheritance, cultivation; genres romance, fantasy, historical, comedy, mystery, crime.",
+                "Only include concepts stated or strongly implied by the text. Do not invent plot details. Return at most 12 tags per category.",
+                "Return one result for every input id, unchanged, and no extra text.",
+                JSON.stringify(
+                  entries.map((entry) => ({
+                    id: entry.id,
+                    text: entry.text.slice(0, 1200),
+                  })),
+                ),
+              ].join("\n"),
+            },
+          ],
+        },
+      ],
+      generationConfig: {
+        temperature: 0,
+        responseMimeType: "application/json",
+        responseSchema: {
+          type: "OBJECT",
+          properties: {
+            items: {
+              type: "ARRAY",
               items: {
-                type: "ARRAY",
-                items: {
-                  type: "OBJECT",
-                  properties: {
-                    id: { type: "STRING" },
-                    fingerprint: {
-                      type: "OBJECT",
-                      properties: fingerprintProperties,
-                      required: FINGERPRINT_CATEGORIES,
-                    },
+                type: "OBJECT",
+                properties: {
+                  id: { type: "STRING" },
+                  fingerprint: {
+                    type: "OBJECT",
+                    properties: fingerprintProperties,
+                    required: FINGERPRINT_CATEGORIES,
                   },
-                  required: ["id", "fingerprint"],
                 },
+                required: ["id", "fingerprint"],
               },
             },
-            required: ["items"],
           },
+          required: ["items"],
         },
-      }),
-    },
-  );
+      },
+    }),
+  };
+
+  let response = await fetch(url, options);
+  if (response.status === 429 || response.status === 503) {
+    await new Promise((resolve) => setTimeout(resolve, retryDelay(response)));
+    response = await fetch(url, options);
+  }
 
   const body = (await response.json().catch(() => ({}))) as GeminiResponse;
   if (!response.ok) {
