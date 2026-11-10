@@ -1,10 +1,16 @@
 import { useState } from 'react'
 import type { FormEvent } from 'react'
-import { formatDuration } from '../lib/format'
-import { partLabel } from '../lib/parts'
-import { findExistingSeries } from '../lib/series'
-import type { Part, Series, SeriesDraft } from '../types'
 import {
+  buildCandidateState,
+  parseCandidateNumber,
+  validateCandidateNumber,
+} from '../lib/candidates'
+import { formatDuration } from '../lib/format'
+import { partLabel, sortParts } from '../lib/parts'
+import { findExistingSeries } from '../lib/series'
+import type { ChapterCandidate, Part, Series, SeriesDraft } from '../types'
+import {
+  candidateToPart,
   discoverPlaylist,
   discoverVideoSeries,
   fetchManualVideo,
@@ -12,6 +18,7 @@ import {
   YouTubeError,
 } from '../lib/youtube'
 import { useSheet } from '../hooks/useSheet'
+import { CandidateCard } from './CandidateCard'
 import * as Icon from './Icons'
 
 type Phase = 'input' | 'loading' | 'preview' | 'error'
@@ -40,6 +47,15 @@ export function AddSeriesSheet({
   const [draft, setDraft] = useState<SeriesDraft | null>(null)
   const [selected, setSelected] = useState<Set<string>>(new Set())
   const [title, setTitle] = useState('')
+  const [candidates, setCandidates] = useState<ChapterCandidate[]>([])
+  const [candidateNumbers, setCandidateNumbers] = useState<Record<string, string>>(
+    {},
+  )
+  const [candidateFinal, setCandidateFinal] = useState<Record<string, boolean>>({})
+  const [candidateMessage, setCandidateMessage] = useState<{
+    kind: 'ok' | 'error'
+    text: string
+  } | null>(null)
 
   useSheet(onClose)
 
@@ -77,7 +93,7 @@ export function AddSeriesSheet({
 
       if (parsed.videoId) {
         if (apiKey) {
-          setMessage('Buscando el vídeo y las partes en el canal…')
+          setMessage('Buscando el vídeo y los capítulos en el canal y en YouTube…')
           result = await discoverVideoSeries(parsed.videoId, apiKey)
         } else {
           setMessage('Leyendo los datos del vídeo…')
@@ -98,9 +114,19 @@ export function AddSeriesSheet({
       const match = targetSeries ?? findExistingSeries(series, result)
       const finalDraft = match ? { ...result, existingSeriesId: match.id } : result
 
+      const nextCandidates = finalDraft.candidates ?? []
+      const candidateState = buildCandidateState(nextCandidates, [
+        ...finalDraft.parts,
+        ...(match?.parts ?? []),
+      ])
+
       setDraft(finalDraft)
       setSelected(new Set(finalDraft.selectedIds))
       setTitle(match ? match.title : finalDraft.title)
+      setCandidates(nextCandidates)
+      setCandidateNumbers(candidateState.numbers)
+      setCandidateFinal(candidateState.finals)
+      setCandidateMessage(null)
       setPhase('preview')
     } catch (caught) {
       setError(
@@ -128,6 +154,56 @@ export function AddSeriesSheet({
     )
   }
 
+  function discardCandidate(videoId: string) {
+    setCandidates((current) =>
+      current.filter((candidate) => candidate.videoId !== videoId),
+    )
+    setCandidateNumbers((current) => {
+      const next = { ...current }
+      delete next[videoId]
+      return next
+    })
+    setCandidateFinal((current) => {
+      const next = { ...current }
+      delete next[videoId]
+      return next
+    })
+  }
+
+  function handleAddCandidate(candidate: ChapterCandidate) {
+    if (!draft) return
+
+    const raw = candidateNumbers[candidate.videoId] ?? ''
+    const numberError = validateCandidateNumber(
+      raw,
+      [...draft.parts, ...(existing?.parts ?? [])],
+      candidateNumbers,
+      candidate.videoId,
+    )
+
+    if (numberError) {
+      setCandidateMessage({ kind: 'error', text: numberError })
+      return
+    }
+
+    const part = candidateToPart(candidate, {
+      partNumber: parseCandidateNumber(raw),
+      isFinal: candidateFinal[candidate.videoId] ?? candidate.isFinal,
+    })
+
+    setDraft((current) =>
+      current
+        ? { ...current, parts: sortParts([...current.parts, part]) }
+        : current,
+    )
+    setSelected((current) => new Set([...current, candidate.videoId]))
+    discardCandidate(candidate.videoId)
+    setCandidateMessage({
+      kind: 'ok',
+      text: `«${candidate.title}» se añadirá al guardar la serie.`,
+    })
+  }
+
   function handleSave() {
     if (!draft) return
     const parts = draft.parts.filter((part) => selected.has(part.videoId))
@@ -139,7 +215,7 @@ export function AddSeriesSheet({
     draft?.source === 'playlist'
       ? 'Lista de reproducción'
       : draft?.source === 'search'
-        ? 'Búsqueda en el canal'
+        ? 'Canal y YouTube'
         : 'Modo manual'
 
   return (
@@ -420,6 +496,69 @@ export function AddSeriesSheet({
                     Prueba con otro enlace o añade las partes a mano desde la serie.
                   </p>
                 </div>
+              )}
+
+              {candidates.length > 0 && (
+                <div className="mt-4 rounded-2xl border border-amber-400/20 bg-amber-400/5 p-3">
+                  <div className="flex items-start gap-2">
+                    <Icon.Sparkles className="mt-0.5 size-4 shrink-0 text-amber-300" />
+                    <div className="min-w-0">
+                      <p className="text-xs font-semibold text-amber-100">
+                        Posibles capítulos ({candidates.length})
+                      </p>
+                      <p className="mt-0.5 text-[11px] leading-relaxed text-amber-200/70">
+                        Encontrados en el canal y en todo YouTube, también por
+                        el título de la descripción. Revisa el número y añade
+                        solo los que sean de esta serie.
+                      </p>
+                    </div>
+                  </div>
+
+                  <ul className="mt-2 space-y-2">
+                    {candidates.map((candidate) => (
+                      <CandidateCard
+                        key={candidate.videoId}
+                        candidate={candidate}
+                        number={candidateNumbers[candidate.videoId] ?? ''}
+                        isFinal={Boolean(
+                          candidateFinal[candidate.videoId] ??
+                            candidate.isFinal,
+                        )}
+                        adding={false}
+                        busy={false}
+                        onNumberChange={(value) =>
+                          setCandidateNumbers((current) => ({
+                            ...current,
+                            [candidate.videoId]: value,
+                          }))
+                        }
+                        onToggleFinal={() =>
+                          setCandidateFinal((current) => ({
+                            ...current,
+                            [candidate.videoId]: !(
+                              current[candidate.videoId] ??
+                              candidate.isFinal
+                            ),
+                          }))
+                        }
+                        onAdd={() => handleAddCandidate(candidate)}
+                        onDiscard={() => discardCandidate(candidate.videoId)}
+                      />
+                    ))}
+                  </ul>
+                </div>
+              )}
+
+              {candidateMessage && (
+                <p
+                  className={`mt-3 rounded-2xl border px-3 py-2 text-[11px] leading-relaxed ${
+                    candidateMessage.kind === 'error'
+                      ? 'border-rose-500/20 bg-rose-500/10 text-rose-200'
+                      : 'border-emerald-400/20 bg-emerald-400/10 text-emerald-200'
+                  }`}
+                >
+                  {candidateMessage.text}
+                </p>
               )}
 
               <div className="mt-4 flex gap-2">

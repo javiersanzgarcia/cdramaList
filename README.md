@@ -28,15 +28,15 @@ La clave se guarda solo en el navegador y nunca se sube a Google Drive. Sin clav
 
 ## Buscar capítulos nuevos
 
-En la ficha de una serie, **Actualizar serie**:
+Al **añadir una serie** desde un vídeo y al pulsar **Actualizar serie** se usa la misma búsqueda ampliada:
 
 - Revisa las subidas recientes del canal de la serie.
 - Lee las descripciones de las partes conocidas para extraer el título real del drama (por ejemplo, `【Títulos】 Apocalipsis de la Lluvia Negra`), porque muchos canales usan el título del vídeo solo como resumen.
 - Hace una búsqueda global en YouTube con ese título real; si no hay título en las descripciones, usa el título de la serie (una sola consulta por actualización).
 - Añade automáticamente solo los vídeos cuyo título base coincide exactamente con el de la serie (por ejemplo, «Mi drama» → «Mi drama - Parte 3» o «Mi drama | Final»).
-- Las coincidencias por el título de la descripción y el resto de coincidencias parciales aparecen como **posibles capítulos**: puedes revisar el vídeo, ver el título detectado en la descripción, escribir o editar el número de capítulo, marcarlo como final, añadirlo o descartarlo.
+- Las coincidencias por el título de la descripción y el resto de coincidencias parciales aparecen como **posibles capítulos**: puedes revisar el vídeo, ver el título detectado en la descripción, escribir o editar el número de capítulo, marcarlo como final, añadirlo o descartarlo. Al añadir una serie, los candidatos se incorporan a la vista previa y se guardan junto con ella.
 
-Los candidatos no se guardan hasta que los validas. Al añadir uno, la serie se sincroniza con Drive si hay una sesión activa.
+Los candidatos no se guardan hasta que los validas. Al añadir uno en una serie existente, la serie se sincroniza con Drive si hay una sesión activa.
 
 ## Cuenta de Google y sincronización con Drive
 

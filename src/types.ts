@@ -38,6 +38,7 @@ export interface SeriesDraft {
   channelUrl?: string
   thumbnail?: string
   parts: Part[]
+  candidates?: ChapterCandidate[]
   source: 'playlist' | 'search' | 'manual'
   existingSeriesId?: string
   warnings: string[]

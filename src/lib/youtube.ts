@@ -2,7 +2,6 @@ import type { ChapterCandidate, Part, Series, SeriesDraft } from '../types'
 import { formatDuration, parseIsoDuration } from './format'
 import {
   buildGlobalSearchQuery,
-  buildSearchQuery,
   detectPart,
   extractDescriptionTitle,
   normalizedBaseTitle,
@@ -10,7 +9,6 @@ import {
   sortParts,
   stripPartMarkers,
   titleJaccard,
-  titleSimilarity,
   tokenCount,
 } from './parts'
 
@@ -301,40 +299,6 @@ export async function fetchVideosByIds(
   }
 
   return result
-}
-
-export async function searchChannelVideos(
-  channelId: string,
-  query: string,
-  apiKey: string,
-): Promise<VideoMeta[]> {
-  const data = await fetchJson<{ items?: SearchItem[] }>(
-    'search',
-    {
-      part: 'snippet',
-      channelId,
-      q: query,
-      type: 'video',
-      maxResults: '50',
-      order: 'relevance',
-      relevanceLanguage: 'es',
-    },
-    apiKey,
-  )
-
-  return (data.items ?? [])
-    .filter((item) => item.id.videoId && item.snippet.channelId === channelId)
-    .map((item) => ({
-      videoId: item.id.videoId as string,
-      title: item.snippet.title,
-      channelId: item.snippet.channelId,
-      channelTitle: item.snippet.channelTitle,
-      channelUrl: channelUrlFor(item.snippet.channelId),
-      publishedAt: item.snippet.publishedAt,
-      description: item.snippet.description,
-      tags: item.snippet.tags,
-      thumbnail: pickThumbnail(item.snippet.thumbnails) ?? youtubeThumbnail(item.id.videoId as string),
-    }))
 }
 
 /**
@@ -958,13 +922,6 @@ export async function fetchVideoMetaWithoutKey(videoId: string): Promise<VideoMe
   }
 }
 
-interface EnrichedVideo {
-  video: VideoMeta
-  info: ReturnType<typeof detectPart>
-  similarity: number
-  shared: number
-}
-
 function toPart(video: VideoMeta, info: ReturnType<typeof detectPart>): Part {
   return {
     videoId: video.videoId,
@@ -997,75 +954,6 @@ export function candidateToPart(
     publishedAt: candidate.publishedAt,
     thumbnail: candidate.thumbnail ?? youtubeThumbnail(candidate.videoId),
     addedAt: Date.now(),
-  }
-}
-
-export function buildDraftFromVideo(
-  original: VideoMeta,
-  candidates: VideoMeta[],
-): SeriesDraft {
-  const byId = new Map<string, VideoMeta>()
-  for (const video of [original, ...candidates]) {
-    if (!byId.has(video.videoId)) byId.set(video.videoId, video)
-  }
-
-  const originalTokenCount = tokenCount(original.title)
-  const minShared = originalTokenCount <= 4 ? 2 : 3
-
-  const enriched: EnrichedVideo[] = [...byId.values()].map((video) => ({
-    video,
-    info: detectPart(video.title),
-    similarity: titleSimilarity(original.title, video.title),
-    shared: sharedTokenCount(original.title, video.title),
-  }))
-
-  const relevant = enriched.filter(
-    (entry) =>
-      entry.video.videoId === original.videoId ||
-      (entry.shared >= 2 && entry.similarity >= 0.4),
-  )
-
-  const sameStory = relevant.filter(
-    (entry) =>
-      entry.video.videoId === original.videoId ||
-      (entry.shared >= minShared && entry.similarity >= 0.6),
-  )
-
-  const numbered = sameStory.some((entry) => entry.info.partNumber != null)
-  const parts = sortParts(relevant.map((entry) => toPart(entry.video, entry.info)))
-
-  const selected = new Set<string>([original.videoId])
-  if (numbered) {
-    for (const entry of sameStory) {
-      if (entry.info.partNumber != null) selected.add(entry.video.videoId)
-    }
-  }
-
-  const warnings: string[] = []
-  if (relevant.length === 1) {
-    warnings.push(
-      'No hemos encontrado más partes en el canal. Puedes añadirlas manualmente o abrir el canal en YouTube.',
-    )
-  } else if (!numbered) {
-    warnings.push(
-      'Hemos encontrado vídeos parecidos, pero sin número de parte. Revísalos antes de guardar.',
-    )
-  } else {
-    warnings.push('Revisa que las partes seleccionadas sean de la misma historia.')
-  }
-
-  return {
-    title: stripPartMarkers(original.title),
-    channelId: original.channelId,
-    channelTitle: original.channelTitle,
-    channelUrl:
-      original.channelUrl ??
-      (original.channelId ? channelUrlFor(original.channelId) : undefined),
-    thumbnail: original.thumbnail ?? parts[0]?.thumbnail,
-    parts,
-    source: 'search',
-    warnings,
-    selectedIds: [...selected],
   }
 }
 
@@ -1116,38 +1004,59 @@ export function buildPlaylistDraft(playlist: PlaylistData): SeriesDraft {
   }
 }
 
+/**
+ * Prepara la vista previa al añadir una serie. Usa exactamente la misma
+ * búsqueda que «Actualizar serie»: subidas del canal, búsqueda global y
+ * coincidencias por el título real de la descripción. Los vídeos que no
+ * coinciden de forma exacta se devuelven como candidatos para validarlos a
+ * mano antes de guardar.
+ */
 export async function discoverVideoSeries(
   videoId: string,
   apiKey: string,
 ): Promise<SeriesDraft> {
   const original = await fetchVideoMeta(videoId, apiKey)
+  const title = stripPartMarkers(original.title)
 
-  let candidates: VideoMeta[] = []
-  const warnings: string[] = []
-
-  try {
-    const query = buildSearchQuery(original.title)
-    const results = await searchChannelVideos(original.channelId as string, query, apiKey)
-    const durations = await fetchVideosByIds(
-      results.map((video) => video.videoId),
-      apiKey,
-    ).catch(() => new Map<string, VideoMeta>())
-
-    candidates = results.map((video) => ({
-      ...video,
-      durationSeconds: durations.get(video.videoId)?.durationSeconds,
-    }))
-  } catch (error) {
-    if (error instanceof YouTubeError) {
-      warnings.push(`No se pudo buscar más partes: ${error.message}`)
-    } else {
-      throw error
-    }
+  const seed: Series = {
+    id: 'draft',
+    title,
+    channelId: original.channelId,
+    channelTitle: original.channelTitle,
+    channelUrl: original.channelUrl,
+    thumbnail: original.thumbnail,
+    parts: [toPart(original, detectPart(original.title))],
+    watched: [],
+    favorite: false,
+    createdAt: Date.now(),
+    updatedAt: Date.now(),
   }
 
-  const draft = buildDraftFromVideo(original, candidates)
-  draft.warnings.unshift(...warnings)
-  return draft
+  const update = await discoverSeriesUpdates(seed, apiKey)
+  const warnings = [...update.warnings]
+
+  if (update.parts.length === 1 && update.candidates.length === 0) {
+    warnings.push(
+      'No se han encontrado más capítulos en el canal ni en todo YouTube. Puedes añadirlos manualmente desde la serie.',
+    )
+  } else if (update.candidates.length > 0) {
+    warnings.push(
+      'Revisa los posibles capítulos: solo se guardarán los que añadas manualmente.',
+    )
+  }
+
+  return {
+    title,
+    channelId: update.channelId ?? original.channelId,
+    channelTitle: update.channelTitle || original.channelTitle,
+    channelUrl: update.channelUrl ?? original.channelUrl,
+    thumbnail: original.thumbnail ?? update.parts[0]?.thumbnail,
+    parts: update.parts,
+    candidates: update.candidates,
+    source: 'search',
+    warnings,
+    selectedIds: update.parts.map((part) => part.videoId),
+  }
 }
 
 export async function discoverPlaylist(
