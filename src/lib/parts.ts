@@ -37,7 +37,8 @@ const OF_GLOBAL = /\b(\d{1,3})\s*(?:de|of)\s*(\d{1,3})\b/gi;
 const PAREN_GLOBAL = /\(\s*(\d{1,3})\s*\)/g;
 const HASH_GLOBAL = /#\s*(\d{1,3})\b/g;
 
-const FINAL_WORD = /\b(?:final|fin|ending|last)\b/i;
+const FINAL_WORD =
+  /(?:^|[^\p{L}\p{N}])(?:final|fin|ending|the\s+end|last|[uú]lt[ií]ma\s+parte)(?:$|[^\p{L}\p{N}])|完结|结局/iu;
 const FRACTION = /\b(\d{1,3})\s*\/\s*(\d{1,3})\b/;
 const OF = /\b(\d{1,3})\s*(?:de|of)\s*(\d{1,3})\b/i;
 const PAREN = /\(\s*(\d{1,3})\s*\)/;
@@ -222,12 +223,13 @@ function parseChineseNumber(value: string): number {
 }
 
 export function detectPart(title: string): PartInfo {
+  const isFinal = FINAL_WORD.test(title);
   const keyword = PART_KEYWORD.exec(title);
   if (keyword) {
     return {
       partNumber: Number(keyword[1]),
       totalParts: keyword[2] ? Number(keyword[2]) : undefined,
-      isFinal: false,
+      isFinal,
     };
   }
 
@@ -235,18 +237,18 @@ export function detectPart(title: string): PartInfo {
   if (wordNumber) {
     return {
       partNumber: PART_WORD_NUMBERS[wordNumber[1].toLowerCase()],
-      isFinal: false,
+      isFinal,
     };
   }
 
   const chinesePart = CHINESE_PART.exec(title);
   if (chinesePart) {
-    return { partNumber: parseChineseNumber(chinesePart[1]), isFinal: false };
+    return { partNumber: parseChineseNumber(chinesePart[1]), isFinal };
   }
 
   const koreanPart = KOREAN_PART.exec(title);
   if (koreanPart) {
-    return { partNumber: Number(koreanPart[1]), isFinal: false };
+    return { partNumber: Number(koreanPart[1]), isFinal };
   }
 
   const fraction = FRACTION.exec(title);
@@ -254,7 +256,7 @@ export function detectPart(title: string): PartInfo {
     return {
       partNumber: Number(fraction[1]),
       totalParts: Number(fraction[2]),
-      isFinal: false,
+      isFinal,
     };
   }
 
@@ -263,21 +265,21 @@ export function detectPart(title: string): PartInfo {
     return {
       partNumber: Number(of[1]),
       totalParts: Number(of[2]),
-      isFinal: false,
+      isFinal,
     };
   }
 
   const paren = PAREN.exec(title);
   if (paren) {
-    return { partNumber: Number(paren[1]), isFinal: false };
+    return { partNumber: Number(paren[1]), isFinal };
   }
 
   const hash = HASH.exec(title);
   if (hash) {
-    return { partNumber: Number(hash[1]), isFinal: false };
+    return { partNumber: Number(hash[1]), isFinal };
   }
 
-  return { isFinal: FINAL_WORD.test(title) };
+  return { isFinal };
 }
 
 const DESCRIPTION_RELATION =
