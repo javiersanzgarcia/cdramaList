@@ -16,6 +16,7 @@ PWA para reunir las partes de una historia de YouTube, guardar el progreso y ver
 - **Reproductor integrado.** Las partes se reproducen dentro de la app y avanzan solas al terminar el vídeo.
 - **Sincronización con Google Drive.** Inicia sesión con Google y guarda tus series en un archivo privado de tu Drive (`appDataFolder`). Funciona entre móvil y ordenador sin servidor propio.
 - **Todo sigue siendo local por defecto.** Sin cuenta de Google, las series y la clave de API se guardan en `localStorage`.
+- **Estado persistente con Zustand.** Series, preferencias de Drive, clave de YouTube y caché de sinónimos se guardan en un store Zustand con persistencia. Los datos de instalaciones anteriores se migran automáticamente.
 
 ## Clave de YouTube (opcional pero recomendada)
 
@@ -101,6 +102,7 @@ El Client ID se lee solo de `VITE_GOOGLE_CLIENT_ID` (en local desde `.env`, en P
 ## Stack
 
 - **React 19** + **TypeScript**
+- **Zustand** (estado global y persistencia local)
 - **Vite 8**
 - **Tailwind CSS v4** (`@tailwindcss/vite`)
 - **vite-plugin-pwa** (service worker + manifest instalable)
@@ -121,6 +123,7 @@ npm run lint     # lint con oxlint
 src/
 ├── components/         # UI (HomeView, ListView, SeriesSheet, AccountSheet…)
 ├── hooks/              # persistencia local, sync con Drive, instalación PWA y hojas modales
+├── store/              # estado global Zustand persistido
 ├── lib/
 │   ├── format.ts       # duraciones y fechas
 │   ├── google.ts       # OAuth2, token de Drive y datos de la cuenta
@@ -136,14 +139,11 @@ src/
 
 ## Datos guardados
 
-| Clave                   | Contenido                                                              |
-| ----------------------- | ---------------------------------------------------------------------- |
-| `cdramalist:series`     | Series, partes y progreso                                              |
-| `cdramalist:apiKey`     | Clave de YouTube Data API v3                                           |
-| `cdramalist:googleUser` | Nombre, correo y foto de la cuenta de Google                           |
-| `cdramalist:drive`      | Conexión con Drive: auto-sync, correo, archivo y última sincronización |
+| Clave                | Contenido                                                                                        |
+| -------------------- | ------------------------------------------------------------------------------------------------ |
+| `cdramalist:zustand` | Series, partes, progreso, clave de YouTube, usuario de Google, preferencias de Drive y caché RAE |
 
-El token de acceso de Drive se guarda temporalmente en `sessionStorage` (`cdramalist:driveToken`) para que la sincronización siga activa al recargar la página. Caduca en aproximadamente una hora; después hay que pulsar **Reconectar Google Drive**. Nunca se guarda de forma permanente.
+Las claves anteriores de series, configuración y caché se migran automáticamente a `cdramalist:zustand`. El token de acceso de Drive se guarda temporalmente en `sessionStorage` (`cdramalist:driveToken`) para que la sincronización siga activa al recargar la página. Caduca en aproximadamente una hora; después hay que pulsar **Reconectar Google Drive**. Nunca se guarda de forma permanente.
 
 Puedes exportar una copia en JSON desde **Ajustes → Mis datos** e importarla en otro dispositivo. La clave de YouTube y el token de Drive nunca se incluyen en esa exportación.
 

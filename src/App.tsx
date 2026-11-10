@@ -10,8 +10,6 @@ import { SeriesSheet } from "./components/SeriesSheet";
 import { SettingsView } from "./components/SettingsView";
 import { useDriveSync } from "./hooks/useDriveSync";
 import { useInstallPrompt } from "./hooks/useInstallPrompt";
-import { usePersistentState } from "./hooks/usePersistentState";
-import { sanitizeGoogleUser } from "./lib/google";
 import { reorderParts, sortParts } from "./lib/parts";
 import {
   createSeries,
@@ -25,10 +23,10 @@ import {
   watchedCount,
 } from "./lib/series";
 import { candidateToPart, discoverSeriesUpdates } from "./lib/youtube";
+import { useAppStore } from "./store/appStore";
 import type {
   ChapterCandidate,
   Filter,
-  GoogleUser,
   Part,
   Series,
   SeriesDraft,
@@ -53,23 +51,13 @@ const ENV_GEMINI_MODEL =
     : CONFIGURED_GEMINI_MODEL;
 
 export default function App() {
-  const [series, setSeries] = usePersistentState<Series[]>(
-    "cdramalist:series",
-    [],
-    (value) =>
-      Array.isArray(value) ? value.filter(isSeries).map(normalizeSeries) : [],
-  );
-  const [apiKeyOverride, setApiKeyOverride] = usePersistentState<string>(
-    "cdramalist:apiKey",
-    "",
-    (value) => (typeof value === "string" ? value : ""),
-  );
+  const series = useAppStore((state) => state.series);
+  const setSeries = useAppStore((state) => state.setSeries);
+  const apiKeyOverride = useAppStore((state) => state.apiKeyOverride);
+  const setApiKeyOverride = useAppStore((state) => state.setApiKeyOverride);
   const apiKey = ENV_YOUTUBE_API_KEY || apiKeyOverride;
-  const [googleUser, setGoogleUser] = usePersistentState<GoogleUser | null>(
-    "cdramalist:googleUser",
-    null,
-    sanitizeGoogleUser,
-  );
+  const googleUser = useAppStore((state) => state.googleUser);
+  const setGoogleUser = useAppStore((state) => state.setGoogleUser);
   const drive = useDriveSync({
     clientId: ENV_CLIENT_ID,
     series,

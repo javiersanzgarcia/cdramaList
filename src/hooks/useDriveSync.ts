@@ -6,7 +6,7 @@ import {
   useState,
   type Dispatch,
   type SetStateAction,
-} from 'react'
+} from "react";
 import {
   clearStoredDriveToken,
   fetchGoogleUserInfo,
@@ -15,78 +15,60 @@ import {
   revokeGoogleToken,
   storeDriveToken,
   type AccessToken,
-} from '../lib/google'
+} from "../lib/google";
 import {
   DriveError,
   pullFromDrive,
   pushToDrive,
   seriesSignature,
-} from '../lib/drive'
-import { mergeSeriesCollections } from '../lib/series'
-import type { GoogleUser, Series, SyncMessage } from '../types'
-import { usePersistentState } from './usePersistentState'
+} from "../lib/drive";
+import { mergeSeriesCollections } from "../lib/series";
+import type {
+  DrivePersistenceState,
+  GoogleUser,
+  Series,
+  SyncMessage,
+} from "../types";
+import { useAppStore } from "../store/appStore";
 
 export type DriveSyncStatus =
-  | 'disconnected'
-  | 'connecting'
-  | 'syncing'
-  | 'synced'
-  | 'error'
+  | "disconnected"
+  | "connecting"
+  | "syncing"
+  | "synced"
+  | "error";
 
-interface DriveState {
-  enabled: boolean
-  auto: boolean
-  email?: string
-  fileId?: string
-  lastSyncedAt?: number
-}
-
-const DEFAULT_STATE: DriveState = { enabled: false, auto: true }
-
-function sanitizeState(value: unknown): DriveState {
-  if (!value || typeof value !== 'object') return DEFAULT_STATE
-
-  const item = value as Record<string, unknown>
-
-  return {
-    enabled: item.enabled === true,
-    auto: item.auto !== false,
-    email: typeof item.email === 'string' ? item.email : undefined,
-    fileId: typeof item.fileId === 'string' ? item.fileId : undefined,
-    lastSyncedAt:
-      typeof item.lastSyncedAt === 'number' ? item.lastSyncedAt : undefined,
-  }
-}
+type DriveState = DrivePersistenceState;
 
 function errorMessage(cause: unknown): string {
   return cause instanceof Error
     ? cause.message
-    : 'No se pudo completar la sincronización con Google Drive.'
+    : "No se pudo completar la sincronización con Google Drive.";
 }
 
 export interface DriveSync {
-  configured: boolean
-  connected: boolean
-  auto: boolean
-  dirty: boolean
-  busy: boolean
-  status: DriveSyncStatus
-  email: string | null
-  lastSyncedAt: number | null
-  message: SyncMessage | null
-  connect: () => Promise<void>
-  disconnect: () => void
-  syncNow: (seriesOverride?: Series[]) => Promise<boolean>
-  upload: () => Promise<void>
-  download: () => Promise<void>
-  setAuto: (auto: boolean) => void
+  configured: boolean;
+  connected: boolean;
+  auto: boolean;
+  dirty: boolean;
+  busy: boolean;
+  status: DriveSyncStatus;
+  email: string | null;
+  lastSyncedAt: number | null;
+  message: SyncMessage | null;
+  connect: () => Promise<void>;
+  disconnect: () => void;
+  syncNow: (seriesOverride?: Series[]) => Promise<boolean>;
+  upload: () => Promise<void>;
+  download: () => Promise<void>;
+  setAuto: (auto: boolean) => void;
 }
 
 interface UseDriveSyncOptions {
-  clientId: string
-  series: Series[]
-  setSeries: Dispatch<SetStateAction<Series[]>>
-  onUser: (user: GoogleUser | null) => void
+  clientId: string;
+  series: Series[];
+  setSeries: Dispatch<SetStateAction<Series[]>>;
+  onUser: (user: GoogleUser | null) => void;
 }
 
 export function useDriveSync({
@@ -95,95 +77,92 @@ export function useDriveSync({
   setSeries,
   onUser,
 }: UseDriveSyncOptions): DriveSync {
-  const [state, setState] = usePersistentState<DriveState>(
-    'cdramalist:drive',
-    DEFAULT_STATE,
-    sanitizeState,
-  )
-  const [connected, setConnected] = useState(false)
-  const [status, setStatus] = useState<DriveSyncStatus>('disconnected')
-  const [message, setMessage] = useState<SyncMessage | null>(null)
-  const [busy, setBusy] = useState(false)
+  const state = useAppStore((store) => store.drive);
+  const setState = useAppStore((store) => store.setDrive);
+  const [connected, setConnected] = useState(false);
+  const [status, setStatus] = useState<DriveSyncStatus>("disconnected");
+  const [message, setMessage] = useState<SyncMessage | null>(null);
+  const [busy, setBusy] = useState(false);
   const [lastSyncedSignature, setLastSyncedSignature] = useState<string | null>(
     null,
-  )
+  );
 
-  const seriesRef = useRef(series)
-  const tokenRef = useRef<AccessToken | null>(null)
-  const fileIdRef = useRef<string | null>(state.fileId ?? null)
-  const connectedRef = useRef(false)
-  const runningRef = useRef(false)
-  const restoredRef = useRef(false)
+  const seriesRef = useRef(series);
+  const tokenRef = useRef<AccessToken | null>(null);
+  const fileIdRef = useRef<string | null>(state.fileId ?? null);
+  const connectedRef = useRef(false);
+  const runningRef = useRef(false);
+  const restoredRef = useRef(false);
 
-  const onUserRef = useRef(onUser)
-
-  useEffect(() => {
-    seriesRef.current = series
-  }, [series])
+  const onUserRef = useRef(onUser);
 
   useEffect(() => {
-    onUserRef.current = onUser
-  }, [onUser])
+    seriesRef.current = series;
+  }, [series]);
 
-  const signature = useMemo(() => seriesSignature(series), [series])
+  useEffect(() => {
+    onUserRef.current = onUser;
+  }, [onUser]);
+
+  const signature = useMemo(() => seriesSignature(series), [series]);
   const dirty =
     connected &&
     lastSyncedSignature !== null &&
-    signature !== lastSyncedSignature
+    signature !== lastSyncedSignature;
 
   const saveState = useCallback(
     (patch: Partial<DriveState>) => {
-      setState((current) => ({ ...current, ...patch }))
+      setState((current) => ({ ...current, ...patch }));
     },
     [setState],
-  )
+  );
 
   const getToken = useCallback(
-    async (prompt: '' | 'none' | 'consent') => {
+    async (prompt: "" | "none" | "consent") => {
       if (!clientId) {
-        throw new Error('Falta configurar el Client ID de Google.')
+        throw new Error("Falta configurar el Client ID de Google.");
       }
 
       if (tokenRef.current && Date.now() < tokenRef.current.expiresAt) {
-        return tokenRef.current.token
+        return tokenRef.current.token;
       }
 
-      const stored = loadStoredDriveToken()
+      const stored = loadStoredDriveToken();
       if (stored) {
-        tokenRef.current = stored
-        return stored.token
+        tokenRef.current = stored;
+        return stored.token;
       }
 
       // Renovar sin gesto del usuario abre un popup que el navegador bloquea.
       // Solo pedimos un token nuevo desde una acción explícita (prompt '').
-      if (prompt === 'none') {
+      if (prompt === "none") {
         throw new DriveError(
-          'La sesión de Google Drive ha caducado. Vuelve a conectar para reanudar la sincronización.',
-          'auth',
-        )
+          "La sesión de Google Drive ha caducado. Vuelve a conectar para reanudar la sincronización.",
+          "auth",
+        );
       }
 
-      const token = await requestDriveToken(clientId, prompt)
-      tokenRef.current = token
-      storeDriveToken(token)
+      const token = await requestDriveToken(clientId, prompt);
+      tokenRef.current = token;
+      storeDriveToken(token);
 
-      return token.token
+      return token.token;
     },
     [clientId],
-  )
+  );
 
   const handleDriveError = useCallback((cause: unknown) => {
     // Un 401 significa que el token ya no sirve: forzamos reconectar.
-    if (cause instanceof DriveError && cause.code === 'auth') {
-      tokenRef.current = null
-      clearStoredDriveToken()
-      connectedRef.current = false
-      setConnected(false)
+    if (cause instanceof DriveError && cause.code === "auth") {
+      tokenRef.current = null;
+      clearStoredDriveToken();
+      connectedRef.current = false;
+      setConnected(false);
     }
 
-    setStatus('error')
-    setMessage({ kind: 'error', text: errorMessage(cause) })
-  }, [])
+    setStatus("error");
+    setMessage({ kind: "error", text: errorMessage(cause) });
+  }, []);
 
   const syncWithToken = useCallback(
     async (
@@ -191,297 +170,308 @@ export function useDriveSync({
       silent = false,
       seriesOverride?: Series[],
     ): Promise<boolean> => {
-      if (runningRef.current) return false
+      if (runningRef.current) return false;
 
-      runningRef.current = true
-      setBusy(true)
-      setStatus('syncing')
-      if (!silent) setMessage(null)
+      runningRef.current = true;
+      setBusy(true);
+      setStatus("syncing");
+      if (!silent) setMessage(null);
 
       try {
-        const remote = await pullFromDrive(token)
-        const local = seriesOverride ?? seriesRef.current
+        const remote = await pullFromDrive(token);
+        const local = seriesOverride ?? seriesRef.current;
         const merged = remote
           ? mergeSeriesCollections(local, remote.series)
-          : local
+          : local;
 
-        let fileId = remote?.fileId ?? null
+        let fileId = remote?.fileId ?? null;
 
-        if (!remote || seriesSignature(merged) !== seriesSignature(remote.series)) {
-          fileId = await pushToDrive(token, merged, fileId)
+        if (
+          !remote ||
+          seriesSignature(merged) !== seriesSignature(remote.series)
+        ) {
+          fileId = await pushToDrive(token, merged, fileId);
         }
 
-        fileIdRef.current = fileId
-        setLastSyncedSignature(seriesSignature(merged))
-        setSeries(merged)
-        saveState({ fileId: fileId ?? undefined, lastSyncedAt: Date.now(), enabled: true })
-        connectedRef.current = true
-        setConnected(true)
-        setStatus('synced')
+        fileIdRef.current = fileId;
+        setLastSyncedSignature(seriesSignature(merged));
+        setSeries(merged);
+        saveState({
+          fileId: fileId ?? undefined,
+          lastSyncedAt: Date.now(),
+          enabled: true,
+        });
+        connectedRef.current = true;
+        setConnected(true);
+        setStatus("synced");
 
         if (!silent) {
           setMessage({
-            kind: 'ok',
+            kind: "ok",
             text: remote
               ? `Sincronizadas ${merged.length} series con Google Drive.`
               : `Subidas ${merged.length} series a Google Drive.`,
-          })
+          });
         }
 
-        return true
+        return true;
       } catch (cause) {
-        handleDriveError(cause)
-        return false
+        handleDriveError(cause);
+        return false;
       } finally {
-        runningRef.current = false
-        setBusy(false)
+        runningRef.current = false;
+        setBusy(false);
       }
     },
     [handleDriveError, saveState, setSeries],
-  )
+  );
 
   const connect = useCallback(async () => {
     if (!clientId) {
-      setStatus('error')
+      setStatus("error");
       setMessage({
-        kind: 'error',
-        text: 'Falta configurar el Client ID de Google en la aplicación.',
-      })
-      return
+        kind: "error",
+        text: "Falta configurar el Client ID de Google en la aplicación.",
+      });
+      return;
     }
 
-    if (runningRef.current) return
+    if (runningRef.current) return;
 
-    runningRef.current = true
-    setBusy(true)
-    setStatus('connecting')
-    setMessage(null)
+    runningRef.current = true;
+    setBusy(true);
+    setStatus("connecting");
+    setMessage(null);
 
     try {
-      const token = await getToken('')
-      const user = await fetchGoogleUserInfo(token)
+      const token = await getToken("");
+      const user = await fetchGoogleUserInfo(token);
 
-      onUserRef.current(user)
-      saveState({ enabled: true, email: user.email })
-      connectedRef.current = true
-      setConnected(true)
+      onUserRef.current(user);
+      saveState({ enabled: true, email: user.email });
+      connectedRef.current = true;
+      setConnected(true);
 
-      runningRef.current = false
-      setBusy(false)
+      runningRef.current = false;
+      setBusy(false);
 
-      await syncWithToken(token)
+      await syncWithToken(token);
     } catch (cause) {
-      runningRef.current = false
-      setBusy(false)
-      connectedRef.current = false
-      setConnected(false)
-      handleDriveError(cause)
+      runningRef.current = false;
+      setBusy(false);
+      connectedRef.current = false;
+      setConnected(false);
+      handleDriveError(cause);
     }
-  }, [clientId, getToken, handleDriveError, saveState, syncWithToken])
+  }, [clientId, getToken, handleDriveError, saveState, syncWithToken]);
 
   const syncNow = useCallback(
     async (seriesOverride?: Series[]) => {
       if (!connectedRef.current) {
-        await connect()
-        return connectedRef.current
+        await connect();
+        return connectedRef.current;
       }
 
       try {
-        const token = await getToken('')
-        return await syncWithToken(token, false, seriesOverride)
+        const token = await getToken("");
+        return await syncWithToken(token, false, seriesOverride);
       } catch (cause) {
-        handleDriveError(cause)
-        return false
+        handleDriveError(cause);
+        return false;
       }
     },
     [connect, getToken, handleDriveError, syncWithToken],
-  )
+  );
 
   const upload = useCallback(async () => {
     if (!connectedRef.current) {
-      await connect()
-      return
+      await connect();
+      return;
     }
 
-    if (runningRef.current) return
+    if (runningRef.current) return;
 
-    const count = seriesRef.current.length
+    const count = seriesRef.current.length;
     const confirmed = window.confirm(
       `Se reemplazará el archivo de Google Drive con tus ${count} series locales. ¿Continuar?`,
-    )
-    if (!confirmed) return
+    );
+    if (!confirmed) return;
 
-    runningRef.current = true
-    setBusy(true)
-    setStatus('syncing')
-    setMessage(null)
+    runningRef.current = true;
+    setBusy(true);
+    setStatus("syncing");
+    setMessage(null);
 
     try {
-      const token = await getToken('')
-      const current = seriesRef.current
-      const fileId = await pushToDrive(token, current, fileIdRef.current)
+      const token = await getToken("");
+      const current = seriesRef.current;
+      const fileId = await pushToDrive(token, current, fileIdRef.current);
 
-      fileIdRef.current = fileId
-      setLastSyncedSignature(seriesSignature(current))
-      saveState({ fileId, lastSyncedAt: Date.now(), enabled: true })
-      setStatus('synced')
+      fileIdRef.current = fileId;
+      setLastSyncedSignature(seriesSignature(current));
+      saveState({ fileId, lastSyncedAt: Date.now(), enabled: true });
+      setStatus("synced");
       setMessage({
-        kind: 'ok',
-        text: 'Google Drive actualizado con las series de este dispositivo.',
-      })
+        kind: "ok",
+        text: "Google Drive actualizado con las series de este dispositivo.",
+      });
     } catch (cause) {
-      handleDriveError(cause)
+      handleDriveError(cause);
     } finally {
-      runningRef.current = false
-      setBusy(false)
+      runningRef.current = false;
+      setBusy(false);
     }
-  }, [connect, getToken, handleDriveError, saveState])
+  }, [connect, getToken, handleDriveError, saveState]);
 
   const download = useCallback(async () => {
     if (!connectedRef.current) {
-      await connect()
-      return
+      await connect();
+      return;
     }
 
-    if (runningRef.current) return
+    if (runningRef.current) return;
 
-    runningRef.current = true
-    setBusy(true)
-    setStatus('syncing')
-    setMessage(null)
+    runningRef.current = true;
+    setBusy(true);
+    setStatus("syncing");
+    setMessage(null);
 
     try {
-      const token = await getToken('')
-      const remote = await pullFromDrive(token)
+      const token = await getToken("");
+      const remote = await pullFromDrive(token);
 
       if (!remote) {
-        setStatus('synced')
+        setStatus("synced");
         setMessage({
-          kind: 'info',
-          text: 'Todavía no hay datos en Google Drive.',
-        })
-        return
+          kind: "info",
+          text: "Todavía no hay datos en Google Drive.",
+        });
+        return;
       }
 
       const confirmed = window.confirm(
         `Se reemplazarán tus ${seriesRef.current.length} series locales por las ${remote.series.length} de Google Drive. ¿Continuar?`,
-      )
+      );
 
       if (!confirmed) {
-        setStatus('synced')
-        return
+        setStatus("synced");
+        return;
       }
 
-      fileIdRef.current = remote.fileId
-      setSeries(remote.series)
-      setLastSyncedSignature(seriesSignature(remote.series))
-      saveState({ fileId: remote.fileId, lastSyncedAt: Date.now(), enabled: true })
-      setStatus('synced')
+      fileIdRef.current = remote.fileId;
+      setSeries(remote.series);
+      setLastSyncedSignature(seriesSignature(remote.series));
+      saveState({
+        fileId: remote.fileId,
+        lastSyncedAt: Date.now(),
+        enabled: true,
+      });
+      setStatus("synced");
       setMessage({
-        kind: 'ok',
+        kind: "ok",
         text: `Descargadas ${remote.series.length} series de Google Drive.`,
-      })
+      });
     } catch (cause) {
-      handleDriveError(cause)
+      handleDriveError(cause);
     } finally {
-      runningRef.current = false
-      setBusy(false)
+      runningRef.current = false;
+      setBusy(false);
     }
-  }, [connect, getToken, handleDriveError, saveState, setSeries])
+  }, [connect, getToken, handleDriveError, saveState, setSeries]);
 
   const pushCurrent = useCallback(async () => {
-    if (!connectedRef.current || runningRef.current) return
+    if (!connectedRef.current || runningRef.current) return;
 
-    runningRef.current = true
-    setBusy(true)
-    setStatus('syncing')
+    runningRef.current = true;
+    setBusy(true);
+    setStatus("syncing");
 
     try {
-      const token = await getToken('none')
-      const current = seriesRef.current
-      const fileId = await pushToDrive(token, current, fileIdRef.current)
+      const token = await getToken("none");
+      const current = seriesRef.current;
+      const fileId = await pushToDrive(token, current, fileIdRef.current);
 
-      fileIdRef.current = fileId
-      setLastSyncedSignature(seriesSignature(current))
-      saveState({ fileId, lastSyncedAt: Date.now(), enabled: true })
-      setStatus('synced')
+      fileIdRef.current = fileId;
+      setLastSyncedSignature(seriesSignature(current));
+      saveState({ fileId, lastSyncedAt: Date.now(), enabled: true });
+      setStatus("synced");
     } catch (cause) {
-      handleDriveError(cause)
+      handleDriveError(cause);
     } finally {
-      runningRef.current = false
-      setBusy(false)
+      runningRef.current = false;
+      setBusy(false);
     }
-  }, [getToken, handleDriveError, saveState])
+  }, [getToken, handleDriveError, saveState]);
 
   const disconnect = useCallback(() => {
     const confirmed = window.confirm(
-      'Se desconectará Google Drive en este dispositivo. El archivo de tu Drive no se borra. ¿Continuar?',
-    )
-    if (!confirmed) return
+      "Se desconectará Google Drive en este dispositivo. El archivo de tu Drive no se borra. ¿Continuar?",
+    );
+    if (!confirmed) return;
 
-    const token = tokenRef.current?.token
-    if (token) revokeGoogleToken(token)
+    const token = tokenRef.current?.token;
+    if (token) revokeGoogleToken(token);
 
-    tokenRef.current = null
-    clearStoredDriveToken()
-    fileIdRef.current = null
-    connectedRef.current = false
-    setConnected(false)
-    setLastSyncedSignature(null)
-    setStatus('disconnected')
+    tokenRef.current = null;
+    clearStoredDriveToken();
+    fileIdRef.current = null;
+    connectedRef.current = false;
+    setConnected(false);
+    setLastSyncedSignature(null);
+    setStatus("disconnected");
     setMessage({
-      kind: 'info',
-      text: 'Sincronización con Google Drive desconectada.',
-    })
+      kind: "info",
+      text: "Sincronización con Google Drive desconectada.",
+    });
     saveState({
       enabled: false,
       email: undefined,
       fileId: undefined,
       lastSyncedAt: undefined,
-    })
-    onUserRef.current(null)
-  }, [saveState])
+    });
+    onUserRef.current(null);
+  }, [saveState]);
 
   const setAuto = useCallback(
     (auto: boolean) => saveState({ auto }),
     [saveState],
-  )
+  );
 
   // Intenta recuperar la sesión de Google al recargar la página usando el
   // token guardado en la sesión del navegador. No abre ningún popup.
   useEffect(() => {
-    if (restoredRef.current || !clientId || !state.enabled) return
-    if (connectedRef.current) return
+    if (restoredRef.current || !clientId || !state.enabled) return;
+    if (connectedRef.current) return;
 
-    restoredRef.current = true
+    restoredRef.current = true;
 
     void (async () => {
-      setStatus('connecting')
+      setStatus("connecting");
 
       try {
-        const token = await getToken('none')
-        connectedRef.current = true
-        setConnected(true)
-        await syncWithToken(token, true)
+        const token = await getToken("none");
+        connectedRef.current = true;
+        setConnected(true);
+        await syncWithToken(token, true);
       } catch {
-        connectedRef.current = false
-        setConnected(false)
-        setStatus('disconnected')
+        connectedRef.current = false;
+        setConnected(false);
+        setStatus("disconnected");
       }
-    })()
-  }, [clientId, state.enabled, getToken, syncWithToken])
+    })();
+  }, [clientId, state.enabled, getToken, syncWithToken]);
 
   // Subida automática con debounce cuando cambian los datos y hay sesión activa.
   useEffect(() => {
-    if (!connected || !state.auto || busy) return
-    if (lastSyncedSignature === null) return
-    if (signature === lastSyncedSignature) return
+    if (!connected || !state.auto || busy) return;
+    if (lastSyncedSignature === null) return;
+    if (signature === lastSyncedSignature) return;
 
     const timer = window.setTimeout(() => {
-      void pushCurrent()
-    }, 2_000)
+      void pushCurrent();
+    }, 2_000);
 
-    return () => window.clearTimeout(timer)
+    return () => window.clearTimeout(timer);
   }, [
     connected,
     state.auto,
@@ -489,7 +479,7 @@ export function useDriveSync({
     lastSyncedSignature,
     signature,
     pushCurrent,
-  ])
+  ]);
 
   return {
     configured: Boolean(clientId),
@@ -507,5 +497,5 @@ export function useDriveSync({
     upload,
     download,
     setAuto,
-  }
+  };
 }

@@ -92,6 +92,20 @@ export interface GoogleUser {
   picture?: string;
 }
 
+export interface DrivePersistenceState {
+  enabled: boolean;
+  auto: boolean;
+  email?: string;
+  fileId?: string;
+  lastSyncedAt?: number;
+}
+
+export interface SynonymCacheEntry {
+  at: number;
+  synonyms: string[];
+  notFound?: boolean;
+}
+
 export interface SyncMessage {
   kind: "ok" | "error" | "info";
   text: string;

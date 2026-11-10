@@ -1,91 +1,68 @@
-import { isStopword, normalizeText } from './parts'
+import { isStopword, normalizeText } from "./parts";
+import { useAppStore } from "../store/appStore";
+import type { SynonymCacheEntry } from "../types";
 
-const CACHE_KEY = 'cdramalist:synonyms:v1'
-const CACHE_TTL = 60 * 24 * 60 * 60 * 1000
-const NOT_FOUND_TTL = 7 * 24 * 60 * 60 * 1000
-const REQUEST_TIMEOUT = 2000
-const MAX_WORDS = 4
-const MAX_SYNONYMS_PER_WORD = 8
-const MAX_SYNONYMS_PER_SENSE = 3
-const MAX_QUERY_VARIANTS = 2
-const MAX_QUERY_LENGTH = 300
+const CACHE_TTL = 60 * 24 * 60 * 60 * 1000;
+const NOT_FOUND_TTL = 7 * 24 * 60 * 60 * 1000;
+const REQUEST_TIMEOUT = 2000;
+const MAX_WORDS = 4;
+const MAX_SYNONYMS_PER_WORD = 8;
+const MAX_SYNONYMS_PER_SENSE = 3;
+const MAX_QUERY_VARIANTS = 2;
+const MAX_QUERY_LENGTH = 300;
 const BLOCKED_LABEL =
-  /coloquial|despectiv|regional|poco usado|vulgar|malsonante/i
+  /coloquial|despectiv|regional|poco usado|vulgar|malsonante/i;
 
 interface ApiSynonym {
-  word?: string
-  kind?: string
-  label?: string
+  word?: string;
+  kind?: string;
+  label?: string;
 }
 
 interface ApiSense {
-  category?: string
-  synonyms?: string[]
-  synonyms_v2?: ApiSynonym[]
+  category?: string;
+  synonyms?: string[];
+  synonyms_v2?: ApiSynonym[];
 }
 
 interface ApiMeaning {
-  senses?: ApiSense[]
+  senses?: ApiSense[];
 }
 
 interface ApiResponse {
   data?: {
-    meanings?: ApiMeaning[]
-  }
+    meanings?: ApiMeaning[];
+  };
 }
 
-interface CacheEntry {
-  at: number
-  synonyms: string[]
-  notFound?: boolean
-}
+type SynonymCache = Record<string, SynonymCacheEntry>;
 
-type SynonymCache = Record<string, CacheEntry>
-
-let memoryCache: SynonymCache | null = null
-let blockedUntil = 0
+let memoryCache: SynonymCache | null = null;
+let blockedUntil = 0;
 
 function pruneCache(cache: SynonymCache) {
-  const now = Date.now()
+  const now = Date.now();
   for (const [key, entry] of Object.entries(cache)) {
-    const ttl = entry.notFound ? NOT_FOUND_TTL : CACHE_TTL
-    if (now - entry.at > ttl) delete cache[key]
+    const ttl = entry.notFound ? NOT_FOUND_TTL : CACHE_TTL;
+    if (now - entry.at > ttl) delete cache[key];
   }
 }
 
 function readCache(): SynonymCache {
-  if (memoryCache) return memoryCache
+  if (memoryCache) return memoryCache;
 
-  memoryCache = {}
-  if (typeof window === 'undefined') return memoryCache
-
-  try {
-    const raw = window.localStorage.getItem(CACHE_KEY)
-    if (!raw) return memoryCache
-
-    const parsed = JSON.parse(raw) as SynonymCache
-    if (parsed && typeof parsed === 'object') memoryCache = parsed
-  } catch {
-    // Sin localStorage o con datos corruptos: empezamos con caché vacía.
-  }
-
-  return memoryCache
+  memoryCache = useAppStore.getState().synonymCache;
+  return memoryCache;
 }
 
 function writeCache(cache: SynonymCache) {
-  pruneCache(cache)
-  memoryCache = cache
-  if (typeof window === 'undefined') return
-
-  try {
-    window.localStorage.setItem(CACHE_KEY, JSON.stringify(cache))
-  } catch {
-    // La caché es opcional: si no cabe, seguimos funcionando sin ella.
-  }
+  pruneCache(cache);
+  memoryCache = cache;
+  useAppStore.getState().setSynonymCache(cache);
 }
 
 export function normalizeWord(value: string): string {
-  return normalizeText(value).replace(/[^\p{L}\p{N}]/gu, '')
+  return normalizeText(value).replace(/[^\p{L}\p{N}]/gu, "");
 }
 
 /**
@@ -95,29 +72,27 @@ export function normalizeWord(value: string): string {
  */
 export function pickSynonymWords(value: string, limit = MAX_WORDS): string[] {
   const cleaned = value
-    .replace(/https?:\/\/\S+/gi, ' ')
-    .replace(/#[\p{L}\p{N}_]+/gu, ' ')
+    .replace(/https?:\/\/\S+/gi, " ")
+    .replace(/#[\p{L}\p{N}_]+/gu, " ");
 
-  const words = cleaned.match(/[\p{L}]+/gu) ?? []
-  const seen = new Set<string>()
-  const candidates: Array<{ word: string; index: number }> = []
+  const words = cleaned.match(/[\p{L}]+/gu) ?? [];
+  const seen = new Set<string>();
+  const candidates: Array<{ word: string; index: number }> = [];
 
   for (const [index, raw] of words.entries()) {
-    const word = raw.trim().toLowerCase()
-    if (word.length < 3 || isStopword(word)) continue
+    const word = raw.trim().toLowerCase();
+    if (word.length < 3 || isStopword(word)) continue;
 
-    const key = normalizeWord(word)
-    if (!key || seen.has(key)) continue
+    const key = normalizeWord(word);
+    if (!key || seen.has(key)) continue;
 
-    seen.add(key)
-    candidates.push({ word, index })
+    seen.add(key);
+    candidates.push({ word, index });
   }
 
-  candidates.sort(
-    (a, b) => b.word.length - a.word.length || a.index - b.index,
-  )
+  candidates.sort((a, b) => b.word.length - a.word.length || a.index - b.index);
 
-  return candidates.slice(0, limit).map((entry) => entry.word)
+  return candidates.slice(0, limit).map((entry) => entry.word);
 }
 
 /**
@@ -129,23 +104,23 @@ export function pickSynonymWordsFromTexts(
   texts: Array<string | undefined>,
   limit = MAX_WORDS,
 ): string[] {
-  const result: string[] = []
-  const seen = new Set<string>()
+  const result: string[] = [];
+  const seen = new Set<string>();
 
   for (const text of texts) {
-    if (!text) continue
+    if (!text) continue;
 
     for (const word of pickSynonymWords(text, limit)) {
-      const key = normalizeWord(word)
-      if (!key || seen.has(key)) continue
+      const key = normalizeWord(word);
+      if (!key || seen.has(key)) continue;
 
-      seen.add(key)
-      result.push(word)
-      if (result.length >= limit) return result
+      seen.add(key);
+      result.push(word);
+      if (result.length >= limit) return result;
     }
   }
 
-  return result
+  return result;
 }
 
 function splitSynonym(value: string): string[] {
@@ -154,137 +129,137 @@ function splitSynonym(value: string): string[] {
     .map((part) => part.trim().toLowerCase())
     .filter(
       (part) =>
-        part.length >= 3 &&
-        /^[\p{L}]+$/u.test(part) &&
-        !isStopword(part),
-    )
+        part.length >= 3 && /^[\p{L}]+$/u.test(part) && !isStopword(part),
+    );
 }
 
 function extractSynonyms(data: ApiResponse, sourceWord: string): string[] {
-  const meanings = data.data?.meanings ?? []
-  const senses = meanings.flatMap((meaning) => meaning.senses ?? [])
-  const primaryCategory = senses.find((sense) => sense.category)?.category
+  const meanings = data.data?.meanings ?? [];
+  const senses = meanings.flatMap((meaning) => meaning.senses ?? []);
+  const primaryCategory = senses.find((sense) => sense.category)?.category;
 
   // Los adjetivos suelen devolver sinónimos demasiado genéricos («moreno»,
   // «policíaco»…) que ensucian la búsqueda. Nos quedamos con sustantivos y
   // verbos, que son los que suelen cambiar al traducir un título.
-  if (primaryCategory !== 'noun' && primaryCategory !== 'verb') return []
+  if (primaryCategory !== "noun" && primaryCategory !== "verb") return [];
 
-  const matching = senses.filter((sense) => sense.category === primaryCategory)
-  const candidates = matching.length > 0 ? matching : senses
+  const matching = senses.filter((sense) => sense.category === primaryCategory);
+  const candidates = matching.length > 0 ? matching : senses;
 
-  const sourceKey = normalizeWord(sourceWord)
-  const seen = new Set<string>()
-  const result: string[] = []
+  const sourceKey = normalizeWord(sourceWord);
+  const seen = new Set<string>();
+  const result: string[] = [];
 
   // Los sinónimos marcados como coloquiales, regionales o vulgares no suelen
   // aparecer en los títulos traducidos y ensucian la consulta.
-  const blocked = new Set<string>()
+  const blocked = new Set<string>();
   for (const sense of candidates) {
     for (const entry of sense.synonyms_v2 ?? []) {
       if (entry.word && entry.label && BLOCKED_LABEL.test(entry.label)) {
-        blocked.add(normalizeWord(entry.word))
+        blocked.add(normalizeWord(entry.word));
       }
     }
   }
 
   for (const sense of candidates) {
-    const values: string[] = []
+    const values: string[] = [];
 
     for (const entry of sense.synonyms_v2 ?? []) {
-      if (!entry.word) continue
-      if (entry.label && BLOCKED_LABEL.test(entry.label)) continue
-      values.push(entry.word)
+      if (!entry.word) continue;
+      if (entry.label && BLOCKED_LABEL.test(entry.label)) continue;
+      values.push(entry.word);
     }
     for (const value of sense.synonyms ?? []) {
-      if (blocked.has(normalizeWord(value))) continue
-      values.push(value)
+      if (blocked.has(normalizeWord(value))) continue;
+      values.push(value);
     }
 
-    let added = 0
+    let added = 0;
     for (const value of values) {
       for (const word of splitSynonym(value)) {
-        const key = normalizeWord(word)
-        if (!key || key === sourceKey || seen.has(key)) continue
+        const key = normalizeWord(word);
+        if (!key || key === sourceKey || seen.has(key)) continue;
 
-        seen.add(key)
-        result.push(word)
-        added += 1
-        if (added >= MAX_SYNONYMS_PER_SENSE) break
+        seen.add(key);
+        result.push(word);
+        added += 1;
+        if (added >= MAX_SYNONYMS_PER_SENSE) break;
       }
-      if (added >= MAX_SYNONYMS_PER_SENSE) break
+      if (added >= MAX_SYNONYMS_PER_SENSE) break;
     }
 
-    if (result.length >= MAX_SYNONYMS_PER_WORD) break
+    if (result.length >= MAX_SYNONYMS_PER_WORD) break;
   }
 
-  return result.slice(0, MAX_SYNONYMS_PER_WORD)
+  return result.slice(0, MAX_SYNONYMS_PER_WORD);
 }
 
-async function requestSynonyms(word: string): Promise<CacheEntry | null> {
+async function requestSynonyms(
+  word: string,
+): Promise<SynonymCacheEntry | null> {
   // Si la API acaba de responder 429, no insistimos durante un minuto.
-  if (Date.now() < blockedUntil) return null
+  if (Date.now() < blockedUntil) return null;
 
-  const controller = new AbortController()
-  const timer = setTimeout(() => controller.abort(), REQUEST_TIMEOUT)
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), REQUEST_TIMEOUT);
 
   try {
     const response = await fetch(
       `https://rae-api.com/api/words/${encodeURIComponent(word)}`,
       {
         signal: controller.signal,
-        headers: { Accept: 'application/json' },
+        headers: { Accept: "application/json" },
       },
-    )
+    );
 
     if (response.status === 429) {
-      blockedUntil = Date.now() + 60_000
-      return null
+      blockedUntil = Date.now() + 60_000;
+      return null;
     }
 
     if (response.status === 404) {
-      return { at: Date.now(), synonyms: [], notFound: true }
+      return { at: Date.now(), synonyms: [], notFound: true };
     }
 
-    if (!response.ok) return null
+    if (!response.ok) return null;
 
-    const data = (await response.json()) as ApiResponse
-    return { at: Date.now(), synonyms: extractSynonyms(data, word) }
+    const data = (await response.json()) as ApiResponse;
+    return { at: Date.now(), synonyms: extractSynonyms(data, word) };
   } catch {
     // La API es un extra: si no responde, la búsqueda sigue con el título.
-    return null
+    return null;
   } finally {
-    clearTimeout(timer)
+    clearTimeout(timer);
   }
 }
 
 /**
- * Busca sinónimos en la RAE con caché en localStorage. Las palabras repetidas
+ * Busca sinónimos en la RAE con caché persistida en Zustand. Las palabras repetidas
  * no vuelven a consultarse durante 60 días y los fallos no se cachean.
  */
 export async function fetchSynonyms(
   words: string[],
 ): Promise<Map<string, string[]>> {
-  const cache = readCache()
-  const wasBlocked = Date.now() < blockedUntil
-  const result = new Map<string, string[]>()
-  const wordByKey = new Map<string, string>()
-  const missing: string[] = []
+  const cache = readCache();
+  const wasBlocked = Date.now() < blockedUntil;
+  const result = new Map<string, string[]>();
+  const wordByKey = new Map<string, string>();
+  const missing: string[] = [];
 
   for (const word of words) {
-    const key = normalizeWord(word)
-    if (!key) continue
+    const key = normalizeWord(word);
+    if (!key) continue;
 
-    const entry = cache[key]
-    const ttl = entry?.notFound ? NOT_FOUND_TTL : CACHE_TTL
+    const entry = cache[key];
+    const ttl = entry?.notFound ? NOT_FOUND_TTL : CACHE_TTL;
     if (entry && Date.now() - entry.at < ttl) {
-      result.set(key, entry.synonyms)
-      continue
+      result.set(key, entry.synonyms);
+      continue;
     }
 
     if (!wordByKey.has(key)) {
-      wordByKey.set(key, word)
-      missing.push(key)
+      wordByKey.set(key, word);
+      missing.push(key);
     }
   }
 
@@ -293,7 +268,7 @@ export async function fetchSynonyms(
       key,
       entry: await requestSynonyms(wordByKey.get(key) ?? key),
     })),
-  )
+  );
 
   // Si todas las consultas fallaron (red caída, timeout…), no repetimos el
   // intento en cada búsqueda durante un minuto.
@@ -302,20 +277,20 @@ export async function fetchSynonyms(
     missing.length > 0 &&
     fetched.every(({ entry }) => entry === null)
   ) {
-    blockedUntil = Date.now() + 60_000
+    blockedUntil = Date.now() + 60_000;
   }
 
-  let changed = false
+  let changed = false;
   for (const { key, entry } of fetched) {
-    if (!entry) continue
+    if (!entry) continue;
 
-    cache[key] = entry
-    result.set(key, entry.synonyms)
-    changed = true
+    cache[key] = entry;
+    result.set(key, entry.synonyms);
+    changed = true;
   }
 
-  if (changed) writeCache(cache)
-  return result
+  if (changed) writeCache(cache);
+  return result;
 }
 
 /**
@@ -325,20 +300,20 @@ export async function fetchSynonyms(
 export function buildSynonymAliases(
   synonyms: Map<string, string[]>,
 ): Map<string, string> {
-  const aliases = new Map<string, string>()
+  const aliases = new Map<string, string>();
 
   for (const [word, list] of synonyms) {
-    const canonical = normalizeWord(word)
-    if (!canonical) continue
+    const canonical = normalizeWord(word);
+    if (!canonical) continue;
 
     for (const synonym of list) {
-      const key = normalizeWord(synonym)
-      if (!key || key === canonical) continue
-      if (!aliases.has(key)) aliases.set(key, canonical)
+      const key = normalizeWord(synonym);
+      if (!key || key === canonical) continue;
+      if (!aliases.has(key)) aliases.set(key, canonical);
     }
   }
 
-  return aliases
+  return aliases;
 }
 
 /**
@@ -349,55 +324,55 @@ export function expandQueryWithSynonyms(
   query: string,
   synonyms: Map<string, string[]>,
 ): string {
-  const words = query.split(/\s+/).filter(Boolean)
-  if (words.length === 0 || synonyms.size === 0) return query
+  const words = query.split(/\s+/).filter(Boolean);
+  if (words.length === 0 || synonyms.size === 0) return query;
 
   const perWord = words.map((word) =>
     [...(synonyms.get(normalizeWord(word)) ?? [])].sort(
       (a, b) => b.length - a.length,
     ),
-  )
-  if (perWord.every((list) => list.length === 0)) return query
+  );
+  if (perWord.every((list) => list.length === 0)) return query;
 
   const order = words
     .map((_, index) => index)
-    .sort((a, b) => perWord[b].length - perWord[a].length)
+    .sort((a, b) => perWord[b].length - perWord[a].length);
 
-  const variants: string[] = []
-  const seen = new Set([query.toLowerCase()])
+  const variants: string[] = [];
+  const seen = new Set([query.toLowerCase()]);
 
   // Solo variantes que cambian una palabra. Añadir demasiados OR hace que
   // YouTube pierda resultados, así que nos quedamos con las dos mejores
   // variantes (la original y una más).
   for (let round = 0; variants.length < MAX_QUERY_VARIANTS - 1; round += 1) {
-    let added = false
+    let added = false;
 
     for (const index of order) {
-      const synonym = perWord[index][round]
-      if (!synonym) continue
+      const synonym = perWord[index][round];
+      if (!synonym) continue;
 
-      const variantWords = [...words]
-      variantWords[index] = synonym
-      const variant = variantWords.join(' ')
-      const key = variant.toLowerCase()
-      if (seen.has(key)) continue
+      const variantWords = [...words];
+      variantWords[index] = synonym;
+      const variant = variantWords.join(" ");
+      const key = variant.toLowerCase();
+      if (seen.has(key)) continue;
 
-      seen.add(key)
-      variants.push(variant)
-      added = true
+      seen.add(key);
+      variants.push(variant);
+      added = true;
 
-      if (variants.length >= MAX_QUERY_VARIANTS - 1) break
+      if (variants.length >= MAX_QUERY_VARIANTS - 1) break;
     }
 
-    if (!added) break
+    if (!added) break;
   }
 
-  let expanded = query
+  let expanded = query;
   for (const variant of variants) {
-    const next = `${expanded} | ${variant}`
-    if (next.length > MAX_QUERY_LENGTH) break
-    expanded = next
+    const next = `${expanded} | ${variant}`;
+    if (next.length > MAX_QUERY_LENGTH) break;
+    expanded = next;
   }
 
-  return expanded
+  return expanded;
 }
