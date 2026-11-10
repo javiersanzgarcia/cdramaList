@@ -290,6 +290,7 @@ export default function App() {
       {selectedSeries && !player && (
         <SeriesSheet
           series={selectedSeries}
+          geminiConfigured={ENV_GEMINI_API_KEY.length > 0}
           onClose={() => setSelectedSeriesId(null)}
           onPlay={playSeries}
           onToggleFavorite={toggleFavorite}
