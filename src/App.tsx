@@ -12,7 +12,7 @@ import { useDriveSync } from "./hooks/useDriveSync";
 import { useInstallPrompt } from "./hooks/useInstallPrompt";
 import { usePersistentState } from "./hooks/usePersistentState";
 import { sanitizeGoogleUser } from "./lib/google";
-import { sortParts } from "./lib/parts";
+import { reorderParts, sortParts } from "./lib/parts";
 import {
   createSeries,
   filterSeries,
@@ -178,6 +178,20 @@ export default function App() {
           updatedAt: Date.now(),
         };
       }),
+    );
+  }
+
+  function movePart(seriesId: string, fromIndex: number, toIndex: number) {
+    updateSeries((current) =>
+      current.map((item) =>
+        item.id === seriesId
+          ? {
+              ...item,
+              parts: reorderParts(item.parts, fromIndex, toIndex),
+              updatedAt: Date.now(),
+            }
+          : item,
+      ),
     );
   }
 
@@ -477,6 +491,7 @@ export default function App() {
           onPlay={playSeries}
           onToggleFavorite={toggleFavorite}
           onSetWatched={setWatched}
+          onMovePart={movePart}
           onAddParts={handleAddParts}
           onRefresh={handleRefreshSeries}
           onAddCandidate={handleAddCandidate}

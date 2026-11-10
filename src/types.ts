@@ -9,6 +9,7 @@ export interface Part {
   title: string;
   partNumber?: number;
   totalParts?: number;
+  sortOrder?: number;
   isFinal?: boolean;
   durationSeconds?: number;
   publishedAt?: string;

@@ -27,6 +27,7 @@ interface SeriesSheetProps {
   onPlay: (series: Series, index: number) => void;
   onToggleFavorite: (id: string) => void;
   onSetWatched: (seriesId: string, videoId: string, watched: boolean) => void;
+  onMovePart: (seriesId: string, fromIndex: number, toIndex: number) => void;
   onAddParts: (series: Series) => void;
   onRefresh: (series: Series) => Promise<SeriesRefreshResult>;
   onAddCandidate: (
@@ -44,6 +45,7 @@ export function SeriesSheet({
   onPlay,
   onToggleFavorite,
   onSetWatched,
+  onMovePart,
   onAddParts,
   onRefresh,
   onAddCandidate,
@@ -531,6 +533,29 @@ export function SeriesSheet({
                         </span>
                       </span>
                     </button>
+
+                    <div className="flex shrink-0 flex-col">
+                      <button
+                        type="button"
+                        onClick={() => onMovePart(series.id, index, index - 1)}
+                        disabled={index === 0}
+                        aria-label={`Mover ${partLabel(part, index)} hacia arriba`}
+                        title="Mover hacia arriba"
+                        className="grid size-7 place-items-center rounded text-zinc-500 transition hover:bg-zinc-800 hover:text-white disabled:cursor-not-allowed disabled:opacity-25"
+                      >
+                        <Icon.ChevronRight className="size-3.5 -rotate-90" />
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => onMovePart(series.id, index, index + 1)}
+                        disabled={index === total - 1}
+                        aria-label={`Mover ${partLabel(part, index)} hacia abajo`}
+                        title="Mover hacia abajo"
+                        className="grid size-7 place-items-center rounded text-zinc-500 transition hover:bg-zinc-800 hover:text-white disabled:cursor-not-allowed disabled:opacity-25"
+                      >
+                        <Icon.ChevronRight className="size-3.5 rotate-90" />
+                      </button>
+                    </div>
 
                     <button
                       type="button"

@@ -12,6 +12,7 @@ PWA para reunir las partes de una historia de YouTube, guardar el progreso y ver
 - **Aprende de tus confirmaciones.** Al añadir una sugerencia, sus palabras clave ganan confianza para esa serie; las coincidencias relacionadas se priorizan en próximas búsquedas. La señal se guarda con la serie, se sincroniza con Drive y tiene límites para evitar que crezca sin control.
 - **Importa listas de reproducción completas.** Si el canal agrupa las partes en una playlist, se importan todas en orden.
 - **Guarda tu progreso.** Marca partes como vistas, continúa donde lo dejaste y consulta el porcentaje de cada serie.
+- **Reorganiza los capítulos.** Usa las flechas de la ficha para cambiar el orden de reproducción; el orden manual se conserva al recargar y sincronizar.
 - **Reproductor integrado.** Las partes se reproducen dentro de la app y avanzan solas al terminar el vídeo.
 - **Sincronización con Google Drive.** Inicia sesión con Google y guarda tus series en un archivo privado de tu Drive (`appDataFolder`). Funciona entre móvil y ordenador sin servidor propio.
 - **Todo sigue siendo local por defecto.** Sin cuenta de Google, las series y la clave de API se guardan en `localStorage`.

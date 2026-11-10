@@ -189,7 +189,14 @@ export function mergeParts(existing: Part[], incoming: Part[]): Part[] {
     const previous = byId.get(part.videoId);
     byId.set(
       part.videoId,
-      previous ? { ...previous, ...part, addedAt: previous.addedAt } : part,
+      previous
+        ? {
+            ...previous,
+            ...part,
+            sortOrder: part.sortOrder ?? previous.sortOrder,
+            addedAt: previous.addedAt,
+          }
+        : part,
     );
   }
 
@@ -347,6 +354,12 @@ export function normalizeSeries(value: Series): Series {
           typeof part.partNumber === "number" ? part.partNumber : undefined,
         totalParts:
           typeof part.totalParts === "number" ? part.totalParts : undefined,
+        sortOrder:
+          typeof part.sortOrder === "number" &&
+          Number.isFinite(part.sortOrder) &&
+          part.sortOrder >= 0
+            ? part.sortOrder
+            : undefined,
         isFinal: Boolean(part.isFinal),
         durationSeconds:
           typeof part.durationSeconds === "number"

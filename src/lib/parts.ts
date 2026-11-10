@@ -646,6 +646,12 @@ export function titleJaccard(
 
 export function sortParts(parts: Part[]): Part[] {
   return [...parts].sort((a, b) => {
+    if (a.sortOrder != null || b.sortOrder != null) {
+      const firstOrder = a.sortOrder ?? Number.MAX_SAFE_INTEGER;
+      const secondOrder = b.sortOrder ?? Number.MAX_SAFE_INTEGER;
+      if (firstOrder !== secondOrder) return firstOrder - secondOrder;
+    }
+
     const first = a.partNumber;
     const second = b.partNumber;
 
@@ -663,6 +669,28 @@ export function sortParts(parts: Part[]): Part[] {
 
     return a.addedAt - b.addedAt;
   });
+}
+
+export function reorderParts(
+  parts: Part[],
+  fromIndex: number,
+  toIndex: number,
+): Part[] {
+  if (
+    fromIndex < 0 ||
+    fromIndex >= parts.length ||
+    toIndex < 0 ||
+    toIndex >= parts.length ||
+    fromIndex === toIndex
+  ) {
+    return parts;
+  }
+
+  const reordered = [...parts];
+  const [moved] = reordered.splice(fromIndex, 1);
+  reordered.splice(toIndex, 0, moved);
+
+  return reordered.map((part, sortOrder) => ({ ...part, sortOrder }));
 }
 
 export function partLabel(part: Part, index: number): string {
