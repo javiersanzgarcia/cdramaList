@@ -1,54 +1,43 @@
+import type { ReactNode } from "react";
 import { continueWatching } from "../../series/model/series";
 import type { Filter, Series } from "../../series/types";
-import type { GoogleUser } from "../../sync/types";
 import { ContinueCard } from "./ContinueCard";
 import { EmptyState } from "./EmptyState";
 import { FilterChips } from "./FilterChips";
 import * as Icon from "../../../shared/components/Icons";
 import { SearchBar } from "./SearchBar";
 import { SeriesCard } from "./SeriesCard";
-import { TopBar } from "../../../shared/components/TopBar";
 
 interface HomeViewProps {
+  header: ReactNode;
   series: Series[];
   allSeries: Series[];
   query: string;
   filter: Filter;
-  canInstall: boolean;
   apiKeyConfigured: boolean;
-  googleUser: GoogleUser | null;
-  syncDirty: boolean;
-  syncBusy: boolean;
   onQueryChange: (value: string) => void;
   onFilterChange: (filter: Filter) => void;
   onOpen: (series: Series) => void;
   onPlay: (series: Series, index: number) => void;
   onToggleFavorite: (id: string) => void;
   onAdd: () => void;
-  onInstall: () => void;
   onOpenSettings: () => void;
-  onOpenAccount: () => void;
 }
 
 export function HomeView({
+  header,
   series,
   allSeries,
   query,
   filter,
-  canInstall,
   apiKeyConfigured,
-  googleUser,
-  syncDirty,
-  syncBusy,
   onQueryChange,
   onFilterChange,
   onOpen,
   onPlay,
   onToggleFavorite,
   onAdd,
-  onInstall,
   onOpenSettings,
-  onOpenAccount,
 }: HomeViewProps) {
   const continueList = continueWatching(allSeries).slice(0, 8);
   const showContinue =
@@ -67,16 +56,7 @@ export function HomeView({
 
   return (
     <>
-      <TopBar
-        eyebrow="Tus historias, parte a parte"
-        title="CdramaList"
-        canInstall={canInstall}
-        onInstall={onInstall}
-        user={googleUser}
-        syncDirty={syncDirty}
-        syncBusy={syncBusy}
-        onOpenAccount={onOpenAccount}
-      />
+      {header}
 
       <section className="px-4 pt-5">
         <h2 className="text-2xl font-bold tracking-tight">¿Qué vemos hoy?</h2>

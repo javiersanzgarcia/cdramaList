@@ -8,6 +8,7 @@ import { HomeView } from "./features/library/components/HomeView";
 import { ListView } from "./features/library/components/ListView";
 import { BottomNav } from "./shared/components/BottomNav";
 import * as Icon from "./shared/components/Icons";
+import { TopBar } from "./shared/components/TopBar";
 import { useDriveSync } from "./features/sync/hooks/useDriveSync";
 import { useInstallPrompt } from "./app/hooks/useInstallPrompt";
 import {
@@ -208,39 +209,51 @@ export default function App() {
       <main className="flex-1">
         {tab === "home" && (
           <HomeView
+            header={
+              <TopBar
+                eyebrow="Tus historias, parte a parte"
+                title="CdramaList"
+                canInstall={canInstall}
+                onInstall={promptInstall}
+                user={googleUser}
+                syncDirty={drive.dirty}
+                syncBusy={drive.busy}
+                onOpenAccount={() => setAccountOpen(true)}
+              />
+            }
             series={filtered}
             allSeries={series}
             query={query}
             filter={filter}
-            canInstall={canInstall}
             apiKeyConfigured={apiKey.length > 0}
-            googleUser={googleUser}
-            syncDirty={drive.dirty}
-            syncBusy={drive.busy}
             onQueryChange={setQuery}
             onFilterChange={setFilter}
             onOpen={openSeries}
             onPlay={playSeries}
             onToggleFavorite={toggleFavorite}
             onAdd={openAdd}
-            onInstall={promptInstall}
             onOpenSettings={() => setTab("settings")}
-            onOpenAccount={() => setAccountOpen(true)}
           />
         )}
 
         {tab === "list" && (
           <ListView
+            header={
+              <TopBar
+                eyebrow={`${series.length} ${series.length === 1 ? "serie guardada" : "series guardadas"}`}
+                title="Mi lista"
+                canInstall={canInstall}
+                onInstall={promptInstall}
+                user={googleUser}
+                syncDirty={drive.dirty}
+                syncBusy={drive.busy}
+                onOpenAccount={() => setAccountOpen(true)}
+              />
+            }
             groups={groups}
-            canInstall={canInstall}
-            googleUser={googleUser}
-            syncDirty={drive.dirty}
-            syncBusy={drive.busy}
             onOpen={openSeries}
             onToggleFavorite={toggleFavorite}
-            onInstall={promptInstall}
             onAdd={openAdd}
-            onOpenAccount={() => setAccountOpen(true)}
           />
         )}
 

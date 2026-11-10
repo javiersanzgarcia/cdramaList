@@ -1,35 +1,24 @@
+import type { ReactNode } from "react";
 import { statusMeta, statusOrder } from "../../series/model/status";
 import type { Series, SeriesStatus } from "../../series/types";
-import type { GoogleUser } from "../../sync/types";
 import { EmptyState } from "./EmptyState";
 import * as Icon from "../../../shared/components/Icons";
 import { SeriesCard } from "./SeriesCard";
-import { TopBar } from "../../../shared/components/TopBar";
 
 interface ListViewProps {
+  header: ReactNode;
   groups: Record<SeriesStatus, Series[]>;
-  canInstall: boolean;
-  googleUser: GoogleUser | null;
-  syncDirty: boolean;
-  syncBusy: boolean;
   onOpen: (series: Series) => void;
   onToggleFavorite: (id: string) => void;
-  onInstall: () => void;
   onAdd: () => void;
-  onOpenAccount: () => void;
 }
 
 export function ListView({
+  header,
   groups,
-  canInstall,
-  googleUser,
-  syncDirty,
-  syncBusy,
   onOpen,
   onToggleFavorite,
-  onInstall,
   onAdd,
-  onOpenAccount,
 }: ListViewProps) {
   const savedCount = statusOrder.reduce(
     (total, status) => total + groups[status].length,
@@ -38,16 +27,7 @@ export function ListView({
 
   return (
     <>
-      <TopBar
-        eyebrow={`${savedCount} ${savedCount === 1 ? "serie guardada" : "series guardadas"}`}
-        title="Mi lista"
-        canInstall={canInstall}
-        onInstall={onInstall}
-        user={googleUser}
-        syncDirty={syncDirty}
-        syncBusy={syncBusy}
-        onOpenAccount={onOpenAccount}
-      />
+      {header}
 
       {savedCount === 0 ? (
         <div className="px-4 pt-5">
