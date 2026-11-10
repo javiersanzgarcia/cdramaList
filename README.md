@@ -157,7 +157,3 @@ https://TU_USUARIO.github.io/cdramaList/
 La ruta base se detecta automáticamente en GitHub Actions a partir del nombre del repositorio (`/cdramaList/`), por lo que no hace falta cambiar `vite.config.ts`. En local se sigue usando `/`.
 
 También puedes desplegar la carpeta `dist/` en cualquier otro hosting estático con HTTPS (Netlify, Vercel, Cloudflare Pages…).
-
-## Pendientes
-
-### Buscar también por nombres de personajes y títulos alternativos
