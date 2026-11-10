@@ -1,5 +1,5 @@
-import type { ChapterCandidate, Part, Series, SeriesDraft } from '../types'
-import { formatDuration, parseIsoDuration } from './format'
+import type { ChapterCandidate, Part, Series, SeriesDraft } from "../types";
+import { formatDuration, parseIsoDuration } from "./format";
 import {
   buildGlobalSearchQuery,
   detectPart,
@@ -10,135 +10,137 @@ import {
   stripPartMarkers,
   titleJaccard,
   tokenCount,
-} from './parts'
+} from "./parts";
 import {
   buildSynonymAliases,
   expandQueryWithSynonyms,
   fetchSynonyms,
   pickSynonymWordsFromTexts,
-} from './synonyms'
+} from "./synonyms";
 
-const API_BASE = 'https://www.googleapis.com/youtube/v3'
-const MAX_PLAYLIST_ITEMS = 200
+const API_BASE = "https://www.googleapis.com/youtube/v3";
+const MAX_PLAYLIST_ITEMS = 200;
+const MAX_SEARCH_TERMS = 14;
+const MAX_SEARCH_QUERY_LENGTH = 500;
 
 interface Thumbnails {
-  default?: { url: string }
-  medium?: { url: string }
-  high?: { url: string }
-  standard?: { url: string }
-  maxres?: { url: string }
+  default?: { url: string };
+  medium?: { url: string };
+  high?: { url: string };
+  standard?: { url: string };
+  maxres?: { url: string };
 }
 
 interface VideoSnippet {
-  title: string
-  channelId: string
-  channelTitle: string
-  publishedAt: string
-  description?: string
-  tags?: string[]
-  thumbnails?: Thumbnails
+  title: string;
+  channelId: string;
+  channelTitle: string;
+  publishedAt: string;
+  description?: string;
+  tags?: string[];
+  thumbnails?: Thumbnails;
 }
 
 interface VideoItem {
-  id: string
-  snippet: VideoSnippet
-  contentDetails?: { duration?: string }
+  id: string;
+  snippet: VideoSnippet;
+  contentDetails?: { duration?: string };
 }
 
 interface PlaylistItem {
-  id: string
+  id: string;
   snippet: {
-    title: string
-    channelId?: string
-    channelTitle?: string
-    videoOwnerChannelId?: string
-    videoOwnerChannelTitle?: string
-    publishedAt?: string
-    description?: string
-    thumbnails?: Thumbnails
-    resourceId?: { videoId?: string }
-  }
-  contentDetails?: { videoId?: string }
+    title: string;
+    channelId?: string;
+    channelTitle?: string;
+    videoOwnerChannelId?: string;
+    videoOwnerChannelTitle?: string;
+    publishedAt?: string;
+    description?: string;
+    thumbnails?: Thumbnails;
+    resourceId?: { videoId?: string };
+  };
+  contentDetails?: { videoId?: string };
 }
 
 interface PlaylistResource {
-  id: string
+  id: string;
   snippet: {
-    title: string
-    channelId: string
-    channelTitle: string
-    publishedAt?: string
-    description?: string
-    thumbnails?: Thumbnails
-  }
-  contentDetails?: { itemCount?: number }
+    title: string;
+    channelId: string;
+    channelTitle: string;
+    publishedAt?: string;
+    description?: string;
+    thumbnails?: Thumbnails;
+  };
+  contentDetails?: { itemCount?: number };
 }
 
 interface SearchItem {
-  id: { videoId?: string; playlistId?: string }
-  snippet: VideoSnippet
+  id: { videoId?: string; playlistId?: string };
+  snippet: VideoSnippet;
 }
 
 interface ChannelResource {
   contentDetails?: {
-    relatedPlaylists?: { uploads?: string }
-  }
+    relatedPlaylists?: { uploads?: string };
+  };
 }
 
 interface GoogleErrorBody {
   error?: {
-    message?: string
-    errors?: { reason?: string; message?: string }[]
-  }
+    message?: string;
+    errors?: { reason?: string; message?: string }[];
+  };
 }
 
 export interface VideoMeta {
-  videoId: string
-  title: string
-  channelId?: string
-  channelTitle: string
-  channelUrl?: string
-  publishedAt?: string
-  description?: string
-  tags?: string[]
-  thumbnail?: string
-  durationSeconds?: number
+  videoId: string;
+  title: string;
+  channelId?: string;
+  channelTitle: string;
+  channelUrl?: string;
+  publishedAt?: string;
+  description?: string;
+  tags?: string[];
+  thumbnail?: string;
+  durationSeconds?: number;
 }
 
 export interface PlaylistData {
-  playlistId: string
-  title: string
-  channelId: string
-  channelTitle: string
-  thumbnail?: string
-  parts: Part[]
-  truncated: boolean
+  playlistId: string;
+  title: string;
+  channelId: string;
+  channelTitle: string;
+  thumbnail?: string;
+  parts: Part[];
+  truncated: boolean;
 }
 
 export interface ParsedYouTubeUrl {
-  videoId?: string
-  playlistId?: string
+  videoId?: string;
+  playlistId?: string;
 }
 
 export class YouTubeError extends Error {
-  reason?: string
+  reason?: string;
 
   constructor(message: string, reason?: string) {
-    super(message)
-    this.name = 'YouTubeError'
-    this.reason = reason
+    super(message);
+    this.name = "YouTubeError";
+    this.reason = reason;
   }
 }
 
-const VIDEO_ID = /^[\w-]{11}$/
-const PLAYLIST_ID = /^[\w-]{10,}$/
+const VIDEO_ID = /^[\w-]{11}$/;
+const PLAYLIST_ID = /^[\w-]{10,}$/;
 
 export function youtubeThumbnail(videoId: string): string {
-  return `https://i.ytimg.com/vi/${videoId}/hqdefault.jpg`
+  return `https://i.ytimg.com/vi/${videoId}/hqdefault.jpg`;
 }
 
 export function channelUrlFor(channelId: string): string {
-  return `https://www.youtube.com/channel/${channelId}`
+  return `https://www.youtube.com/channel/${channelId}`;
 }
 
 function pickThumbnail(thumbnails?: Thumbnails): string | undefined {
@@ -148,7 +150,7 @@ function pickThumbnail(thumbnails?: Thumbnails): string | undefined {
     thumbnails?.high?.url ??
     thumbnails?.medium?.url ??
     thumbnails?.default?.url
-  )
+  );
 }
 
 function toVideoMeta(item: VideoItem): VideoMeta {
@@ -157,13 +159,16 @@ function toVideoMeta(item: VideoItem): VideoMeta {
     title: item.snippet.title,
     channelId: item.snippet.channelId,
     channelTitle: item.snippet.channelTitle,
-    channelUrl: item.snippet.channelId ? channelUrlFor(item.snippet.channelId) : undefined,
+    channelUrl: item.snippet.channelId
+      ? channelUrlFor(item.snippet.channelId)
+      : undefined,
     publishedAt: item.snippet.publishedAt,
     description: item.snippet.description,
     tags: item.snippet.tags,
-    thumbnail: pickThumbnail(item.snippet.thumbnails) ?? youtubeThumbnail(item.id),
+    thumbnail:
+      pickThumbnail(item.snippet.thumbnails) ?? youtubeThumbnail(item.id),
     durationSeconds: parseIsoDuration(item.contentDetails?.duration),
-  }
+  };
 }
 
 async function fetchJson<T>(
@@ -171,140 +176,165 @@ async function fetchJson<T>(
   params: Record<string, string>,
   apiKey: string,
 ): Promise<T> {
-  const url = new URL(`${API_BASE}/${endpoint}`)
+  const url = new URL(`${API_BASE}/${endpoint}`);
 
   for (const [key, value] of Object.entries(params)) {
-    url.searchParams.set(key, value)
+    url.searchParams.set(key, value);
   }
-  url.searchParams.set('key', apiKey)
+  url.searchParams.set("key", apiKey);
 
-  let response: Response
+  let response: Response;
   try {
-    response = await fetch(url.toString())
+    response = await fetch(url.toString());
   } catch {
-    throw new YouTubeError('No se pudo conectar con YouTube. Revisa tu conexión.')
+    throw new YouTubeError(
+      "No se pudo conectar con YouTube. Revisa tu conexión.",
+    );
   }
 
   if (!response.ok) {
-    let body: GoogleErrorBody | undefined
+    let body: GoogleErrorBody | undefined;
     try {
-      body = (await response.json()) as GoogleErrorBody
+      body = (await response.json()) as GoogleErrorBody;
     } catch {
-      body = undefined
+      body = undefined;
     }
 
-    const reason = body?.error?.errors?.[0]?.reason
-    const detail = body?.error?.message ?? `YouTube respondió con el código ${response.status}.`
+    const reason = body?.error?.errors?.[0]?.reason;
+    const detail =
+      body?.error?.message ??
+      `YouTube respondió con el código ${response.status}.`;
 
-    if (reason === 'quotaExceeded') {
+    if (reason === "quotaExceeded") {
       throw new YouTubeError(
-        'Se ha agotado la cuota diaria de YouTube. Inténtalo mañana o usa el modo manual.',
+        "Se ha agotado la cuota diaria de YouTube. Inténtalo mañana o usa el modo manual.",
         reason,
-      )
+      );
     }
 
     if (response.status === 400 || response.status === 403) {
       throw new YouTubeError(
-        'La clave de API no es válida o no tiene permiso para YouTube Data API v3. Revísala en Ajustes.',
+        "La clave de API no es válida o no tiene permiso para YouTube Data API v3. Revísala en Ajustes.",
         reason,
-      )
+      );
     }
 
     if (response.status === 404) {
-      throw new YouTubeError('No se encontró el vídeo o la lista de reproducción.', reason)
+      throw new YouTubeError(
+        "No se encontró el vídeo o la lista de reproducción.",
+        reason,
+      );
     }
 
-    throw new YouTubeError(detail, reason)
+    throw new YouTubeError(detail, reason);
   }
 
-  return (await response.json()) as T
+  return (await response.json()) as T;
 }
 
 export function parseYouTubeUrl(input: string): ParsedYouTubeUrl | null {
-  const value = input.trim()
-  if (!value) return null
+  const value = input.trim();
+  if (!value) return null;
 
-  if (VIDEO_ID.test(value)) return { videoId: value }
-  if (!value.startsWith('http') && PLAYLIST_ID.test(value)) return { playlistId: value }
+  if (VIDEO_ID.test(value)) return { videoId: value };
+  if (!value.startsWith("http") && PLAYLIST_ID.test(value))
+    return { playlistId: value };
 
-  let url: URL
+  let url: URL;
   try {
-    url = new URL(value.startsWith('http') ? value : `https://${value}`)
+    url = new URL(value.startsWith("http") ? value : `https://${value}`);
   } catch {
-    return null
+    return null;
   }
 
-  const host = url.hostname.replace(/^www\./, '').replace(/^m\./, '')
+  const host = url.hostname.replace(/^www\./, "").replace(/^m\./, "");
   if (
-    !['youtube.com', 'youtu.be', 'music.youtube.com', 'youtube-nocookie.com'].includes(host)
+    ![
+      "youtube.com",
+      "youtu.be",
+      "music.youtube.com",
+      "youtube-nocookie.com",
+    ].includes(host)
   ) {
-    return null
+    return null;
   }
 
-  let videoId = url.searchParams.get('v') ?? undefined
-  const playlistId = url.searchParams.get('list') ?? undefined
+  let videoId = url.searchParams.get("v") ?? undefined;
+  const playlistId = url.searchParams.get("list") ?? undefined;
 
-  if (host === 'youtu.be') {
-    videoId = url.pathname.split('/').filter(Boolean)[0]
+  if (host === "youtu.be") {
+    videoId = url.pathname.split("/").filter(Boolean)[0];
   } else {
-    const segments = url.pathname.split('/').filter(Boolean)
-    if (!videoId && ['shorts', 'embed', 'live', 'v'].includes(segments[0] ?? '')) {
-      videoId = segments[1]
+    const segments = url.pathname.split("/").filter(Boolean);
+    if (
+      !videoId &&
+      ["shorts", "embed", "live", "v"].includes(segments[0] ?? "")
+    ) {
+      videoId = segments[1];
     }
   }
 
-  if (videoId && !VIDEO_ID.test(videoId)) videoId = undefined
-  if (playlistId && !PLAYLIST_ID.test(playlistId)) return null
-  if (!videoId && !playlistId) return null
+  if (videoId && !VIDEO_ID.test(videoId)) videoId = undefined;
+  if (playlistId && !PLAYLIST_ID.test(playlistId)) return null;
+  if (!videoId && !playlistId) return null;
 
-  return { videoId, playlistId }
+  return { videoId, playlistId };
 }
 
-export async function fetchVideoMeta(videoId: string, apiKey: string): Promise<VideoMeta> {
+export async function fetchVideoMeta(
+  videoId: string,
+  apiKey: string,
+): Promise<VideoMeta> {
   const data = await fetchJson<{ items?: VideoItem[] }>(
-    'videos',
-    { part: 'snippet,contentDetails', id: videoId },
+    "videos",
+    { part: "snippet,contentDetails", id: videoId },
     apiKey,
-  )
-  const item = data.items?.[0]
+  );
+  const item = data.items?.[0];
 
   if (!item) {
-    throw new YouTubeError('No se encontró el vídeo. Puede ser privado o haber sido eliminado.')
+    throw new YouTubeError(
+      "No se encontró el vídeo. Puede ser privado o haber sido eliminado.",
+    );
   }
 
-  return toVideoMeta(item)
+  return toVideoMeta(item);
 }
 
 export async function fetchVideosByIds(
   ids: string[],
   apiKey: string,
 ): Promise<Map<string, VideoMeta>> {
-  const unique = [...new Set(ids.filter((id) => VIDEO_ID.test(id)))]
-  const result = new Map<string, VideoMeta>()
-  if (unique.length === 0) return result
+  const unique = [...new Set(ids.filter((id) => VIDEO_ID.test(id)))];
+  const result = new Map<string, VideoMeta>();
+  if (unique.length === 0) return result;
 
-  const chunks: string[][] = []
+  const chunks: string[][] = [];
   for (let index = 0; index < unique.length; index += 50) {
-    chunks.push(unique.slice(index, index + 50))
+    chunks.push(unique.slice(index, index + 50));
   }
 
   const pages = await Promise.all(
     chunks.map((chunk) =>
       fetchJson<{ items?: VideoItem[] }>(
-        'videos',
-        { part: 'snippet,contentDetails', id: chunk.join(','), maxResults: '50' },
+        "videos",
+        {
+          part: "snippet,contentDetails",
+          id: chunk.join(","),
+          maxResults: "50",
+        },
         apiKey,
       ),
     ),
-  )
+  );
 
   for (const page of pages) {
     for (const item of page.items ?? []) {
-      result.set(item.id, toVideoMeta(item))
+      result.set(item.id, toVideoMeta(item));
     }
   }
 
-  return result
+  return result;
 }
 
 /**
@@ -316,21 +346,21 @@ export async function searchYouTubeVideos(
   apiKey: string,
   maxResults = 50,
 ): Promise<VideoMeta[]> {
-  const term = query.trim()
-  if (!term) return []
+  const term = query.trim();
+  if (!term) return [];
 
   const data = await fetchJson<{ items?: SearchItem[] }>(
-    'search',
+    "search",
     {
-      part: 'snippet',
+      part: "snippet",
       q: term,
-      type: 'video',
+      type: "video",
       maxResults: String(Math.min(Math.max(maxResults, 1), 50)),
-      order: 'relevance',
-      relevanceLanguage: 'es',
+      order: "relevance",
+      relevanceLanguage: "es",
     },
     apiKey,
-  )
+  );
 
   const videos = (data.items ?? [])
     .filter((item) => item.id.videoId)
@@ -346,82 +376,88 @@ export async function searchYouTubeVideos(
       thumbnail:
         pickThumbnail(item.snippet.thumbnails) ??
         youtubeThumbnail(item.id.videoId as string),
-    }))
+    }));
 
   // La búsqueda no devuelve la duración: la pedimos en una sola llamada extra.
   const durations = await fetchVideosByIds(
     videos.map((video) => video.videoId),
     apiKey,
-  ).catch(() => new Map<string, VideoMeta>())
+  ).catch(() => new Map<string, VideoMeta>());
 
   return videos.map((video) => ({
     ...video,
-    description:
-      durations.get(video.videoId)?.description ?? video.description,
+    description: durations.get(video.videoId)?.description ?? video.description,
     durationSeconds: durations.get(video.videoId)?.durationSeconds,
-  }))
+  }));
 }
 
-export async function fetchPlaylist(playlistId: string, apiKey: string): Promise<PlaylistData> {
+export async function fetchPlaylist(
+  playlistId: string,
+  apiKey: string,
+): Promise<PlaylistData> {
   const meta = await fetchJson<{ items?: PlaylistResource[] }>(
-    'playlists',
-    { part: 'snippet,contentDetails', id: playlistId },
+    "playlists",
+    { part: "snippet,contentDetails", id: playlistId },
     apiKey,
-  )
-  const playlist = meta.items?.[0]
+  );
+  const playlist = meta.items?.[0];
 
   if (!playlist) {
     throw new YouTubeError(
-      'No se encontró la lista de reproducción. Puede ser privada o haber sido eliminada.',
-    )
+      "No se encontró la lista de reproducción. Puede ser privada o haber sido eliminada.",
+    );
   }
 
-  const items: PlaylistItem[] = []
-  const seenTokens = new Set<string>()
-  let pageToken: string | undefined
+  const items: PlaylistItem[] = [];
+  const seenTokens = new Set<string>();
+  let pageToken: string | undefined;
 
   do {
     const params: Record<string, string> = {
-      part: 'snippet,contentDetails',
+      part: "snippet,contentDetails",
       playlistId,
-      maxResults: '50',
-    }
-    if (pageToken) params.pageToken = pageToken
+      maxResults: "50",
+    };
+    if (pageToken) params.pageToken = pageToken;
 
-    const page = await fetchJson<{ items?: PlaylistItem[]; nextPageToken?: string }>(
-      'playlistItems',
-      params,
-      apiKey,
-    )
+    const page = await fetchJson<{
+      items?: PlaylistItem[];
+      nextPageToken?: string;
+    }>("playlistItems", params, apiKey);
 
     for (const item of page.items ?? []) {
-      if (items.length >= MAX_PLAYLIST_ITEMS) break
-      items.push(item)
+      if (items.length >= MAX_PLAYLIST_ITEMS) break;
+      items.push(item);
     }
 
-    pageToken = page.nextPageToken
-    if (pageToken && seenTokens.has(pageToken)) pageToken = undefined
-    if (pageToken) seenTokens.add(pageToken)
-  } while (pageToken && items.length < MAX_PLAYLIST_ITEMS)
+    pageToken = page.nextPageToken;
+    if (pageToken && seenTokens.has(pageToken)) pageToken = undefined;
+    if (pageToken) seenTokens.add(pageToken);
+  } while (pageToken && items.length < MAX_PLAYLIST_ITEMS);
 
   const videoIds = items
-    .map((item) => item.contentDetails?.videoId ?? item.snippet.resourceId?.videoId)
-    .filter((id): id is string => Boolean(id))
+    .map(
+      (item) =>
+        item.contentDetails?.videoId ?? item.snippet.resourceId?.videoId,
+    )
+    .filter((id): id is string => Boolean(id));
 
   const durations = await fetchVideosByIds(videoIds, apiKey).catch(
     () => new Map<string, VideoMeta>(),
-  )
+  );
 
-  const parts: Part[] = []
+  const parts: Part[] = [];
   for (let index = 0; index < items.length; index += 1) {
-    const item = items[index]
-    const videoId = item.contentDetails?.videoId ?? item.snippet.resourceId?.videoId
-    const title = item.snippet.title
+    const item = items[index];
+    const videoId =
+      item.contentDetails?.videoId ?? item.snippet.resourceId?.videoId;
+    const title = item.snippet.title;
 
-    if (!videoId || title === 'Deleted video' || title === 'Private video') continue
+    if (!videoId || title === "Deleted video" || title === "Private video")
+      continue;
 
-    const info = detectPart(title)
-    const duration = durations.get(videoId)?.durationSeconds
+    const info = detectPart(title);
+    const duration = durations.get(videoId)?.durationSeconds;
 
     parts.push({
       videoId,
@@ -431,9 +467,10 @@ export async function fetchPlaylist(playlistId: string, apiKey: string): Promise
       isFinal: info.isFinal,
       durationSeconds: duration,
       publishedAt: item.snippet.publishedAt,
-      thumbnail: pickThumbnail(item.snippet.thumbnails) ?? youtubeThumbnail(videoId),
+      thumbnail:
+        pickThumbnail(item.snippet.thumbnails) ?? youtubeThumbnail(videoId),
       addedAt: Date.now(),
-    })
+    });
   }
 
   return {
@@ -441,10 +478,11 @@ export async function fetchPlaylist(playlistId: string, apiKey: string): Promise
     title: playlist.snippet.title,
     channelId: playlist.snippet.channelId,
     channelTitle: playlist.snippet.channelTitle,
-    thumbnail: pickThumbnail(playlist.snippet.thumbnails) ?? parts[0]?.thumbnail,
+    thumbnail:
+      pickThumbnail(playlist.snippet.thumbnails) ?? parts[0]?.thumbnail,
     parts,
     truncated: items.length >= MAX_PLAYLIST_ITEMS,
-  }
+  };
 }
 
 /**
@@ -457,111 +495,151 @@ export async function fetchChannelUploads(
   limit = MAX_PLAYLIST_ITEMS,
 ): Promise<VideoMeta[]> {
   const channelData = await fetchJson<{ items?: ChannelResource[] }>(
-    'channels',
-    { part: 'contentDetails', id: channelId },
+    "channels",
+    { part: "contentDetails", id: channelId },
     apiKey,
-  )
-  const uploads = channelData.items?.[0]?.contentDetails?.relatedPlaylists?.uploads
+  );
+  const uploads =
+    channelData.items?.[0]?.contentDetails?.relatedPlaylists?.uploads;
 
-  if (!uploads) return []
+  if (!uploads) return [];
 
-  const items: PlaylistItem[] = []
-  const seenTokens = new Set<string>()
-  let pageToken: string | undefined
+  const items: PlaylistItem[] = [];
+  const seenTokens = new Set<string>();
+  let pageToken: string | undefined;
 
   do {
     const params: Record<string, string> = {
-      part: 'snippet,contentDetails',
+      part: "snippet,contentDetails",
       playlistId: uploads,
-      maxResults: '50',
-    }
-    if (pageToken) params.pageToken = pageToken
+      maxResults: "50",
+    };
+    if (pageToken) params.pageToken = pageToken;
 
-    const page = await fetchJson<{ items?: PlaylistItem[]; nextPageToken?: string }>(
-      'playlistItems',
-      params,
-      apiKey,
-    )
+    const page = await fetchJson<{
+      items?: PlaylistItem[];
+      nextPageToken?: string;
+    }>("playlistItems", params, apiKey);
 
     for (const item of page.items ?? []) {
-      if (items.length >= limit) break
-      items.push(item)
+      if (items.length >= limit) break;
+      items.push(item);
     }
 
-    pageToken = page.nextPageToken
-    if (pageToken && seenTokens.has(pageToken)) pageToken = undefined
-    if (pageToken) seenTokens.add(pageToken)
-  } while (pageToken && items.length < limit)
+    pageToken = page.nextPageToken;
+    if (pageToken && seenTokens.has(pageToken)) pageToken = undefined;
+    if (pageToken) seenTokens.add(pageToken);
+  } while (pageToken && items.length < limit);
 
   const videoIds = items
-    .map((item) => item.contentDetails?.videoId ?? item.snippet.resourceId?.videoId)
-    .filter((id): id is string => Boolean(id))
+    .map(
+      (item) =>
+        item.contentDetails?.videoId ?? item.snippet.resourceId?.videoId,
+    )
+    .filter((id): id is string => Boolean(id));
 
   const durations = await fetchVideosByIds(videoIds, apiKey).catch(
     () => new Map<string, VideoMeta>(),
-  )
+  );
 
-  const videos: VideoMeta[] = []
+  const videos: VideoMeta[] = [];
 
   for (const item of items) {
-    const videoId = item.contentDetails?.videoId ?? item.snippet.resourceId?.videoId
-    const title = item.snippet.title
+    const videoId =
+      item.contentDetails?.videoId ?? item.snippet.resourceId?.videoId;
+    const title = item.snippet.title;
 
-    if (!videoId || title === 'Deleted video' || title === 'Private video') continue
+    if (!videoId || title === "Deleted video" || title === "Private video")
+      continue;
 
-    const ownerId = item.snippet.videoOwnerChannelId ?? item.snippet.channelId ?? channelId
+    const ownerId =
+      item.snippet.videoOwnerChannelId ?? item.snippet.channelId ?? channelId;
 
     videos.push({
       videoId,
       title,
       channelId: ownerId,
-      channelTitle: item.snippet.videoOwnerChannelTitle ?? item.snippet.channelTitle ?? '',
+      channelTitle:
+        item.snippet.videoOwnerChannelTitle ?? item.snippet.channelTitle ?? "",
       channelUrl: ownerId ? channelUrlFor(ownerId) : undefined,
       publishedAt: item.snippet.publishedAt,
       description:
         durations.get(videoId)?.description ?? item.snippet.description,
-      thumbnail: pickThumbnail(item.snippet.thumbnails) ?? youtubeThumbnail(videoId),
+      thumbnail:
+        pickThumbnail(item.snippet.thumbnails) ?? youtubeThumbnail(videoId),
       durationSeconds: durations.get(videoId)?.durationSeconds,
-    })
+    });
   }
 
-  return videos
+  return videos;
 }
 
-const MAX_CANDIDATES = 12
+const MAX_CANDIDATES = 12;
 
 export interface SeriesUpdate {
-  parts: Part[]
-  added: Part[]
-  candidates: ChapterCandidate[]
-  channelId?: string
-  channelTitle?: string
-  channelUrl?: string
-  warnings: string[]
+  parts: Part[];
+  added: Part[];
+  candidates: ChapterCandidate[];
+  channelId?: string;
+  channelTitle?: string;
+  channelUrl?: string;
+  warnings: string[];
 }
 
 interface RankedCandidate {
-  video: VideoMeta
-  info: ReturnType<typeof detectPart>
-  source: 'channel' | 'search'
-  score: number
-  descriptionTitle?: string
-  matchedBy: 'title' | 'description'
+  video: VideoMeta;
+  info: ReturnType<typeof detectPart>;
+  source: "channel" | "search";
+  score: number;
+  descriptionTitle?: string;
+  matchedBy: "title" | "description";
 }
 
 function uniqueTitles(values: Array<string | undefined>): string[] {
-  const titles: string[] = []
-  const seen = new Set<string>()
+  const titles: string[] = [];
+  const seen = new Set<string>();
 
   for (const value of values) {
-    if (!value) continue
-    const key = normalizedBaseTitle(value)
-    if (!key || seen.has(key)) continue
-    seen.add(key)
-    titles.push(value)
+    if (!value) continue;
+    const key = normalizedBaseTitle(value);
+    if (!key || seen.has(key)) continue;
+    seen.add(key);
+    titles.push(value);
   }
 
-  return titles
+  return titles;
+}
+
+/**
+ * Une varios términos con el operador OR de YouTube. Se limita el número de
+ * términos y la longitud porque demasiados OR hacen que la búsqueda pierda
+ * resultados relevantes.
+ */
+function combineSearchTerms(terms: Array<string | undefined>): string {
+  const unique: string[] = [];
+  const seen = new Set<string>();
+
+  for (const value of terms) {
+    if (!value) continue;
+    const term = value.trim();
+    if (!term) continue;
+
+    const key = term.toLowerCase();
+    if (seen.has(key)) continue;
+
+    seen.add(key);
+    unique.push(term);
+    if (unique.length >= MAX_SEARCH_TERMS) break;
+  }
+
+  let query = "";
+  for (const term of unique) {
+    const next = query ? `${query} | ${term}` : term;
+    if (next.length > MAX_SEARCH_QUERY_LENGTH) continue;
+    query = next;
+  }
+
+  return query;
 }
 
 /**
@@ -569,15 +647,15 @@ function uniqueTitles(values: Array<string | undefined>): string[] {
  * hay empate, prefiere el más descriptivo (más palabras y más largo).
  */
 function pickDescriptionReference(values: string[]): string | undefined {
-  const groups = new Map<string, { title: string; count: number }>()
+  const groups = new Map<string, { title: string; count: number }>();
 
   for (const value of values) {
-    const key = normalizedBaseTitle(value)
-    if (!key) continue
+    const key = normalizedBaseTitle(value);
+    if (!key) continue;
 
-    const entry = groups.get(key)
-    if (entry) entry.count += 1
-    else groups.set(key, { title: value, count: 1 })
+    const entry = groups.get(key);
+    if (entry) entry.count += 1;
+    else groups.set(key, { title: value, count: 1 });
   }
 
   return [...groups.values()].sort(
@@ -585,7 +663,7 @@ function pickDescriptionReference(values: string[]): string | undefined {
       b.count - a.count ||
       tokenCount(b.title) - tokenCount(a.title) ||
       b.title.length - a.title.length,
-  )[0]?.title
+  )[0]?.title;
 }
 
 function candidateScore(
@@ -595,7 +673,8 @@ function candidateScore(
   referenceTokenCount: number,
   sameChannel: boolean,
 ): number {
-  const sharedRatio = referenceTokenCount > 0 ? shared / referenceTokenCount : 0
+  const sharedRatio =
+    referenceTokenCount > 0 ? shared / referenceTokenCount : 0;
 
   return Math.round(
     Math.min(overlap, 1) * 55 +
@@ -603,16 +682,16 @@ function candidateScore(
       (info.partNumber != null ? 12 : 0) +
       (info.isFinal ? 5 : 0) +
       (sameChannel ? 8 : 0),
-  )
+  );
 }
 
 function toCandidate(
   video: VideoMeta,
   info: ReturnType<typeof detectPart>,
-  source: 'channel' | 'search',
+  source: "channel" | "search",
   score: number,
   descriptionTitle: string | undefined,
-  matchedBy: 'title' | 'description',
+  matchedBy: "title" | "description",
 ): ChapterCandidate {
   return {
     videoId: video.videoId,
@@ -632,7 +711,7 @@ function toCandidate(
     score,
     matchedBy,
     source,
-  }
+  };
 }
 
 /**
@@ -651,68 +730,71 @@ export async function discoverSeriesUpdates(
 ): Promise<SeriesUpdate> {
   if (series.parts.length === 0) {
     throw new YouTubeError(
-      'Esta serie no tiene partes que sirvan de referencia para buscar capítulos nuevos.',
-    )
+      "Esta serie no tiene partes que sirvan de referencia para buscar capítulos nuevos.",
+    );
   }
 
-  const warnings: string[] = []
-  let failed = false
-  let failure: unknown
-  let channelId = series.channelId
-  let channelTitle = series.channelTitle
-  let channelUrl = series.channelUrl
+  const warnings: string[] = [];
+  let failed = false;
+  let failure: unknown;
+  let channelId = series.channelId;
+  let channelTitle = series.channelTitle;
+  let channelUrl = series.channelUrl;
 
   // Las series añadidas a mano pueden no tener canal: lo deducimos de una parte.
   if (!channelId) {
     try {
-      const reference = await fetchVideoMeta(series.parts[0].videoId, apiKey)
-      channelId = reference.channelId
-      channelTitle = channelTitle || reference.channelTitle
-      channelUrl = channelUrl ?? reference.channelUrl
+      const reference = await fetchVideoMeta(series.parts[0].videoId, apiKey);
+      channelId = reference.channelId;
+      channelTitle = channelTitle || reference.channelTitle;
+      channelUrl = channelUrl ?? reference.channelUrl;
     } catch {
-      failed = true
+      failed = true;
       warnings.push(
-        'No se ha podido identificar el canal; se buscará solo en todo YouTube.',
-      )
+        "No se ha podido identificar el canal; se buscará solo en todo YouTube.",
+      );
     }
   }
 
-  const known = new Set(series.parts.map((part) => part.videoId))
+  const known = new Set(series.parts.map((part) => part.videoId));
 
   // Leemos las descripciones de las partes conocidas para descubrir el título
   // real del drama, que muchas veces no aparece en el título del vídeo.
   const [uploads, referenceVideos] = await Promise.all([
     channelId
       ? fetchChannelUploads(channelId, apiKey).catch((cause) => {
-          failed = true
-          failure = cause
-          warnings.push('No se han podido leer los vídeos recientes del canal.')
-          return [] as VideoMeta[]
+          failed = true;
+          failure = cause;
+          warnings.push(
+            "No se han podido leer los vídeos recientes del canal.",
+          );
+          return [] as VideoMeta[];
         })
       : Promise.resolve([] as VideoMeta[]),
     fetchVideosByIds([...known], apiKey).catch(
       () => new Map<string, VideoMeta>(),
     ),
-  ])
+  ]);
 
-  const descriptionTitles: string[] = []
+  const descriptionTitles: string[] = [];
 
   for (const part of series.parts) {
     const title = extractDescriptionTitle(
       referenceVideos.get(part.videoId)?.description,
-    )
-    if (title) descriptionTitles.push(title)
+    );
+    if (title) descriptionTitles.push(title);
   }
 
   // Si la parte conocida sigue en el canal, su descripción también sirve de
   // referencia aunque `videos.list` no haya respondido.
   for (const video of uploads) {
-    if (!known.has(video.videoId)) continue
-    const title = extractDescriptionTitle(video.description)
-    if (title) descriptionTitles.push(title)
+    if (!known.has(video.videoId)) continue;
+    const title = extractDescriptionTitle(video.description);
+    if (title) descriptionTitles.push(title);
   }
 
-  const descriptionReference = pickDescriptionReference(descriptionTitles)
+  const descriptionReference = pickDescriptionReference(descriptionTitles);
+  const manualAliases = uniqueTitles(series.aliases ?? []);
 
   // Ampliamos el título con sinónimos de la RAE para encontrar también las
   // traducciones que usan otras palabras («lluvia» → «precipitación»,
@@ -721,133 +803,156 @@ export async function discoverSeriesUpdates(
   const synonymWords = pickSynonymWordsFromTexts([
     descriptionReference,
     series.title,
+    ...manualAliases,
     ...descriptionTitles,
     ...series.parts.map((part) => part.title),
-  ])
-  const synonyms = await fetchSynonyms(synonymWords)
-  const aliases = buildSynonymAliases(synonyms)
+  ]);
+  const synonyms = await fetchSynonyms(synonymWords);
+  const aliases = buildSynonymAliases(synonyms);
 
   // Una sola consulta global por actualización: `search.list` cuesta 100
-  // unidades de cuota, así que no conviene lanzar varias. Si hay título real en
-  // la descripción, es una consulta mucho más precisa que el título-resumen.
-  const query = expandQueryWithSynonyms(
-    buildGlobalSearchQuery(descriptionReference ?? series.title),
-    synonyms,
-  )
+  // unidades de cuota. El título principal y todos los alias manuales tienen
+  // prioridad; las referencias y expansiones automáticas son complementarias.
+  const baseQuery = buildGlobalSearchQuery(series.title);
+  const query = combineSearchTerms([
+    baseQuery,
+    ...manualAliases.map((alias) => buildGlobalSearchQuery(alias)),
+    descriptionReference
+      ? buildGlobalSearchQuery(descriptionReference)
+      : undefined,
+    ...expandQueryWithSynonyms(baseQuery, synonyms).split("|"),
+  ]);
   const globalResults = query
     ? await searchYouTubeVideos(query, apiKey).catch((cause) => {
-        failed = true
-        failure = cause
-        warnings.push('No se ha podido completar la búsqueda en todo YouTube.')
-        return [] as VideoMeta[]
+        failed = true;
+        failure = cause;
+        warnings.push("No se ha podido completar la búsqueda en todo YouTube.");
+        return [] as VideoMeta[];
       })
-    : []
+    : [];
 
   // Si ambas fuentes fallaron, lo más probable es que la clave no sea válida.
   if (uploads.length === 0 && globalResults.length === 0 && failed) {
     if (failure instanceof Error && failure.message) {
-      throw new YouTubeError(failure.message)
+      throw new YouTubeError(failure.message);
     }
 
     throw new YouTubeError(
-      warnings.join(' ') ||
-        'No se han podido leer los vídeos del canal ni buscar en YouTube. Comprueba la clave de YouTube.',
-    )
+      warnings.join(" ") ||
+        "No se han podido leer los vídeos del canal ni buscar en YouTube. Comprueba la clave de YouTube.",
+    );
   }
 
   const references = uniqueTitles([
     series.title,
+    ...manualAliases,
     ...descriptionTitles,
     ...series.parts.map((part) => part.title),
-  ])
+  ]);
+  const baseReferences = uniqueTitles([
+    series.title,
+    ...descriptionTitles,
+    ...series.parts.map((part) => part.title),
+  ]);
   const referenceKeys = new Set(
-    references.map((reference) => normalizedBaseTitle(reference)).filter(Boolean),
-  )
+    references
+      .map((reference) => normalizedBaseTitle(reference))
+      .filter(Boolean),
+  );
   const referenceTokenCount = Math.max(
     1,
-    ...references.map((reference) => tokenCount(reference)),
-  )
-  const minShared = referenceTokenCount <= 2 ? 1 : 2
-  const exactKey = normalizedBaseTitle(series.title)
+    ...baseReferences.map((reference) => tokenCount(reference)),
+  );
+  const minShared = referenceTokenCount <= 2 ? 1 : 2;
+  const exactKeys = new Set(
+    [series.title, ...manualAliases]
+      .map((title) => normalizedBaseTitle(title))
+      .filter(Boolean),
+  );
 
   // Un mismo vídeo puede aparecer en el canal y en la búsqueda global.
-  const byId = new Map<string, { video: VideoMeta; source: 'channel' | 'search' }>()
-  for (const video of uploads) byId.set(video.videoId, { video, source: 'channel' })
+  const byId = new Map<
+    string,
+    { video: VideoMeta; source: "channel" | "search" }
+  >();
+  for (const video of uploads)
+    byId.set(video.videoId, { video, source: "channel" });
   for (const video of globalResults) {
     if (!byId.has(video.videoId)) {
-      byId.set(video.videoId, { video, source: 'search' })
+      byId.set(video.videoId, { video, source: "search" });
     }
   }
 
-  const added: Part[] = []
-  const ranked: RankedCandidate[] = []
+  const added: Part[] = [];
+  const ranked: RankedCandidate[] = [];
 
   for (const { video, source } of byId.values()) {
-    if (known.has(video.videoId)) continue
+    if (known.has(video.videoId)) continue;
 
-    const info = detectPart(video.title)
-    const descriptionTitle = extractDescriptionTitle(video.description)
+    const info = detectPart(video.title);
+    const descriptionTitle = extractDescriptionTitle(video.description);
     const descriptionKey = descriptionTitle
       ? normalizedBaseTitle(descriptionTitle)
-      : ''
+      : "";
 
     const titleOverlap = Math.max(
       ...references.map((reference) =>
         titleJaccard(reference, video.title, aliases),
       ),
-    )
+    );
     const titleShared = Math.max(
       ...references.map((reference) =>
         sharedTokenCount(reference, video.title, aliases),
       ),
-    )
+    );
     const descriptionOverlap = descriptionTitle
       ? Math.max(
           ...references.map((reference) =>
             titleJaccard(reference, descriptionTitle, aliases),
           ),
         )
-      : 0
+      : 0;
     const descriptionShared = descriptionTitle
       ? Math.max(
           ...references.map((reference) =>
             sharedTokenCount(reference, descriptionTitle, aliases),
           ),
         )
-      : 0
+      : 0;
 
-    const overlap = Math.max(titleOverlap, descriptionOverlap)
-    const shared = Math.max(titleShared, descriptionShared)
-    const sameChannel = Boolean(channelId && video.channelId === channelId)
+    const overlap = Math.max(titleOverlap, descriptionOverlap);
+    const shared = Math.max(titleShared, descriptionShared);
+    const sameChannel = Boolean(channelId && video.channelId === channelId);
 
-    // Coincidencia exacta del título base: se añade sin preguntar.
-    if (exactKey && normalizedBaseTitle(video.title) === exactKey) {
-      added.push(toPart(video, info))
-      continue
+    // Coincidencia exacta del título base (principal o alias): se añade sin
+    // preguntar.
+    if (exactKeys.has(normalizedBaseTitle(video.title))) {
+      added.push(toPart(video, info));
+      continue;
     }
 
     const descriptionMatch = Boolean(
       descriptionKey && referenceKeys.has(descriptionKey),
-    )
+    );
     const descriptionRelevant = Boolean(
       descriptionTitle &&
-        (descriptionMatch ||
-          (descriptionShared >= minShared && descriptionOverlap >= 0.65)),
-    )
+      (descriptionMatch ||
+        (descriptionShared >= minShared && descriptionOverlap >= 0.65)),
+    );
 
     // El resto solo se propone si comparte palabras suficientes con la serie,
     // ya sea por el título del vídeo o por el título de la descripción.
     const titleRelevant =
       titleShared >= minShared &&
-      (titleOverlap >= 0.45 || (sameChannel && titleOverlap >= 0.3))
+      (titleOverlap >= 0.45 || (sameChannel && titleOverlap >= 0.3));
 
-    if (!descriptionRelevant && !titleRelevant) continue
+    if (!descriptionRelevant && !titleRelevant) continue;
 
-    const matchedBy: 'title' | 'description' =
+    const matchedBy: "title" | "description" =
       descriptionRelevant &&
       (descriptionMatch || descriptionOverlap >= titleOverlap)
-        ? 'description'
-        : 'title'
+        ? "description"
+        : "title";
 
     let score = candidateScore(
       info,
@@ -855,9 +960,9 @@ export async function discoverSeriesUpdates(
       shared,
       referenceTokenCount,
       sameChannel,
-    )
-    if (descriptionMatch) score = Math.min(100, score + 12)
-    else if (descriptionRelevant) score = Math.min(100, score + 6)
+    );
+    if (descriptionMatch) score = Math.min(100, score + 12);
+    else if (descriptionRelevant) score = Math.min(100, score + 6);
 
     ranked.push({
       video,
@@ -866,10 +971,10 @@ export async function discoverSeriesUpdates(
       score,
       descriptionTitle,
       matchedBy,
-    })
+    });
   }
 
-  ranked.sort((a, b) => b.score - a.score)
+  ranked.sort((a, b) => b.score - a.score);
 
   const candidates = ranked
     .slice(0, MAX_CANDIDATES)
@@ -882,12 +987,12 @@ export async function discoverSeriesUpdates(
         entry.descriptionTitle,
         entry.matchedBy,
       ),
-    )
+    );
 
   if (ranked.length > MAX_CANDIDATES) {
     warnings.push(
       `Se muestran los ${MAX_CANDIDATES} candidatos más parecidos de ${ranked.length}.`,
-    )
+    );
   }
 
   return {
@@ -898,54 +1003,56 @@ export async function discoverSeriesUpdates(
     channelTitle: channelTitle || undefined,
     channelUrl,
     warnings,
-  }
+  };
 }
 
-export async function fetchVideoMetaWithoutKey(videoId: string): Promise<VideoMeta> {
+export async function fetchVideoMetaWithoutKey(
+  videoId: string,
+): Promise<VideoMeta> {
   const endpoint = `https://www.youtube.com/oembed?url=${encodeURIComponent(
     `https://www.youtube.com/watch?v=${videoId}`,
-  )}&format=json`
+  )}&format=json`;
 
   const proxies = [
     `https://api.allorigins.win/raw?url=${encodeURIComponent(endpoint)}`,
     `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(endpoint)}`,
-  ]
+  ];
 
   for (const proxy of proxies) {
-    const controller = new AbortController()
-    const timeout = window.setTimeout(() => controller.abort(), 8_000)
+    const controller = new AbortController();
+    const timeout = window.setTimeout(() => controller.abort(), 8_000);
 
     try {
-      const response = await fetch(proxy, { signal: controller.signal })
-      if (!response.ok) continue
+      const response = await fetch(proxy, { signal: controller.signal });
+      if (!response.ok) continue;
 
       const data = (await response.json()) as {
-        title?: string
-        author_name?: string
-        author_url?: string
-        thumbnail_url?: string
-      }
+        title?: string;
+        author_name?: string;
+        author_url?: string;
+        thumbnail_url?: string;
+      };
 
       return {
         videoId,
-        title: data.title || 'Vídeo de YouTube',
-        channelTitle: data.author_name || 'YouTube',
+        title: data.title || "Vídeo de YouTube",
+        channelTitle: data.author_name || "YouTube",
         channelUrl: data.author_url,
         thumbnail: data.thumbnail_url || youtubeThumbnail(videoId),
-      }
+      };
     } catch {
       // Probamos el siguiente proxy.
     } finally {
-      window.clearTimeout(timeout)
+      window.clearTimeout(timeout);
     }
   }
 
   return {
     videoId,
-    title: 'Vídeo de YouTube',
-    channelTitle: 'YouTube',
+    title: "Vídeo de YouTube",
+    channelTitle: "YouTube",
     thumbnail: youtubeThumbnail(videoId),
-  }
+  };
 }
 
 function toPart(video: VideoMeta, info: ReturnType<typeof detectPart>): Part {
@@ -959,7 +1066,7 @@ function toPart(video: VideoMeta, info: ReturnType<typeof detectPart>): Part {
     publishedAt: video.publishedAt,
     thumbnail: video.thumbnail ?? youtubeThumbnail(video.videoId),
     addedAt: Date.now(),
-  }
+  };
 }
 
 /**
@@ -980,12 +1087,12 @@ export function candidateToPart(
     publishedAt: candidate.publishedAt,
     thumbnail: candidate.thumbnail ?? youtubeThumbnail(candidate.videoId),
     addedAt: Date.now(),
-  }
+  };
 }
 
 export function buildManualDraft(video: VideoMeta): SeriesDraft {
-  const info = detectPart(video.title)
-  const part = toPart(video, info)
+  const info = detectPart(video.title);
+  const part = toPart(video, info);
 
   return {
     title: stripPartMarkers(video.title),
@@ -994,27 +1101,29 @@ export function buildManualDraft(video: VideoMeta): SeriesDraft {
     channelUrl: video.channelUrl,
     thumbnail: video.thumbnail ?? part.thumbnail,
     parts: [part],
-    source: 'manual',
+    source: "manual",
     warnings: [
-      'Se ha añadido solo este vídeo. Puedes añadir más partes desde la serie o configurar la clave de YouTube para buscarlas automáticamente.',
+      "Se ha añadido solo este vídeo. Puedes añadir más partes desde la serie o configurar la clave de YouTube para buscarlas automáticamente.",
     ],
     selectedIds: [video.videoId],
-  }
+  };
 }
 
 export function buildPlaylistDraft(playlist: PlaylistData): SeriesDraft {
-  const warnings: string[] = []
+  const warnings: string[] = [];
 
   if (playlist.truncated) {
     warnings.push(
       `La lista es muy larga. Se han importado las primeras ${MAX_PLAYLIST_ITEMS} partes.`,
-    )
+    );
   }
 
   if (playlist.parts.length === 0) {
-    warnings.push('La lista no contiene vídeos disponibles.')
+    warnings.push("La lista no contiene vídeos disponibles.");
   } else if (playlist.parts.length > 1) {
-    warnings.push('Revisa que todas las partes pertenezcan a la misma historia.')
+    warnings.push(
+      "Revisa que todas las partes pertenezcan a la misma historia.",
+    );
   }
 
   return {
@@ -1024,10 +1133,10 @@ export function buildPlaylistDraft(playlist: PlaylistData): SeriesDraft {
     channelUrl: channelUrlFor(playlist.channelId),
     thumbnail: playlist.thumbnail,
     parts: playlist.parts,
-    source: 'playlist',
+    source: "playlist",
     warnings,
     selectedIds: playlist.parts.map((part) => part.videoId),
-  }
+  };
 }
 
 /**
@@ -1041,12 +1150,13 @@ export async function discoverVideoSeries(
   videoId: string,
   apiKey: string,
 ): Promise<SeriesDraft> {
-  const original = await fetchVideoMeta(videoId, apiKey)
-  const title = stripPartMarkers(original.title)
+  const original = await fetchVideoMeta(videoId, apiKey);
+  const title = stripPartMarkers(original.title);
 
   const seed: Series = {
-    id: 'draft',
+    id: "draft",
     title,
+    aliases: [],
     channelId: original.channelId,
     channelTitle: original.channelTitle,
     channelUrl: original.channelUrl,
@@ -1056,19 +1166,19 @@ export async function discoverVideoSeries(
     favorite: false,
     createdAt: Date.now(),
     updatedAt: Date.now(),
-  }
+  };
 
-  const update = await discoverSeriesUpdates(seed, apiKey)
-  const warnings = [...update.warnings]
+  const update = await discoverSeriesUpdates(seed, apiKey);
+  const warnings = [...update.warnings];
 
   if (update.parts.length === 1 && update.candidates.length === 0) {
     warnings.push(
-      'No se han encontrado más capítulos en el canal ni en todo YouTube. Puedes añadirlos manualmente desde la serie.',
-    )
+      "No se han encontrado más capítulos en el canal ni en todo YouTube. Puedes añadirlos manualmente desde la serie.",
+    );
   } else if (update.candidates.length > 0) {
     warnings.push(
-      'Revisa los posibles capítulos: solo se guardarán los que añadas manualmente.',
-    )
+      "Revisa los posibles capítulos: solo se guardarán los que añadas manualmente.",
+    );
   }
 
   return {
@@ -1079,18 +1189,18 @@ export async function discoverVideoSeries(
     thumbnail: original.thumbnail ?? update.parts[0]?.thumbnail,
     parts: update.parts,
     candidates: update.candidates,
-    source: 'search',
+    source: "search",
     warnings,
     selectedIds: update.parts.map((part) => part.videoId),
-  }
+  };
 }
 
 export async function discoverPlaylist(
   playlistId: string,
   apiKey: string,
 ): Promise<SeriesDraft> {
-  const playlist = await fetchPlaylist(playlistId, apiKey)
-  return buildPlaylistDraft(playlist)
+  const playlist = await fetchPlaylist(playlistId, apiKey);
+  return buildPlaylistDraft(playlist);
 }
 
 export async function fetchManualVideo(
@@ -1099,11 +1209,11 @@ export async function fetchManualVideo(
 ): Promise<SeriesDraft> {
   const video = apiKey
     ? await fetchVideoMeta(videoId, apiKey)
-    : await fetchVideoMetaWithoutKey(videoId)
+    : await fetchVideoMetaWithoutKey(videoId);
 
-  return buildManualDraft(video)
+  return buildManualDraft(video);
 }
 
 export function durationLabel(seconds?: number): string | undefined {
-  return formatDuration(seconds)
+  return formatDuration(seconds);
 }

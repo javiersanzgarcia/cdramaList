@@ -40,6 +40,7 @@ export function filterSeries(series: Series[], query: string, filter: Filter): S
     const matchesQuery =
       term.length === 0 ||
       item.title.toLowerCase().includes(term) ||
+      (item.aliases ?? []).some((alias) => alias.toLowerCase().includes(term)) ||
       item.channelTitle.toLowerCase().includes(term)
 
     const matchesFilter =
@@ -126,6 +127,7 @@ export function createSeries(draft: SeriesDraft, title: string, parts: Part[]): 
   return {
     id,
     title: title.trim() || draft.title,
+    aliases: [],
     channelId: draft.channelId,
     channelTitle: draft.channelTitle,
     channelUrl: draft.channelUrl,
@@ -174,6 +176,35 @@ export function mergeSeries(
   }
 }
 
+export const MAX_SERIES_ALIASES = 12
+
+/**
+ * Limpia la lista de alias: cadenas recortadas, sin duplicados (sin distinguir
+ * mayúsculas) y con un límite para no disparar la consulta de búsqueda.
+ */
+export function normalizeAliases(value: unknown): string[] {
+  if (!Array.isArray(value)) return []
+
+  const result: string[] = []
+  const seen = new Set<string>()
+
+  for (const entry of value) {
+    if (typeof entry !== 'string') continue
+
+    const alias = entry.trim().replace(/\s+/g, ' ').slice(0, 120)
+    if (alias.length < 2) continue
+
+    const key = alias.toLowerCase()
+    if (seen.has(key)) continue
+
+    seen.add(key)
+    result.push(alias)
+    if (result.length >= MAX_SERIES_ALIASES) break
+  }
+
+  return result
+}
+
 export function isSeries(value: unknown): value is Series {
   if (!value || typeof value !== 'object') return false
   const item = value as Record<string, unknown>
@@ -191,6 +222,7 @@ export function normalizeSeries(value: Series): Series {
   return {
     id: value.id,
     title: value.title.trim() || 'Serie sin título',
+    aliases: normalizeAliases(value.aliases),
     channelId: value.channelId,
     channelTitle: value.channelTitle || 'YouTube',
     channelUrl: value.channelUrl,
@@ -236,6 +268,10 @@ export function combineSeries(current: Series, incoming: Series): Series {
     id: current.id,
     createdAt: Math.min(current.createdAt, incoming.createdAt),
     favorite: current.favorite || incoming.favorite,
+    aliases: normalizeAliases([
+      ...(current.aliases ?? []),
+      ...(incoming.aliases ?? []),
+    ]),
     parts: mergeParts(current.parts, incoming.parts),
     watched: [...new Set([...current.watched, ...incoming.watched])],
     updatedAt: Math.max(current.updatedAt, incoming.updatedAt),

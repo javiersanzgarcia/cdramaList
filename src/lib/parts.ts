@@ -1,7 +1,7 @@
 import type { Part } from "../types";
 
 const PART_KEYWORD =
-  /\b(?:parte|part|ep|temporada|temp|episodio|cap[ií]tulo|cap|p)\s*[#.:-]?\s*(\d{1,3})(?:\s*(?:de|\/)\s*(\d{1,3}))?/i;
+  /\b(?:parte|part|episodio|episode|temporada|season|temp|cap[ií]tulo|chapter|cap|ep|p)\s*[#.:-]?\s*(\d{1,3})(?:\s*(?:de|\/)\s*(\d{1,3}))?/i;
 const PART_KEYWORD_GLOBAL = new RegExp(PART_KEYWORD.source, "gi");
 const FRACTION_GLOBAL = /\b(\d{1,3})\s*\/\s*(\d{1,3})\b/g;
 const OF_GLOBAL = /\b(\d{1,3})\s*(?:de|of)\s*(\d{1,3})\b/gi;

@@ -153,6 +153,16 @@ export default function App() {
     )
   }
 
+  function updateAliases(id: string, aliases: string[]) {
+    updateSeries((current) =>
+      current.map((item) =>
+        item.id === id
+          ? { ...item, aliases, updatedAt: Date.now() }
+          : item,
+      ),
+    )
+  }
+
   function setWatched(seriesId: string, videoId: string, watched: boolean) {
     updateSeries((current) =>
       current.map((item) => {
@@ -461,6 +471,7 @@ export default function App() {
           onAddParts={handleAddParts}
           onRefresh={handleRefreshSeries}
           onAddCandidate={handleAddCandidate}
+          onUpdateAliases={updateAliases}
           onDelete={deleteSeries}
         />
       )}

@@ -508,8 +508,8 @@ export function AddSeriesSheet({
                       </p>
                       <p className="mt-0.5 text-[11px] leading-relaxed text-amber-200/70">
                         Encontrados en el canal y en todo YouTube, también por
-                        el título de la descripción y sus sinónimos. Revisa el
-                        número y añade solo los que sean de esta serie.
+                        los alias, el título de la descripción y sus sinónimos.
+                        Revisa el número y añade solo los que sean de esta serie.
                       </p>
                     </div>
                   </div>

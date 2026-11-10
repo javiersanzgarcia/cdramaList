@@ -19,6 +19,8 @@ export interface Part {
 export interface Series {
   id: string
   title: string
+  /** Otros títulos con los que se publica la misma historia. */
+  aliases: string[]
   channelId?: string
   channelTitle: string
   channelUrl?: string
