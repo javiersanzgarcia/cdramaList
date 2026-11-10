@@ -340,13 +340,22 @@ export function extractDescriptionTitle(
 
 export function stripPartMarkers(title: string): string {
   const cleaned = title
+    .replace(
+      /\p{Extended_Pictographic}|\p{Regional_Indicator}|\p{Emoji_Modifier}|\uFE0F|\u200D|\u20E3/gu,
+      " ",
+    )
+    .replace(/https?:\/\/\S+/gi, " ")
     .replace(PART_KEYWORD_GLOBAL, " ")
     .replace(FRACTION_GLOBAL, " ")
     .replace(OF_GLOBAL, " ")
     .replace(PAREN_GLOBAL, " ")
     .replace(HASH_GLOBAL, " ")
-    .replace(/[\s\-–—|:·•,;]+$/g, "")
-    .replace(/\s{2,}/g, " ")
+    .replace(/#[\p{L}\p{M}\p{N}_]+/gu, " ")
+    .replace(/[|•·]+/gu, " ")
+    .replace(/[^\p{L}\p{M}\p{N}\s-]/gu, " ")
+    .replace(/[-–—]{2,}/gu, " ")
+    .replace(/\s+/g, " ")
+    .replace(/^[\s\-–—]+|[\s\-–—]+$/gu, "")
     .trim();
 
   return cleaned || title.trim();
