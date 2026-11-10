@@ -31,9 +31,10 @@ La clave se guarda solo en el navegador y nunca se sube a Google Drive. Sin clav
 En la ficha de una serie, **Actualizar serie**:
 
 - Revisa las subidas recientes del canal de la serie.
-- Hace una búsqueda global en YouTube con las palabras del título (una sola consulta por actualización).
+- Lee las descripciones de las partes conocidas para extraer el título real del drama (por ejemplo, `【Títulos】 Apocalipsis de la Lluvia Negra`), porque muchos canales usan el título del vídeo solo como resumen.
+- Hace una búsqueda global en YouTube con ese título real; si no hay título en las descripciones, usa el título de la serie (una sola consulta por actualización).
 - Añade automáticamente solo los vídeos cuyo título base coincide exactamente con el de la serie (por ejemplo, «Mi drama» → «Mi drama - Parte 3» o «Mi drama | Final»).
-- El resto de coincidencias parciales aparece como **posibles capítulos**: puedes revisar el vídeo, escribir o editar el número de capítulo, marcarlo como final, añadirlo o descartarlo.
+- Las coincidencias por el título de la descripción y el resto de coincidencias parciales aparecen como **posibles capítulos**: puedes revisar el vídeo, ver el título detectado en la descripción, escribir o editar el número de capítulo, marcarlo como final, añadirlo o descartarlo.
 
 Los candidatos no se guardan hasta que los validas. Al añadir uno, la serie se sincroniza con Drive si hay una sesión activa.
 
@@ -158,4 +159,4 @@ También puedes desplegar la carpeta `dist/` en cualquier otro hosting estático
 
 ## Pendientes
 
-### Modificar modo de búsqueda, para buscar por titulo, titulo relativo, descripción, nombres de personajes
+### Buscar también por nombres de personajes y títulos alternativos

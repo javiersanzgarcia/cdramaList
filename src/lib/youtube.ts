@@ -4,6 +4,7 @@ import {
   buildGlobalSearchQuery,
   buildSearchQuery,
   detectPart,
+  extractDescriptionTitle,
   normalizedBaseTitle,
   sharedTokenCount,
   sortParts,
@@ -49,6 +50,7 @@ interface PlaylistItem {
     videoOwnerChannelId?: string
     videoOwnerChannelTitle?: string
     publishedAt?: string
+    description?: string
     thumbnails?: Thumbnails
     resourceId?: { videoId?: string }
   }
@@ -384,6 +386,8 @@ export async function searchYouTubeVideos(
 
   return videos.map((video) => ({
     ...video,
+    description:
+      durations.get(video.videoId)?.description ?? video.description,
     durationSeconds: durations.get(video.videoId)?.durationSeconds,
   }))
 }
@@ -544,6 +548,8 @@ export async function fetchChannelUploads(
       channelTitle: item.snippet.videoOwnerChannelTitle ?? item.snippet.channelTitle ?? '',
       channelUrl: ownerId ? channelUrlFor(ownerId) : undefined,
       publishedAt: item.snippet.publishedAt,
+      description:
+        durations.get(videoId)?.description ?? item.snippet.description,
       thumbnail: pickThumbnail(item.snippet.thumbnails) ?? youtubeThumbnail(videoId),
       durationSeconds: durations.get(videoId)?.durationSeconds,
     })
@@ -569,6 +575,47 @@ interface RankedCandidate {
   info: ReturnType<typeof detectPart>
   source: 'channel' | 'search'
   score: number
+  descriptionTitle?: string
+  matchedBy: 'title' | 'description'
+}
+
+function uniqueTitles(values: Array<string | undefined>): string[] {
+  const titles: string[] = []
+  const seen = new Set<string>()
+
+  for (const value of values) {
+    if (!value) continue
+    const key = normalizedBaseTitle(value)
+    if (!key || seen.has(key)) continue
+    seen.add(key)
+    titles.push(value)
+  }
+
+  return titles
+}
+
+/**
+ * Elige el título de descripción más repetido entre las partes conocidas. Si
+ * hay empate, prefiere el más descriptivo (más palabras y más largo).
+ */
+function pickDescriptionReference(values: string[]): string | undefined {
+  const groups = new Map<string, { title: string; count: number }>()
+
+  for (const value of values) {
+    const key = normalizedBaseTitle(value)
+    if (!key) continue
+
+    const entry = groups.get(key)
+    if (entry) entry.count += 1
+    else groups.set(key, { title: value, count: 1 })
+  }
+
+  return [...groups.values()].sort(
+    (a, b) =>
+      b.count - a.count ||
+      tokenCount(b.title) - tokenCount(a.title) ||
+      b.title.length - a.title.length,
+  )[0]?.title
 }
 
 function candidateScore(
@@ -594,10 +641,13 @@ function toCandidate(
   info: ReturnType<typeof detectPart>,
   source: 'channel' | 'search',
   score: number,
+  descriptionTitle: string | undefined,
+  matchedBy: 'title' | 'description',
 ): ChapterCandidate {
   return {
     videoId: video.videoId,
     title: video.title,
+    descriptionTitle,
     channelId: video.channelId,
     channelTitle: video.channelTitle,
     channelUrl:
@@ -610,15 +660,20 @@ function toCandidate(
     totalParts: info.totalParts,
     isFinal: info.isFinal,
     score,
+    matchedBy,
     source,
   }
 }
 
 /**
  * Busca capítulos nuevos de una serie dentro de su canal y en todo YouTube.
- * Solo añade automáticamente los vídeos cuyo título base coincide de forma
- * exacta con el de la serie; el resto se devuelve como candidatos para que el
- * usuario los valide manualmente y les asigne el número de capítulo.
+ *
+ * Además del título de la serie se usan los títulos reales que aparecen en las
+ * descripciones de las partes conocidas. Así se encuentran capítulos cuyo
+ * título del vídeo es solo un resumen. Solo se añaden automáticamente los
+ * vídeos cuyo título base coincide de forma exacta con el de la serie; las
+ * coincidencias por descripción y el resto se devuelven como candidatos para
+ * que el usuario los valide manualmente y les asigne el número de capítulo.
  */
 export async function discoverSeriesUpdates(
   series: Series,
@@ -652,18 +707,47 @@ export async function discoverSeriesUpdates(
     }
   }
 
-  const uploads = channelId
-    ? await fetchChannelUploads(channelId, apiKey).catch((cause) => {
-        failed = true
-        failure = cause
-        warnings.push('No se han podido leer los vídeos recientes del canal.')
-        return [] as VideoMeta[]
-      })
-    : []
+  const known = new Set(series.parts.map((part) => part.videoId))
+
+  // Leemos las descripciones de las partes conocidas para descubrir el título
+  // real del drama, que muchas veces no aparece en el título del vídeo.
+  const [uploads, referenceVideos] = await Promise.all([
+    channelId
+      ? fetchChannelUploads(channelId, apiKey).catch((cause) => {
+          failed = true
+          failure = cause
+          warnings.push('No se han podido leer los vídeos recientes del canal.')
+          return [] as VideoMeta[]
+        })
+      : Promise.resolve([] as VideoMeta[]),
+    fetchVideosByIds([...known], apiKey).catch(
+      () => new Map<string, VideoMeta>(),
+    ),
+  ])
+
+  const descriptionTitles: string[] = []
+
+  for (const part of series.parts) {
+    const title = extractDescriptionTitle(
+      referenceVideos.get(part.videoId)?.description,
+    )
+    if (title) descriptionTitles.push(title)
+  }
+
+  // Si la parte conocida sigue en el canal, su descripción también sirve de
+  // referencia aunque `videos.list` no haya respondido.
+  for (const video of uploads) {
+    if (!known.has(video.videoId)) continue
+    const title = extractDescriptionTitle(video.description)
+    if (title) descriptionTitles.push(title)
+  }
+
+  const descriptionReference = pickDescriptionReference(descriptionTitles)
 
   // Una sola consulta global por actualización: `search.list` cuesta 100
-  // unidades de cuota, así que no conviene lanzar varias.
-  const query = buildGlobalSearchQuery(series.title)
+  // unidades de cuota, así que no conviene lanzar varias. Si hay título real en
+  // la descripción, es una consulta mucho más precisa que el título-resumen.
+  const query = buildGlobalSearchQuery(descriptionReference ?? series.title)
   const globalResults = query
     ? await searchYouTubeVideos(query, apiKey).catch((cause) => {
         failed = true
@@ -685,9 +769,18 @@ export async function discoverSeriesUpdates(
     )
   }
 
-  const known = new Set(series.parts.map((part) => part.videoId))
-  const references = [series.title, ...series.parts.map((part) => part.title)]
-  const referenceTokenCount = tokenCount(series.title)
+  const references = uniqueTitles([
+    series.title,
+    ...descriptionTitles,
+    ...series.parts.map((part) => part.title),
+  ])
+  const referenceKeys = new Set(
+    references.map((reference) => normalizedBaseTitle(reference)).filter(Boolean),
+  )
+  const referenceTokenCount = Math.max(
+    1,
+    ...references.map((reference) => tokenCount(reference)),
+  )
   const minShared = referenceTokenCount <= 2 ? 1 : 2
   const exactKey = normalizedBaseTitle(series.title)
 
@@ -707,12 +800,34 @@ export async function discoverSeriesUpdates(
     if (known.has(video.videoId)) continue
 
     const info = detectPart(video.title)
-    const overlap = Math.max(
+    const descriptionTitle = extractDescriptionTitle(video.description)
+    const descriptionKey = descriptionTitle
+      ? normalizedBaseTitle(descriptionTitle)
+      : ''
+
+    const titleOverlap = Math.max(
       ...references.map((reference) => titleJaccard(reference, video.title)),
     )
-    const shared = Math.max(
+    const titleShared = Math.max(
       ...references.map((reference) => sharedTokenCount(reference, video.title)),
     )
+    const descriptionOverlap = descriptionTitle
+      ? Math.max(
+          ...references.map((reference) =>
+            titleJaccard(reference, descriptionTitle),
+          ),
+        )
+      : 0
+    const descriptionShared = descriptionTitle
+      ? Math.max(
+          ...references.map((reference) =>
+            sharedTokenCount(reference, descriptionTitle),
+          ),
+        )
+      : 0
+
+    const overlap = Math.max(titleOverlap, descriptionOverlap)
+    const shared = Math.max(titleShared, descriptionShared)
     const sameChannel = Boolean(channelId && video.channelId === channelId)
 
     // Coincidencia exacta del título base: se añade sin preguntar.
@@ -721,22 +836,46 @@ export async function discoverSeriesUpdates(
       continue
     }
 
-    // El resto solo se propone si comparte palabras suficientes con la serie.
-    const relevant =
-      shared >= minShared && (overlap >= 0.45 || (sameChannel && overlap >= 0.3))
-    if (!relevant) continue
+    const descriptionMatch = Boolean(
+      descriptionKey && referenceKeys.has(descriptionKey),
+    )
+    const descriptionRelevant = Boolean(
+      descriptionTitle &&
+        (descriptionMatch ||
+          (descriptionShared >= minShared && descriptionOverlap >= 0.65)),
+    )
+
+    // El resto solo se propone si comparte palabras suficientes con la serie,
+    // ya sea por el título del vídeo o por el título de la descripción.
+    const titleRelevant =
+      titleShared >= minShared &&
+      (titleOverlap >= 0.45 || (sameChannel && titleOverlap >= 0.3))
+
+    if (!descriptionRelevant && !titleRelevant) continue
+
+    const matchedBy: 'title' | 'description' =
+      descriptionRelevant &&
+      (descriptionMatch || descriptionOverlap >= titleOverlap)
+        ? 'description'
+        : 'title'
+
+    let score = candidateScore(
+      info,
+      overlap,
+      shared,
+      referenceTokenCount,
+      sameChannel,
+    )
+    if (descriptionMatch) score = Math.min(100, score + 12)
+    else if (descriptionRelevant) score = Math.min(100, score + 6)
 
     ranked.push({
       video,
       info,
       source,
-      score: candidateScore(
-        info,
-        overlap,
-        shared,
-        referenceTokenCount,
-        sameChannel,
-      ),
+      score,
+      descriptionTitle,
+      matchedBy,
     })
   }
 
@@ -745,7 +884,14 @@ export async function discoverSeriesUpdates(
   const candidates = ranked
     .slice(0, MAX_CANDIDATES)
     .map((entry) =>
-      toCandidate(entry.video, entry.info, entry.source, entry.score),
+      toCandidate(
+        entry.video,
+        entry.info,
+        entry.source,
+        entry.score,
+        entry.descriptionTitle,
+        entry.matchedBy,
+      ),
     )
 
   if (ranked.length > MAX_CANDIDATES) {

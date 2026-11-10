@@ -505,8 +505,9 @@ export function SeriesSheet({
                       Posibles capítulos ({candidates.length})
                     </p>
                     <p className="mt-0.5 text-[11px] leading-relaxed text-amber-200/70">
-                      No coinciden exactamente con el título. Revisa el número y
-                      añádelos solo si son de esta serie.
+                      Hemos buscado por el título y por el título real de la
+                      descripción. Revisa el número y añádelos solo si son de
+                      esta serie.
                     </p>
                   </div>
                 </div>
@@ -557,7 +558,18 @@ export function SeriesSheet({
                               {candidate.channelTitle}
                               {duration ? ` · ${duration}` : ''}
                               {candidate.source === 'search' ? ' · Fuera del canal' : ''}
+                              {candidate.matchedBy === 'description'
+                                ? ' · Por descripción'
+                                : ''}
                             </p>
+                            {candidate.descriptionTitle && (
+                              <p className="mt-0.5 line-clamp-2 text-[10px] leading-snug text-amber-200/70">
+                                Título en la descripción:{' '}
+                                <span className="font-medium">
+                                  {candidate.descriptionTitle}
+                                </span>
+                              </p>
+                            )}
 
                             <div className="mt-1 flex flex-wrap items-center gap-1.5">
                               <label className="flex items-center gap-1 text-[10px] font-medium text-zinc-500">

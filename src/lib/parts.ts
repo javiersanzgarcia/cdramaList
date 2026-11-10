@@ -200,6 +200,144 @@ export function detectPart(title: string): PartInfo {
   return { isFinal: FINAL_WORD.test(title) };
 }
 
+const DESCRIPTION_RELATION =
+  "(?:d(?:e(?:l)?|[ao]s?)\\s+(?:(?:el|la|los|las|o|a)\\s+)?)"
+
+const DESCRIPTION_TITLE_LABEL = new RegExp(
+  `(?:t[ií]tulo\\s+(?:original|${DESCRIPTION_RELATION}(?:drama|serie|s[eé]rie|novela|v[ií]deo))|t[ií]tulos?|original\\s+title|title|nome(?:\\s+${DESCRIPTION_RELATION}(?:drama|s[eé]rie|novela))?|nombre(?:\\s+${DESCRIPTION_RELATION}(?:drama|serie|novela))?|drama|serie|series|novela|剧名|标题|片名|名称)`,
+  "iu",
+)
+
+const DESCRIPTION_TITLE_HEADING = new RegExp(
+  `^(?:${DESCRIPTION_TITLE_LABEL.source})$`,
+  "iu",
+)
+
+const DESCRIPTION_TITLE_INLINE = new RegExp(
+  `^[^\\p{L}\\p{N}]*${DESCRIPTION_TITLE_LABEL.source}\\s*(?:[:：]|】|\\]|\\))\\s*(.+)$`,
+  "iu",
+)
+
+const DESCRIPTION_NOISE =
+  /^(?:introdu[cç][aã]o|introducci[oó]n|sinopsis|sinopse|descripci[oó]n|descri[cç][aã]o|resumen|resumo|elenco|reparto|g[eé]nero|genero|tags?|hashtags?|cap[ií]tulos?|epis[oó]dios?|assista|mira|watch)\b/iu
+
+const DESCRIPTION_GENERIC = new Set([
+  "titulo",
+  "titulos",
+  "titulo original",
+  "original title",
+  "title",
+  "nome",
+  "nome do drama",
+  "nombre",
+  "nombre del drama",
+  "nombre de la serie",
+  "drama",
+  "serie",
+  "series",
+  "novela",
+  "introduccion",
+  "introducao",
+  "sinopsis",
+  "sinopse",
+  "descripcion",
+  "descricao",
+  "resumen",
+  "resumo",
+])
+
+function cleanDescriptionLine(value: string): string {
+  return value
+    .replace(/https?:\/\/\S+/gi, " ")
+    .replace(/#[\p{L}\p{N}_]+/gu, " ")
+    .replace(/[\p{Extended_Pictographic}\uFE0F\u200D]/gu, " ")
+    .replace(/[【】[\]「」『』]/g, " ")
+    .replace(/^\s*(?:[-–—•·*]+|\d+[.)])\s*/u, "")
+    .replace(/^[\s:：,;|]+|[\s:：,;|]+$/g, " ")
+    .replace(/\s+/g, " ")
+    .trim()
+}
+
+function normalizeDescriptionTitle(value: string): string | undefined {
+  const cleaned = cleanDescriptionLine(value)
+  if (!cleaned) return undefined
+
+  const normalized = normalizeText(cleaned)
+    .replace(/[^\p{L}\p{N}\s]/gu, " ")
+    .replace(/\s+/g, " ")
+    .trim()
+
+  if (normalized.length < 2) return undefined
+  if (DESCRIPTION_GENERIC.has(normalized)) return undefined
+  if (DESCRIPTION_NOISE.test(normalized)) return undefined
+  if (/^\d+$/.test(normalized)) return undefined
+
+  return cleaned.slice(0, 120).trim()
+}
+
+function isDescriptionTitleHeading(value: string): boolean {
+  return DESCRIPTION_TITLE_HEADING.test(cleanDescriptionLine(value))
+}
+
+function isSectionHeading(value: string): boolean {
+  const trimmed = value.trim()
+  if (!trimmed) return false
+  if (/^[【[][^】\]]+[】\]]$/u.test(trimmed)) return true
+  return DESCRIPTION_NOISE.test(cleanDescriptionLine(trimmed))
+}
+
+function nextDescriptionTitleLine(
+  lines: string[],
+  start: number,
+): string | undefined {
+  for (let index = start + 1; index < lines.length; index += 1) {
+    const raw = lines[index].trim()
+    if (!raw) continue
+    if (isDescriptionTitleHeading(raw)) continue
+    if (isSectionHeading(raw)) return undefined
+    return raw
+  }
+
+  return undefined
+}
+
+/**
+ * Extrae el título real del drama de la descripción del vídeo. Muchos canales
+ * usan el título del vídeo como resumen y escriben el nombre de la historia en
+ * la descripción, por ejemplo:
+ *
+ *   【Títulos】
+ *   Apocalipsis de la Lluvia Negra
+ *
+ * También admite formatos como «Título: …» o «Nombre del drama: …».
+ */
+export function extractDescriptionTitle(
+  description?: string,
+): string | undefined {
+  if (!description) return undefined
+
+  const lines = description.replace(/\r\n?/g, "\n").split("\n")
+
+  for (let index = 0; index < lines.length; index += 1) {
+    const raw = lines[index].trim()
+    if (!raw) continue
+
+    const inline = DESCRIPTION_TITLE_INLINE.exec(raw)
+    if (inline) {
+      const title = normalizeDescriptionTitle(inline[1])
+      if (title) return title
+    }
+
+    if (isDescriptionTitleHeading(raw)) {
+      const next = nextDescriptionTitleLine(lines, index)
+      const title = next ? normalizeDescriptionTitle(next) : undefined
+      if (title) return title
+    }
+  }
+
+  return undefined
+}
+
 export function stripPartMarkers(title: string): string {
   const cleaned = title
     .replace(PART_KEYWORD_GLOBAL, " ")

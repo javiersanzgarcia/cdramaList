@@ -47,6 +47,7 @@ export interface SeriesDraft {
 export interface ChapterCandidate {
   videoId: string
   title: string
+  descriptionTitle?: string
   channelId?: string
   channelTitle: string
   channelUrl?: string
@@ -57,6 +58,7 @@ export interface ChapterCandidate {
   totalParts?: number
   isFinal?: boolean
   score: number
+  matchedBy: 'title' | 'description'
   source: 'channel' | 'search'
 }
 
