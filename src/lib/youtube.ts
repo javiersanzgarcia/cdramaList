@@ -1,8 +1,10 @@
-import type { Part, Series, SeriesDraft } from '../types'
+import type { ChapterCandidate, Part, Series, SeriesDraft } from '../types'
 import { formatDuration, parseIsoDuration } from './format'
 import {
+  buildGlobalSearchQuery,
   buildSearchQuery,
   detectPart,
+  normalizedBaseTitle,
   sharedTokenCount,
   sortParts,
   stripPartMarkers,
@@ -333,6 +335,59 @@ export async function searchChannelVideos(
     }))
 }
 
+/**
+ * Busca vídeos en todo YouTube, no solo en un canal. Cada consulta cuesta 100
+ * unidades de cuota, así que la actualización de una serie hace una sola.
+ */
+export async function searchYouTubeVideos(
+  query: string,
+  apiKey: string,
+  maxResults = 50,
+): Promise<VideoMeta[]> {
+  const term = query.trim()
+  if (!term) return []
+
+  const data = await fetchJson<{ items?: SearchItem[] }>(
+    'search',
+    {
+      part: 'snippet',
+      q: term,
+      type: 'video',
+      maxResults: String(Math.min(Math.max(maxResults, 1), 50)),
+      order: 'relevance',
+      relevanceLanguage: 'es',
+    },
+    apiKey,
+  )
+
+  const videos = (data.items ?? [])
+    .filter((item) => item.id.videoId)
+    .map((item) => ({
+      videoId: item.id.videoId as string,
+      title: item.snippet.title,
+      channelId: item.snippet.channelId,
+      channelTitle: item.snippet.channelTitle,
+      channelUrl: channelUrlFor(item.snippet.channelId),
+      publishedAt: item.snippet.publishedAt,
+      description: item.snippet.description,
+      tags: item.snippet.tags,
+      thumbnail:
+        pickThumbnail(item.snippet.thumbnails) ??
+        youtubeThumbnail(item.id.videoId as string),
+    }))
+
+  // La búsqueda no devuelve la duración: la pedimos en una sola llamada extra.
+  const durations = await fetchVideosByIds(
+    videos.map((video) => video.videoId),
+    apiKey,
+  ).catch(() => new Map<string, VideoMeta>())
+
+  return videos.map((video) => ({
+    ...video,
+    durationSeconds: durations.get(video.videoId)?.durationSeconds,
+  }))
+}
+
 export async function fetchPlaylist(playlistId: string, apiKey: string): Promise<PlaylistData> {
   const meta = await fetchJson<{ items?: PlaylistResource[] }>(
     'playlists',
@@ -497,18 +552,73 @@ export async function fetchChannelUploads(
   return videos
 }
 
+const MAX_CANDIDATES = 12
+
 export interface SeriesUpdate {
   parts: Part[]
   added: Part[]
+  candidates: ChapterCandidate[]
   channelId?: string
   channelTitle?: string
   channelUrl?: string
   warnings: string[]
 }
 
+interface RankedCandidate {
+  video: VideoMeta
+  info: ReturnType<typeof detectPart>
+  source: 'channel' | 'search'
+  score: number
+}
+
+function candidateScore(
+  info: ReturnType<typeof detectPart>,
+  overlap: number,
+  shared: number,
+  referenceTokenCount: number,
+  sameChannel: boolean,
+): number {
+  const sharedRatio = referenceTokenCount > 0 ? shared / referenceTokenCount : 0
+
+  return Math.round(
+    Math.min(overlap, 1) * 55 +
+      Math.min(sharedRatio, 1) * 20 +
+      (info.partNumber != null ? 12 : 0) +
+      (info.isFinal ? 5 : 0) +
+      (sameChannel ? 8 : 0),
+  )
+}
+
+function toCandidate(
+  video: VideoMeta,
+  info: ReturnType<typeof detectPart>,
+  source: 'channel' | 'search',
+  score: number,
+): ChapterCandidate {
+  return {
+    videoId: video.videoId,
+    title: video.title,
+    channelId: video.channelId,
+    channelTitle: video.channelTitle,
+    channelUrl:
+      video.channelUrl ??
+      (video.channelId ? channelUrlFor(video.channelId) : undefined),
+    thumbnail: video.thumbnail ?? youtubeThumbnail(video.videoId),
+    durationSeconds: video.durationSeconds,
+    publishedAt: video.publishedAt,
+    partNumber: info.partNumber,
+    totalParts: info.totalParts,
+    isFinal: info.isFinal,
+    score,
+    source,
+  }
+}
+
 /**
- * Busca capítulos nuevos de una serie en las subidas recientes de su canal.
- * Solo añade vídeos cuyo título encaja con la serie o con alguna de sus partes.
+ * Busca capítulos nuevos de una serie dentro de su canal y en todo YouTube.
+ * Solo añade automáticamente los vídeos cuyo título base coincide de forma
+ * exacta con el de la serie; el resto se devuelve como candidatos para que el
+ * usuario los valide manualmente y les asigne el número de capítulo.
  */
 export async function discoverSeriesUpdates(
   series: Series,
@@ -520,29 +630,58 @@ export async function discoverSeriesUpdates(
     )
   }
 
+  const warnings: string[] = []
+  let failed = false
+  let failure: unknown
   let channelId = series.channelId
   let channelTitle = series.channelTitle
   let channelUrl = series.channelUrl
 
   // Las series añadidas a mano pueden no tener canal: lo deducimos de una parte.
   if (!channelId) {
-    const reference = await fetchVideoMeta(series.parts[0].videoId, apiKey)
-    channelId = reference.channelId
-    channelTitle = channelTitle || reference.channelTitle
-    channelUrl = channelUrl ?? reference.channelUrl
+    try {
+      const reference = await fetchVideoMeta(series.parts[0].videoId, apiKey)
+      channelId = reference.channelId
+      channelTitle = channelTitle || reference.channelTitle
+      channelUrl = channelUrl ?? reference.channelUrl
+    } catch {
+      failed = true
+      warnings.push(
+        'No se ha podido identificar el canal; se buscará solo en todo YouTube.',
+      )
+    }
   }
 
-  if (!channelId) {
-    throw new YouTubeError(
-      'No se ha podido identificar el canal de esta serie. Añádela desde un vídeo del canal para poder actualizarla.',
-    )
-  }
+  const uploads = channelId
+    ? await fetchChannelUploads(channelId, apiKey).catch((cause) => {
+        failed = true
+        failure = cause
+        warnings.push('No se han podido leer los vídeos recientes del canal.')
+        return [] as VideoMeta[]
+      })
+    : []
 
-  const uploads = await fetchChannelUploads(channelId, apiKey)
+  // Una sola consulta global por actualización: `search.list` cuesta 100
+  // unidades de cuota, así que no conviene lanzar varias.
+  const query = buildGlobalSearchQuery(series.title)
+  const globalResults = query
+    ? await searchYouTubeVideos(query, apiKey).catch((cause) => {
+        failed = true
+        failure = cause
+        warnings.push('No se ha podido completar la búsqueda en todo YouTube.')
+        return [] as VideoMeta[]
+      })
+    : []
 
-  if (uploads.length === 0) {
+  // Si ambas fuentes fallaron, lo más probable es que la clave no sea válida.
+  if (uploads.length === 0 && globalResults.length === 0 && failed) {
+    if (failure instanceof Error && failure.message) {
+      throw new YouTubeError(failure.message)
+    }
+
     throw new YouTubeError(
-      'No se han podido leer los vídeos recientes del canal. Comprueba la clave de YouTube.',
+      warnings.join(' ') ||
+        'No se han podido leer los vídeos del canal ni buscar en YouTube. Comprueba la clave de YouTube.',
     )
   }
 
@@ -550,9 +689,22 @@ export async function discoverSeriesUpdates(
   const references = [series.title, ...series.parts.map((part) => part.title)]
   const referenceTokenCount = tokenCount(series.title)
   const minShared = referenceTokenCount <= 2 ? 1 : 2
+  const exactKey = normalizedBaseTitle(series.title)
 
-  const candidates = uploads.filter((video) => {
-    if (known.has(video.videoId)) return false
+  // Un mismo vídeo puede aparecer en el canal y en la búsqueda global.
+  const byId = new Map<string, { video: VideoMeta; source: 'channel' | 'search' }>()
+  for (const video of uploads) byId.set(video.videoId, { video, source: 'channel' })
+  for (const video of globalResults) {
+    if (!byId.has(video.videoId)) {
+      byId.set(video.videoId, { video, source: 'search' })
+    }
+  }
+
+  const added: Part[] = []
+  const ranked: RankedCandidate[] = []
+
+  for (const { video, source } of byId.values()) {
+    if (known.has(video.videoId)) continue
 
     const info = detectPart(video.title)
     const overlap = Math.max(
@@ -561,26 +713,55 @@ export async function discoverSeriesUpdates(
     const shared = Math.max(
       ...references.map((reference) => sharedTokenCount(reference, video.title)),
     )
+    const sameChannel = Boolean(channelId && video.channelId === channelId)
 
-    if (shared < minShared || overlap < 0.7) return false
+    // Coincidencia exacta del título base: se añade sin preguntar.
+    if (exactKey && normalizedBaseTitle(video.title) === exactKey) {
+      added.push(toPart(video, info))
+      continue
+    }
 
-    // Sin número de parte ni marca de final, exigimos un título casi idéntico
-    // para no colar vídeos parecidos de otra historia del mismo canal.
-    if (info.partNumber == null && !info.isFinal && overlap < 0.9) return false
+    // El resto solo se propone si comparte palabras suficientes con la serie.
+    const relevant =
+      shared >= minShared && (overlap >= 0.45 || (sameChannel && overlap >= 0.3))
+    if (!relevant) continue
 
-    return true
-  })
+    ranked.push({
+      video,
+      info,
+      source,
+      score: candidateScore(
+        info,
+        overlap,
+        shared,
+        referenceTokenCount,
+        sameChannel,
+      ),
+    })
+  }
 
-  const added = candidates.map((video) => toPart(video, detectPart(video.title)))
+  ranked.sort((a, b) => b.score - a.score)
+
+  const candidates = ranked
+    .slice(0, MAX_CANDIDATES)
+    .map((entry) =>
+      toCandidate(entry.video, entry.info, entry.source, entry.score),
+    )
+
+  if (ranked.length > MAX_CANDIDATES) {
+    warnings.push(
+      `Se muestran los ${MAX_CANDIDATES} candidatos más parecidos de ${ranked.length}.`,
+    )
+  }
 
   return {
     parts: sortParts([...series.parts, ...added]),
     added,
+    candidates,
     channelId,
     channelTitle: channelTitle || undefined,
     channelUrl,
-    warnings:
-      added.length === 0 ? ['No se han encontrado capítulos nuevos en el canal.'] : [],
+    warnings,
   }
 }
 
@@ -648,6 +829,27 @@ function toPart(video: VideoMeta, info: ReturnType<typeof detectPart>): Part {
     durationSeconds: video.durationSeconds,
     publishedAt: video.publishedAt,
     thumbnail: video.thumbnail ?? youtubeThumbnail(video.videoId),
+    addedAt: Date.now(),
+  }
+}
+
+/**
+ * Convierte un candidato validado en una parte, aplicando el número y la marca
+ * de final que haya elegido el usuario.
+ */
+export function candidateToPart(
+  candidate: ChapterCandidate,
+  options: { partNumber?: number; isFinal?: boolean } = {},
+): Part {
+  return {
+    videoId: candidate.videoId,
+    title: candidate.title,
+    partNumber: options.partNumber,
+    totalParts: candidate.totalParts,
+    isFinal: options.isFinal ?? candidate.isFinal,
+    durationSeconds: candidate.durationSeconds,
+    publishedAt: candidate.publishedAt,
+    thumbnail: candidate.thumbnail ?? youtubeThumbnail(candidate.videoId),
     addedAt: Date.now(),
   }
 }

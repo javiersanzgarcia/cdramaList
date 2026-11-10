@@ -24,7 +24,18 @@ La búsqueda automática usa la [YouTube Data API v3](https://console.cloud.goog
 
 La clave se guarda solo en el navegador y nunca se sube a Google Drive. Sin clave puedes seguir añadiendo vídeos uno a uno en modo manual.
 
-> Cada búsqueda consume 100 unidades de la cuota gratuita diaria (10.000). Las peticiones de metadatos consumen mucho menos.
+> Cada búsqueda consume 100 unidades de la cuota gratuita diaria (10.000). Las peticiones de metadatos consumen mucho menos. **Actualizar serie** hace una sola búsqueda global por actualización.
+
+## Buscar capítulos nuevos
+
+En la ficha de una serie, **Actualizar serie**:
+
+- Revisa las subidas recientes del canal de la serie.
+- Hace una búsqueda global en YouTube con las palabras del título (una sola consulta por actualización).
+- Añade automáticamente solo los vídeos cuyo título base coincide exactamente con el de la serie (por ejemplo, «Mi drama» → «Mi drama - Parte 3» o «Mi drama | Final»).
+- El resto de coincidencias parciales aparece como **posibles capítulos**: puedes revisar el vídeo, escribir o editar el número de capítulo, marcarlo como final, añadirlo o descartarlo.
+
+Los candidatos no se guardan hasta que los validas. Al añadir uno, la serie se sincroniza con Drive si hay una sesión activa.
 
 ## Cuenta de Google y sincronización con Drive
 

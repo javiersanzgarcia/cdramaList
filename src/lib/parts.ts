@@ -236,6 +236,27 @@ export function buildSearchQuery(title: string): string {
     .slice(0, 100);
 }
 
+/**
+ * Consulta para la búsqueda global. Si al quitar las palabras vacías solo
+ * queda un término (por ejemplo, «Mi drama» → «drama»), conserva el título
+ * completo para no perder precisión.
+ */
+export function buildGlobalSearchQuery(title: string): string {
+  const meaningful = buildSearchQuery(title);
+  if (meaningful.split(/\s+/).filter(Boolean).length >= 2) return meaningful;
+
+  const cleaned = stripPartMarkers(title)
+    .replace(/https?:\/\/\S+/gi, " ")
+    .replace(/#[\p{L}\p{N}_]+/gu, " ")
+    .replace(/[|•·].*$/u, " ")
+    .replace(/[[\]{}()«»"“”'’]/g, " ")
+    .replace(/[^\p{L}\p{N}\s]/gu, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+
+  return (cleaned || meaningful).slice(0, 100);
+}
+
 function normalizeText(value: string): string {
   return value
     .normalize("NFD")
@@ -269,6 +290,21 @@ export function sharedTokenCount(a: string, b: string): number {
   }
 
   return shared;
+}
+
+/**
+ * Clave del título sin marcas de parte ni puntuación. Sirve para decidir si
+ * dos vídeos son exactamente la misma historia (por ejemplo, «Mi serie» y
+ * «Mi serie - Parte 2»).
+ */
+export function normalizedBaseTitle(value: string): string {
+  return normalizeText(stripPartMarkers(value))
+    .replace(/\b(?:final|fin|ending|last)\b/gi, " ")
+    .replace(/https?:\/\/\S+/gi, " ")
+    .replace(/#[\p{L}\p{N}_]+/gu, " ")
+    .replace(/[^\p{L}\p{N}\s]/gu, " ")
+    .replace(/\s+/g, " ")
+    .trim();
 }
 
 export function titleSimilarity(a: string, b: string): number {

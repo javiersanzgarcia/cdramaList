@@ -8,7 +8,11 @@ import {
   watchedCount,
 } from '../lib/series'
 import { channelUrlFor } from '../lib/youtube'
-import type { Series } from '../types'
+import type {
+  ChapterCandidate,
+  Series,
+  SeriesRefreshResult,
+} from '../types'
 import { useSheet } from '../hooks/useSheet'
 import * as Icon from './Icons'
 
@@ -19,7 +23,12 @@ interface SeriesSheetProps {
   onToggleFavorite: (id: string) => void
   onSetWatched: (seriesId: string, videoId: string, watched: boolean) => void
   onAddParts: (series: Series) => void
-  onRefresh: (series: Series) => Promise<{ added: number; synced: boolean }>
+  onRefresh: (series: Series) => Promise<SeriesRefreshResult>
+  onAddCandidate: (
+    series: Series,
+    candidate: ChapterCandidate,
+    options: { partNumber?: number; isFinal?: boolean },
+  ) => Promise<{ synced: boolean }>
   onDelete: (id: string) => void
 }
 
@@ -31,12 +40,23 @@ export function SeriesSheet({
   onSetWatched,
   onAddParts,
   onRefresh,
+  onAddCandidate,
   onDelete,
 }: SeriesSheetProps) {
   const [confirmingDelete, setConfirmingDelete] = useState(false)
   const [refreshing, setRefreshing] = useState(false)
   const [refreshMessage, setRefreshMessage] = useState<{
     kind: 'ok' | 'info' | 'error'
+    text: string
+  } | null>(null)
+  const [candidates, setCandidates] = useState<ChapterCandidate[]>([])
+  const [candidateNumbers, setCandidateNumbers] = useState<Record<string, string>>(
+    {},
+  )
+  const [candidateFinal, setCandidateFinal] = useState<Record<string, boolean>>({})
+  const [addingCandidateId, setAddingCandidateId] = useState<string | null>(null)
+  const [candidateMessage, setCandidateMessage] = useState<{
+    kind: 'ok' | 'error'
     text: string
   } | null>(null)
 
@@ -74,19 +94,138 @@ export function SeriesSheet({
     onDelete(series.id)
   }
 
+  function prepareCandidates(list: ChapterCandidate[], parts: Series['parts']) {
+    const used = new Set<number>()
+    for (const part of parts) {
+      if (part.partNumber != null) used.add(part.partNumber)
+    }
+
+    let next = Math.max(0, ...parts.map((part) => part.partNumber ?? 0)) + 1
+    const numbers: Record<string, string> = {}
+    const finals: Record<string, boolean> = {}
+
+    for (const candidate of list) {
+      let value = candidate.partNumber
+      if (value == null || used.has(value)) {
+        value = next
+        while (used.has(value)) value += 1
+      }
+
+      used.add(value)
+      next = Math.max(next, value + 1)
+      numbers[candidate.videoId] = String(value)
+      finals[candidate.videoId] = Boolean(candidate.isFinal)
+    }
+
+    setCandidates(list)
+    setCandidateNumbers(numbers)
+    setCandidateFinal(finals)
+    setCandidateMessage(null)
+  }
+
+  function discardCandidate(videoId: string) {
+    setCandidates((current) =>
+      current.filter((candidate) => candidate.videoId !== videoId),
+    )
+    setCandidateNumbers((current) => {
+      const next = { ...current }
+      delete next[videoId]
+      return next
+    })
+    setCandidateFinal((current) => {
+      const next = { ...current }
+      delete next[videoId]
+      return next
+    })
+  }
+
+  async function handleAddCandidate(candidate: ChapterCandidate) {
+    if (addingCandidateId) return
+
+    const raw = (candidateNumbers[candidate.videoId] ?? '').trim()
+    const partNumber = raw === '' ? undefined : Number(raw)
+
+    if (
+      partNumber != null &&
+      (!Number.isInteger(partNumber) || partNumber <= 0)
+    ) {
+      setCandidateMessage({
+        kind: 'error',
+        text: 'Escribe un número de capítulo válido.',
+      })
+      return
+    }
+
+    if (
+      partNumber != null &&
+      series.parts.some((part) => part.partNumber === partNumber)
+    ) {
+      setCandidateMessage({
+        kind: 'error',
+        text: `El número ${partNumber} ya está ocupado por otra parte.`,
+      })
+      return
+    }
+
+    setAddingCandidateId(candidate.videoId)
+    setCandidateMessage(null)
+    setRefreshMessage(null)
+
+    try {
+      const result = await onAddCandidate(series, candidate, {
+        partNumber,
+        isFinal: candidateFinal[candidate.videoId] ?? candidate.isFinal,
+      })
+
+      discardCandidate(candidate.videoId)
+      setCandidateMessage({
+        kind: 'ok',
+        text: result.synced
+          ? 'Capítulo añadido y sincronizado con Google Drive.'
+          : 'Capítulo añadido. Se sincronizará con Google Drive en la próxima sincronización.',
+      })
+    } catch (caught) {
+      setCandidateMessage({
+        kind: 'error',
+        text:
+          caught instanceof Error
+            ? caught.message
+            : 'No se pudo añadir el capítulo. Inténtalo de nuevo.',
+      })
+    } finally {
+      setAddingCandidateId(null)
+    }
+  }
+
   async function handleRefresh() {
     if (refreshing) return
 
     setRefreshing(true)
     setRefreshMessage(null)
+    setCandidateMessage(null)
 
     try {
       const result = await onRefresh(series)
+      prepareCandidates(result.candidates, result.parts)
+      const warningText =
+        result.warnings.length > 0 ? ` ${result.warnings.join(' ')}` : ''
 
-      if (result.added === 0) {
+      if (result.added === 0 && result.candidates.length === 0) {
         setRefreshMessage({
           kind: 'info',
-          text: 'No se han encontrado capítulos nuevos en el canal.',
+          text: `No se han encontrado capítulos nuevos ni candidatos.${warningText}`,
+        })
+        return
+      }
+
+      if (result.added === 0) {
+        const noun =
+          result.candidates.length === 1
+            ? '1 posible capítulo'
+            : `${result.candidates.length} posibles capítulos`
+        setRefreshMessage({
+          kind: 'info',
+          text: `No hay coincidencias exactas. Revisa ${noun} más abajo y valídalos manualmente.${warningText}`,
         })
         return
       }
@@ -94,12 +233,16 @@ export function SeriesSheet({
       const noun =
         result.added === 1 ? '1 capítulo nuevo' : `${result.added} capítulos nuevos`
       const verb = result.added === 1 ? 'añadido' : 'añadidos'
+      const extra =
+        result.candidates.length > 0
+          ? ` Además hay ${result.candidates.length === 1 ? '1 posible capítulo' : `${result.candidates.length} posibles capítulos`} para revisar.`
+          : ''
 
       setRefreshMessage({
         kind: 'ok',
         text: result.synced
-          ? `${noun} ${verb} y sincronizado con Google Drive.`
-          : `${noun} ${verb}. Se sincronizará con Google Drive en la próxima sincronización.`,
+          ? `${noun} ${verb} y sincronizado con Google Drive.${extra}${warningText}`
+          : `${noun} ${verb}. Se sincronizará con Google Drive en la próxima sincronización.${extra}${warningText}`,
       })
     } catch (caught) {
       setRefreshMessage({
@@ -350,6 +493,155 @@ export function SeriesSheet({
                 }`}
               >
                 {refreshMessage.text}
+              </p>
+            )}
+
+            {candidates.length > 0 && (
+              <div className="rounded-2xl border border-amber-400/20 bg-amber-400/5 p-3">
+                <div className="flex items-start gap-2">
+                  <Icon.Sparkles className="mt-0.5 size-4 shrink-0 text-amber-300" />
+                  <div className="min-w-0">
+                    <p className="text-xs font-semibold text-amber-100">
+                      Posibles capítulos ({candidates.length})
+                    </p>
+                    <p className="mt-0.5 text-[11px] leading-relaxed text-amber-200/70">
+                      No coinciden exactamente con el título. Revisa el número y
+                      añádelos solo si son de esta serie.
+                    </p>
+                  </div>
+                </div>
+
+                <ul className="mt-2 space-y-2">
+                  {candidates.map((candidate) => {
+                    const adding = addingCandidateId === candidate.videoId
+                    const busy = addingCandidateId !== null
+                    const number = candidateNumbers[candidate.videoId] ?? ''
+                    const isFinal =
+                      candidateFinal[candidate.videoId] ?? candidate.isFinal
+                    const duration = formatDuration(candidate.durationSeconds)
+
+                    return (
+                      <li
+                        key={candidate.videoId}
+                        className="rounded-2xl border border-zinc-800 bg-zinc-950/60 p-2"
+                      >
+                        <div className="flex gap-2">
+                          <a
+                            href={`https://www.youtube.com/watch?v=${candidate.videoId}`}
+                            target="_blank"
+                            rel="noreferrer"
+                            aria-label={`Abrir ${candidate.title} en YouTube`}
+                            className="relative aspect-video w-24 shrink-0 overflow-hidden rounded-lg bg-zinc-900"
+                          >
+                            {candidate.thumbnail && (
+                              <img
+                                src={candidate.thumbnail}
+                                alt=""
+                                loading="lazy"
+                                onError={(event) => {
+                                  event.currentTarget.style.display = 'none'
+                                }}
+                                className="size-full object-cover"
+                              />
+                            )}
+                            <span className="absolute inset-0 grid place-items-center bg-black/25 opacity-0 transition hover:opacity-100">
+                              <Icon.ExternalLink className="size-4 text-white" />
+                            </span>
+                          </a>
+
+                          <div className="min-w-0 flex-1">
+                            <p className="line-clamp-2 text-xs leading-snug text-zinc-200">
+                              {candidate.title}
+                            </p>
+                            <p className="mt-0.5 truncate text-[10px] text-zinc-500">
+                              {candidate.channelTitle}
+                              {duration ? ` · ${duration}` : ''}
+                              {candidate.source === 'search' ? ' · Fuera del canal' : ''}
+                            </p>
+
+                            <div className="mt-1 flex flex-wrap items-center gap-1.5">
+                              <label className="flex items-center gap-1 text-[10px] font-medium text-zinc-500">
+                                Nº
+                                <input
+                                  type="number"
+                                  inputMode="numeric"
+                                  min={1}
+                                  value={number}
+                                  onChange={(event) =>
+                                    setCandidateNumbers((current) => ({
+                                      ...current,
+                                      [candidate.videoId]: event.target.value.replace(
+                                        /[^\d]/g,
+                                        '',
+                                      ),
+                                    }))
+                                  }
+                                  aria-label={`Número de capítulo para ${candidate.title}`}
+                                  className="w-14 rounded-lg border border-zinc-700 bg-zinc-900 px-2 py-1 text-center text-xs font-semibold text-zinc-100 outline-none focus:border-rose-500"
+                                />
+                              </label>
+
+                              <button
+                                type="button"
+                                onClick={() =>
+                                  setCandidateFinal((current) => ({
+                                    ...current,
+                                    [candidate.videoId]: !isFinal,
+                                  }))
+                                }
+                                aria-pressed={Boolean(isFinal)}
+                                className={`rounded-full border px-2 py-1 text-[10px] font-semibold transition active:scale-95 ${
+                                  isFinal
+                                    ? 'border-amber-400/40 bg-amber-400/15 text-amber-200'
+                                    : 'border-zinc-700 text-zinc-500 hover:text-zinc-300'
+                                }`}
+                              >
+                                Final
+                              </button>
+
+                              <span className="ml-auto rounded-full bg-zinc-800 px-1.5 py-0.5 text-[9px] font-semibold text-zinc-400">
+                                {candidate.score}% afinidad
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+
+                        <div className="mt-2 flex gap-1.5">
+                          <button
+                            type="button"
+                            onClick={() => void handleAddCandidate(candidate)}
+                            disabled={busy}
+                            className="flex flex-1 items-center justify-center gap-1 rounded-xl border border-emerald-400/30 bg-emerald-400/10 px-3 py-2 text-[11px] font-semibold text-emerald-200 transition hover:border-emerald-400/50 hover:text-white active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-60"
+                          >
+                            <Icon.Check className="size-3.5" />
+                            {adding ? 'Añadiendo…' : 'Añadir capítulo'}
+                          </button>
+
+                          <button
+                            type="button"
+                            onClick={() => discardCandidate(candidate.videoId)}
+                            disabled={adding}
+                            className="rounded-xl border border-zinc-700 px-3 py-2 text-[11px] font-semibold text-zinc-400 transition hover:border-zinc-600 hover:text-zinc-200 active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-60"
+                          >
+                            Descartar
+                          </button>
+                        </div>
+                      </li>
+                    )
+                  })}
+                </ul>
+              </div>
+            )}
+
+            {candidateMessage && (
+              <p
+                className={`rounded-2xl border px-3 py-2 text-[11px] leading-relaxed ${
+                  candidateMessage.kind === 'error'
+                    ? 'border-rose-500/20 bg-rose-500/10 text-rose-200'
+                    : 'border-emerald-400/20 bg-emerald-400/10 text-emerald-200'
+                }`}
+              >
+                {candidateMessage.text}
               </p>
             )}
 

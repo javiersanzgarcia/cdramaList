@@ -12,6 +12,7 @@ import { useDriveSync } from './hooks/useDriveSync'
 import { useInstallPrompt } from './hooks/useInstallPrompt'
 import { usePersistentState } from './hooks/usePersistentState'
 import { sanitizeGoogleUser } from './lib/google'
+import { sortParts } from './lib/parts'
 import {
   createSeries,
   filterSeries,
@@ -22,13 +23,15 @@ import {
   normalizeSeries,
   watchedCount,
 } from './lib/series'
-import { discoverSeriesUpdates } from './lib/youtube'
+import { candidateToPart, discoverSeriesUpdates } from './lib/youtube'
 import type {
+  ChapterCandidate,
   Filter,
   GoogleUser,
   Part,
   Series,
   SeriesDraft,
+  SeriesRefreshResult,
   Tab,
 } from './types'
 
@@ -207,7 +210,7 @@ export default function App() {
 
   async function handleRefreshSeries(
     item: Series,
-  ): Promise<{ added: number; synced: boolean }> {
+  ): Promise<SeriesRefreshResult> {
     if (!apiKey) {
       throw new Error(
         'Configura la clave de YouTube en Ajustes para buscar capítulos nuevos.',
@@ -216,7 +219,15 @@ export default function App() {
 
     const update = await discoverSeriesUpdates(item, apiKey)
 
-    if (update.added.length === 0) return { added: 0, synced: false }
+    if (update.added.length === 0) {
+      return {
+        added: 0,
+        candidates: update.candidates,
+        parts: update.parts,
+        warnings: update.warnings,
+        synced: false,
+      }
+    }
 
     const next: Series = {
       ...item,
@@ -242,7 +253,44 @@ export default function App() {
       synced = await drive.syncNow(nextSeries)
     }
 
-    return { added: update.added.length, synced }
+    return {
+      added: update.added.length,
+      candidates: update.candidates,
+      parts: update.parts,
+      warnings: update.warnings,
+      synced,
+    }
+  }
+
+  async function handleAddCandidate(
+    item: Series,
+    candidate: ChapterCandidate,
+    options: { partNumber?: number; isFinal?: boolean },
+  ): Promise<{ synced: boolean }> {
+    if (item.parts.some((part) => part.videoId === candidate.videoId)) {
+      return { synced: false }
+    }
+
+    const part = candidateToPart(candidate, options)
+    const next: Series = {
+      ...item,
+      parts: sortParts([...item.parts, part]),
+      updatedAt: Date.now(),
+    }
+
+    setSeries((current) =>
+      current.map((existing) => (existing.id === item.id ? next : existing)),
+    )
+
+    let synced = false
+    if (drive.connected) {
+      const nextSeries = series.map((existing) =>
+        existing.id === item.id ? next : existing,
+      )
+      synced = await drive.syncNow(nextSeries)
+    }
+
+    return { synced }
   }
 
   function openAdd() {
@@ -412,6 +460,7 @@ export default function App() {
           onSetWatched={setWatched}
           onAddParts={handleAddParts}
           onRefresh={handleRefreshSeries}
+          onAddCandidate={handleAddCandidate}
           onDelete={deleteSeries}
         />
       )}
