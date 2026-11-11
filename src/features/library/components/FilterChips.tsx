@@ -1,4 +1,5 @@
 import type { Filter } from "../../series/types";
+import * as Icon from "../../../shared/components/Icons";
 
 const filters: { value: Filter; label: string }[] = [
   { value: "all", label: "Todas" },
@@ -15,25 +16,26 @@ interface FilterChipsProps {
 
 export function FilterChips({ value, onChange }: FilterChipsProps) {
   return (
-    <div className="no-scrollbar -mx-4 mt-3 flex gap-2 overflow-x-auto px-4 pb-1">
-      {filters.map((filter) => {
-        const active = value === filter.value;
-        return (
-          <button
+    <div className="relative mt-3">
+      <select
+        value={value}
+        onChange={(event) => onChange(event.target.value as Filter)}
+        aria-label="Filtrar series"
+        className="w-full cursor-pointer appearance-none rounded-full border border-zinc-800 bg-zinc-900/70 py-2 pl-4 pr-11 text-sm font-semibold text-zinc-100 outline-none transition hover:border-zinc-700 focus:border-rose-500/60 focus:ring-2 focus:ring-rose-500/25"
+      >
+        {filters.map((filter) => (
+          <option
             key={filter.value}
-            type="button"
-            onClick={() => onChange(filter.value)}
-            aria-pressed={active}
-            className={`shrink-0 rounded-full border px-3.5 py-1.5 text-xs font-semibold transition active:scale-95 ${
-              active
-                ? "border-transparent bg-rose-500 text-white shadow-lg shadow-rose-500/20"
-                : "border-zinc-800 bg-zinc-900/70 text-zinc-400 hover:border-zinc-700 hover:text-zinc-200"
-            }`}
+            value={filter.value}
+            className="bg-zinc-900 text-zinc-100"
           >
             {filter.label}
-          </button>
-        );
-      })}
+          </option>
+        ))}
+      </select>
+      <span className="pointer-events-none absolute inset-y-0 right-4 grid place-items-center text-zinc-500">
+        <Icon.ChevronDown className="size-4" />
+      </span>
     </div>
   );
 }

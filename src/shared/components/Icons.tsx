@@ -197,6 +197,14 @@ export function ChevronLeft(props: IconProps) {
   )
 }
 
+export function ChevronDown(props: IconProps) {
+  return (
+    <Svg {...props}>
+      <path d="m5 9 7 7 7-7" />
+    </Svg>
+  )
+}
+
 export function ExternalLink(props: IconProps) {
   return (
     <Svg {...props}>
