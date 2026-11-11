@@ -7,6 +7,7 @@ import { SettingsView } from "./features/settings/components/SettingsView";
 import { HomeView } from "./features/library/components/HomeView";
 import { ListView } from "./features/library/components/ListView";
 import { BottomNav } from "./shared/components/BottomNav";
+import { BusyOverlay } from "./shared/components/BusyOverlay";
 import * as Icon from "./shared/components/Icons";
 import { TopBar } from "./shared/components/TopBar";
 import { useDriveSync } from "./features/sync/hooks/useDriveSync";
@@ -51,6 +52,7 @@ export default function App() {
   const [player, setPlayer] = useState<PlayerState | null>(null);
   const [addOpen, setAddOpen] = useState(false);
   const [addTargetId, setAddTargetId] = useState<string | null>(null);
+  const [refreshing, setRefreshing] = useState(false);
   const { canInstall, promptInstall } = useInstallPrompt();
   const {
     updateSeries,
@@ -80,6 +82,40 @@ export default function App() {
   useEffect(() => {
     window.scrollTo({ top: 0 });
   }, [tab]);
+
+  // Mientras se actualiza una serie, avisa antes de cerrar o recargar la app
+  // y absorbe el botón «atrás» del navegador para no interrumpir la búsqueda
+  // ni dejar la sincronización a medias.
+  useEffect(() => {
+    if (!refreshing) return;
+
+    const guardState = {
+      ...(window.history.state ?? {}),
+      cdramalistBusy: true,
+    };
+    window.history.pushState(guardState, "");
+
+    function handlePopState() {
+      window.history.pushState(guardState, "");
+    }
+
+    function handleBeforeUnload(event: BeforeUnloadEvent) {
+      event.preventDefault();
+      event.returnValue = "";
+    }
+
+    window.addEventListener("popstate", handlePopState);
+    window.addEventListener("beforeunload", handleBeforeUnload);
+    return () => {
+      window.removeEventListener("popstate", handlePopState);
+      window.removeEventListener("beforeunload", handleBeforeUnload);
+      // Retira la entrada de guardia sin salir de la app. Cada «atrás» se
+      // absorbe reponiendo la misma entrada, así que basta con retroceder una.
+      if (window.history.state?.cdramalistBusy) {
+        window.history.back();
+      }
+    };
+  }, [refreshing]);
 
   // Limpia claves antiguas: el token de GitHub y el Client ID editable, que
   // ahora se configura solo con VITE_GOOGLE_CLIENT_ID.
@@ -296,6 +332,8 @@ export default function App() {
         <SeriesSheet
           series={selectedSeries}
           semanticConfigured={ENV_SEMANTIC_API_URL.length > 0}
+          refreshing={refreshing}
+          onBusyChange={setRefreshing}
           onClose={() => setSelectedSeriesId(null)}
           onPlay={playSeries}
           onToggleFavorite={toggleFavorite}
@@ -337,6 +375,12 @@ export default function App() {
           onClose={() => setAccountOpen(false)}
         />
       )}
+
+      <BusyOverlay
+        open={refreshing}
+        title="Actualizando serie…"
+        message="No cierres la app ni cambies de pantalla. Estamos buscando capítulos y guardando los cambios; puede tardar hasta un minuto."
+      />
     </div>
   );
 }

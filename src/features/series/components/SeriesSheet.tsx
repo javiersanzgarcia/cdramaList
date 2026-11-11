@@ -22,6 +22,8 @@ import * as Icon from "../../../shared/components/Icons";
 interface SeriesSheetProps {
   series: Series;
   semanticConfigured: boolean;
+  refreshing: boolean;
+  onBusyChange: (busy: boolean) => void;
   onClose: () => void;
   onPlay: (series: Series, index: number) => void;
   onToggleFavorite: (id: string) => void;
@@ -41,6 +43,8 @@ interface SeriesSheetProps {
 export function SeriesSheet({
   series,
   semanticConfigured,
+  refreshing,
+  onBusyChange,
   onClose,
   onPlay,
   onToggleFavorite,
@@ -53,7 +57,10 @@ export function SeriesSheet({
   onDelete,
 }: SeriesSheetProps) {
   const [confirmingDelete, setConfirmingDelete] = useState(false);
-  useSheet(onClose);
+  const handleClose = () => {
+    if (!refreshing) onClose();
+  };
+  useSheet(handleClose);
 
   const total = series.parts.length;
   const watched = watchedCount(series);
@@ -93,10 +100,11 @@ export function SeriesSheet({
       role="dialog"
       aria-modal="true"
       aria-labelledby="series-sheet-title"
+      inert={refreshing}
     >
       <button
         type="button"
-        onClick={onClose}
+        onClick={handleClose}
         aria-label="Cerrar"
         className="absolute inset-0 animate-fade-in bg-black/70 backdrop-blur-sm"
       />
@@ -113,7 +121,7 @@ export function SeriesSheet({
           </div>
           <button
             type="button"
-            onClick={onClose}
+            onClick={handleClose}
             aria-label="Cerrar"
             className="grid size-9 shrink-0 place-items-center rounded-full bg-zinc-800/80 text-zinc-300 transition hover:text-white active:scale-90"
           >
@@ -231,6 +239,7 @@ export function SeriesSheet({
             semanticConfigured={semanticConfigured}
             onRefresh={onRefresh}
             onAddCandidate={onAddCandidate}
+            onBusyChange={onBusyChange}
           />
 
           <div className="mt-2 space-y-2">

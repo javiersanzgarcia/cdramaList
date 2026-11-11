@@ -43,6 +43,11 @@ import type { RankedCandidate } from "./seriesCandidateRanking";
 
 const MAX_CANDIDATES = 12;
 const MAX_SEMANTIC_CANDIDATES = 12;
+// Ventana de re-subidas recientes del canal que se clasifica semánticamente.
+// Debe cubrir varios días: los canales de resúmenes suben muchos vídeos al día
+// y una re-subida puede quedar decenas de posiciones por debajo de la última.
+const MAX_RECENT_CHANNEL_CANDIDATES = 30;
+const MAX_FINGERPRINT_CANDIDATES = 39;
 
 export interface SeriesUpdate {
   parts: Part[];
@@ -202,6 +207,13 @@ export async function discoverSeriesUpdates(
   const added: Part[] = [];
   const ranked: RankedCandidate[] = [];
   const semanticPool: RankedCandidate[] = [];
+  const recentPool: RankedCandidate[] = [];
+  const recentChannelIds = new Set(
+    uploads
+      .filter((video) => !known.has(video.videoId))
+      .slice(0, MAX_RECENT_CHANNEL_CANDIDATES)
+      .map((video) => video.videoId),
+  );
 
   for (const { video, source } of byId.values()) {
     if (known.has(video.videoId)) continue;
@@ -259,7 +271,8 @@ export async function discoverSeriesUpdates(
     );
     const titleRelevant =
       (titleShared >= minShared &&
-        (titleOverlap >= 0.45 || (sameChannel && titleOverlap >= 0.3))) ||
+        (titleOverlap >= 0.45 ||
+          (titleOverlap >= 0.3 && (sameChannel || titleShared >= 4)))) ||
       (learningBonus >= 4 && titleShared >= 1);
     const matchedBy: "title" | "description" =
       descriptionRelevant &&
@@ -288,11 +301,18 @@ export async function discoverSeriesUpdates(
     };
 
     if (!descriptionRelevant && !titleRelevant) {
-      if (
-        semanticEndpoint &&
-        (info.partNumber != null || info.isFinal || descriptionTitle)
-      ) {
-        semanticPool.push(candidate);
+      if (semanticEndpoint) {
+        if (
+          info.partNumber != null ||
+          info.isFinal ||
+          descriptionTitle
+        ) {
+          semanticPool.push(candidate);
+        } else if (recentChannelIds.has(video.videoId)) {
+          // Re-subidas con un título completamente distinto: se clasifican
+          // semánticamente para poder ofrecerlas como candidatas.
+          recentPool.push(candidate);
+        }
       }
       continue;
     }
@@ -304,17 +324,23 @@ export async function discoverSeriesUpdates(
     const lexicalCandidates = [...ranked]
       .sort((a, b) => b.score - a.score)
       .slice(0, MAX_SEMANTIC_CANDIDATES);
-    const candidatesForFingerprint = [
-      ...lexicalCandidates,
+    const prioritizedCandidates = [
       ...semanticPool
         .sort((a, b) => b.score - a.score)
         .slice(0, MAX_SEMANTIC_CANDIDATES),
-    ].filter(
-      (candidate, index, candidates) =>
-        candidates.findIndex(
-          (other) => other.video.videoId === candidate.video.videoId,
-        ) === index,
-    );
+      ...recentPool,
+      ...lexicalCandidates,
+    ];
+    const maxFingerprintCandidates =
+      MAX_FINGERPRINT_CANDIDATES - (semanticFingerprint ? 0 : 1);
+    const candidatesForFingerprint = prioritizedCandidates
+      .filter(
+        (candidate, index, candidates) =>
+          candidates.findIndex(
+            (other) => other.video.videoId === candidate.video.videoId,
+          ) === index,
+      )
+      .slice(0, maxFingerprintCandidates);
     const entries = [
       ...(!semanticFingerprint
         ? [

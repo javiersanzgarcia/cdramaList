@@ -21,6 +21,7 @@ interface SeriesRefreshPanelProps {
     candidate: ChapterCandidate,
     options: { partNumber?: number; isFinal?: boolean },
   ) => Promise<{ synced: boolean }>;
+  onBusyChange?: (busy: boolean) => void;
 }
 
 export function SeriesRefreshPanel({
@@ -28,6 +29,7 @@ export function SeriesRefreshPanel({
   semanticConfigured,
   onRefresh,
   onAddCandidate,
+  onBusyChange,
 }: SeriesRefreshPanelProps) {
   const [refreshing, setRefreshing] = useState(false);
   const [refreshMessage, setRefreshMessage] = useState<{
@@ -124,6 +126,7 @@ export function SeriesRefreshPanel({
     if (refreshing) return;
 
     setRefreshing(true);
+    onBusyChange?.(true);
     setRefreshMessage(null);
     setCandidateMessage(null);
 
@@ -179,6 +182,7 @@ export function SeriesRefreshPanel({
       });
     } finally {
       setRefreshing(false);
+      onBusyChange?.(false);
     }
   }
 

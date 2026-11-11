@@ -10,8 +10,12 @@ interface SemanticResponse {
   error?: unknown;
 }
 
-const REQUEST_TIMEOUT_MS = 30_000;
+const REQUEST_TIMEOUT_MS = 60_000;
 const MAX_TEXT_LENGTH = 1200;
+// El Worker acepta como máximo 25 entradas por petición, pero con lotes
+// pequeños responde mucho antes. Se envían varios lotes en paralelo para
+// cubrir una ventana amplia de re-subidas sin alargar la actualización.
+const MAX_ENTRIES_PER_REQUEST = 10;
 
 const FINGERPRINT_CATEGORIES: Array<keyof SemanticFingerprint> = [
   "genres",
@@ -105,7 +109,7 @@ async function requestFingerprints(
   } catch (cause) {
     if (timedOut) {
       throw new Error(
-        "El servicio semántico agotó el tiempo máximo de respuesta de 30 segundos.",
+        "El servicio semántico agotó el tiempo máximo de respuesta de 60 segundos.",
       );
     }
     throw cause;
@@ -118,6 +122,10 @@ async function requestFingerprints(
  * Pide al Worker de Cloudflare los fingerprints semánticos de una lista de
  * textos. El Worker enlaza Workers AI, así que la PWA nunca incluye una clave
  * de proveedor: solo conoce la URL pública del endpoint.
+ *
+ * Si hay más entradas de las que admite una petición, se envían en varios
+ * lotes. Un lote que falle no invalida los fingerprints ya obtenidos: la
+ * búsqueda léxica y los candidatos del resto de lotes siguen funcionando.
  */
 export async function generateSemanticFingerprints(
   endpoint: string,
@@ -127,6 +135,45 @@ export async function generateSemanticFingerprints(
   if (!url || entries.length === 0) return new Map();
 
   const deadline = Date.now() + REQUEST_TIMEOUT_MS;
+  const chunks: FingerprintInput[][] = [];
+  for (
+    let index = 0;
+    index < entries.length;
+    index += MAX_ENTRIES_PER_REQUEST
+  ) {
+    chunks.push(entries.slice(index, index + MAX_ENTRIES_PER_REQUEST));
+  }
+
+  const settled = await Promise.allSettled(
+    chunks.map((chunk) => requestFingerprintChunk(url, chunk, deadline)),
+  );
+
+  const results = new Map<string, SemanticFingerprint>();
+  let firstError: unknown;
+  for (const outcome of settled) {
+    if (outcome.status === "rejected") {
+      firstError ??= outcome.reason;
+      continue;
+    }
+    for (const [id, fingerprint] of outcome.value) {
+      results.set(id, fingerprint);
+    }
+  }
+
+  if (results.size === 0) {
+    throw firstError instanceof Error
+      ? firstError
+      : new Error("El servicio semántico no devolvió fingerprints válidos.");
+  }
+
+  return results;
+}
+
+async function requestFingerprintChunk(
+  url: string,
+  entries: FingerprintInput[],
+  deadline: number,
+): Promise<Map<string, SemanticFingerprint>> {
   const request = () =>
     requestFingerprints(url, entries, Math.max(1, deadline - Date.now()));
 
@@ -141,7 +188,7 @@ export async function generateSemanticFingerprints(
     }
     if (Date.now() >= deadline) {
       throw new Error(
-        "El servicio semántico agotó el tiempo máximo de respuesta de 30 segundos.",
+        "El servicio semántico agotó el tiempo máximo de respuesta de 60 segundos.",
       );
     }
     result = await request();

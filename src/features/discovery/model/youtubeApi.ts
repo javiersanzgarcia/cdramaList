@@ -118,12 +118,18 @@ export async function fetchJson<T>(
   url.searchParams.set("key", apiKey);
 
   let response: Response;
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 20_000);
   try {
-    response = await fetch(url.toString());
+    response = await fetch(url.toString(), { signal: controller.signal });
   } catch {
     throw new YouTubeError(
-      "No se pudo conectar con YouTube. Revisa tu conexión.",
+      controller.signal.aborted
+        ? "YouTube tardó demasiado en responder. Inténtalo de nuevo."
+        : "No se pudo conectar con YouTube. Revisa tu conexión.",
     );
+  } finally {
+    clearTimeout(timeout);
   }
 
   if (!response.ok) {
