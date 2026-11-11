@@ -1,4 +1,4 @@
-import type { ReactNode } from "react";
+import { useEffect, useRef, type ReactNode } from "react";
 import { continueWatching } from "../../series/model/series";
 import type { Filter, Series } from "../../series/types";
 import { ContinueCard } from "./ContinueCard";
@@ -42,6 +42,33 @@ export function HomeView({
   const continueList = continueWatching(allSeries).slice(0, 8);
   const showContinue =
     query.trim().length === 0 && filter === "all" && continueList.length > 0;
+  const continueScrollRef = useRef<HTMLDivElement>(null);
+
+  // La barra de scroll está oculta, así que en desktop la rueda del ratón no
+  // desplaza la fila horizontal. La convertimos en scroll horizontal mientras
+  // quede contenido por mostrar; en los extremos dejamos libre el scroll vertical.
+  useEffect(() => {
+    const element = continueScrollRef.current;
+    if (!element) return;
+    const scroller: HTMLDivElement = element;
+
+    function handleWheel(event: WheelEvent) {
+      if (event.deltaY === 0 || event.deltaX !== 0) return;
+      if (scroller.scrollWidth <= scroller.clientWidth) return;
+
+      const atStart = scroller.scrollLeft <= 0;
+      const atEnd =
+        scroller.scrollLeft + scroller.clientWidth >= scroller.scrollWidth - 1;
+      if ((event.deltaY < 0 && atStart) || (event.deltaY > 0 && atEnd)) return;
+
+      event.preventDefault();
+      scroller.scrollLeft += event.deltaY;
+    }
+
+    element.addEventListener("wheel", handleWheel, { passive: false });
+    return () => element.removeEventListener("wheel", handleWheel);
+  }, [showContinue]);
+
   const sectionTitle =
     filter === "favorites"
       ? "Tus favoritas"
@@ -114,7 +141,10 @@ export function HomeView({
             </span>
           </div>
 
-          <div className="no-scrollbar -mx-4 mt-3 flex gap-3 overflow-x-auto px-4 pb-1">
+          <div
+            ref={continueScrollRef}
+            className="no-scrollbar -mx-4 mt-3 flex gap-3 overflow-x-auto px-4 pb-1"
+          >
             {continueList.map((item) => (
               <ContinueCard
                 key={item.id}
