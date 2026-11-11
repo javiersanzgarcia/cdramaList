@@ -58,6 +58,9 @@ export function useSeriesActions({
     );
     const alreadyComplete =
       item.parts.length > 0 && watchedCount(item) >= item.parts.length;
+    // Reproducir una parte deja la serie «en curso» automáticamente (o
+    // «completada» si ya se habían visto todas).
+    const nextStatus: SeriesStatus = alreadyComplete ? "completed" : "watching";
 
     setPlayer({ seriesId: item.id, index: safeIndex });
     updateSeries((current) =>
@@ -66,9 +69,14 @@ export function useSeriesActions({
           ? {
               ...existing,
               lastOpenedAt: Date.now(),
-              // Reproducir una parte deja la serie «en curso» automáticamente
-              // (o «completada» si ya se habían visto todas).
-              status: alreadyComplete ? "completed" : "watching",
+              status: nextStatus,
+              // Un cambio de estado debe marcar la serie como reciente; si no,
+              // otra copia con el mismo `updatedAt` lo sobrescribiría al
+              // sincronizar entre dispositivos.
+              updatedAt:
+                existing.status === nextStatus
+                  ? existing.updatedAt
+                  : Date.now(),
             }
           : existing,
       ),
@@ -78,7 +86,9 @@ export function useSeriesActions({
   function toggleFavorite(id: string) {
     updateSeries((current) =>
       current.map((item) =>
-        item.id === id ? { ...item, favorite: !item.favorite } : item,
+        item.id === id
+          ? { ...item, favorite: !item.favorite, updatedAt: Date.now() }
+          : item,
       ),
     );
   }
@@ -229,7 +239,15 @@ export function useSeriesActions({
   }
 
   function deleteSeries(id: string) {
-    updateSeries((current) => current.filter((item) => item.id !== id));
+    // En lugar de eliminarla, se marca con una lápida: así el borrado llega a
+    // los demás dispositivos y no vuelve a subirse desde su copia local.
+    updateSeries((current) =>
+      current.map((item) =>
+        item.id === id
+          ? { ...item, deletedAt: Date.now(), updatedAt: Date.now() }
+          : item,
+      ),
+    );
     setSelectedSeriesId((current) => (current === id ? null : current));
     setPlayer((current) => (current?.seriesId === id ? null : current));
     setAddTargetId((current) => (current === id ? null : current));
@@ -337,7 +355,7 @@ export function useSeriesActions({
       );
     }
 
-    const favorites = series.filter((item) => item.favorite);
+    const favorites = series.filter((item) => item.favorite && !item.deletedAt);
     if (favorites.length === 0) {
       return { updatedIds: [], candidatesById: {}, failed: 0 };
     }

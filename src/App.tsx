@@ -31,16 +31,24 @@ const ENV_YOUTUBE_API_KEY = (import.meta.env.VITE_YOUTUBE_API_KEY ?? "").trim();
 const ENV_SEMANTIC_API_URL = (import.meta.env.VITE_SEMANTIC_API_URL ?? "").trim();
 
 export default function App() {
-  const series = useAppStore((state) => state.series);
+  const allSeries = useAppStore((state) => state.series);
   const setSeries = useAppStore((state) => state.setSeries);
+  // Las series borradas se conservan marcadas con una lápida para que el
+  // borrado se propague al sincronizar, pero no se muestran ni cuentan.
+  const series = useMemo(
+    () => allSeries.filter((item) => !item.deletedAt),
+    [allSeries],
+  );
   const apiKeyOverride = useAppStore((state) => state.apiKeyOverride);
   const setApiKeyOverride = useAppStore((state) => state.setApiKeyOverride);
   const apiKey = ENV_YOUTUBE_API_KEY || apiKeyOverride;
   const googleUser = useAppStore((state) => state.googleUser);
   const setGoogleUser = useAppStore((state) => state.setGoogleUser);
+  // La sincronización trabaja con la lista completa para no perder las lápidas
+  // de las series borradas.
   const drive = useDriveSync({
     clientId: ENV_CLIENT_ID,
-    series,
+    series: allSeries,
     setSeries,
     onUser: setGoogleUser,
   });
@@ -80,7 +88,9 @@ export default function App() {
     handleAddCandidate,
     discardCandidate,
   } = useSeriesActions({
-    series,
+    // Las acciones ven la lista completa (incluidas las lápidas) para no
+    // reintroducir series borradas al construir la lista que se sincroniza.
+    series: allSeries,
     setSeries,
     apiKey,
     semanticEndpoint: ENV_SEMANTIC_API_URL,
@@ -224,7 +234,9 @@ export default function App() {
       app: "cdramalist",
       version: 2,
       exportedAt: new Date().toISOString(),
-      series,
+      // Se exporta también lo borrado (con lápida) para que al importar en otro
+      // dispositivo no reaparezca.
+      series: allSeries,
     };
 
     const blob = new Blob([JSON.stringify(payload, null, 2)], {
@@ -263,8 +275,9 @@ export default function App() {
 
       updateSeries((current) => mergeSeriesCollections(current, imported));
 
+      const importedCount = imported.filter((item) => !item.deletedAt).length;
       window.alert(
-        `Se ${imported.length === 1 ? "ha importado 1 serie" : `han importado ${imported.length} series`}.`,
+        `Se ${importedCount === 1 ? "ha importado 1 serie" : `han importado ${importedCount} series`}.`,
       );
     } catch {
       window.alert(

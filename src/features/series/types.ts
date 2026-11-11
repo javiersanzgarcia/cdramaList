@@ -52,6 +52,12 @@ export interface Series {
   createdAt: number;
   updatedAt: number;
   lastOpenedAt?: number;
+  /**
+   * Marca de borrado. La serie se oculta en la app pero se conserva para
+   * propagar el borrado al sincronizar: sin esta lápida, otro dispositivo
+   * volvería a subirla a Google Drive.
+   */
+  deletedAt?: number;
 }
 
 export interface SeriesDraft {

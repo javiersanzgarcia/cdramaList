@@ -253,8 +253,11 @@ function canonicalSeries(series: Series) {
     channelUrl: series.channelUrl ?? null,
     thumbnail: series.thumbnail ?? null,
     favorite: series.favorite,
+    status: series.status ?? null,
+    discardedCandidates: [...(series.discardedCandidates ?? [])].sort(),
     createdAt: series.createdAt,
     updatedAt: series.updatedAt,
+    deletedAt: series.deletedAt ?? null,
     watched: [...series.watched].sort(),
     parts: series.parts
       .map((part) => ({

@@ -552,11 +552,16 @@ export function normalizeSeries(value: Series): Series {
     updatedAt: typeof value.updatedAt === "number" ? value.updatedAt : now,
     lastOpenedAt:
       typeof value.lastOpenedAt === "number" ? value.lastOpenedAt : undefined,
+    deletedAt:
+      typeof value.deletedAt === "number" ? value.deletedAt : undefined,
   };
 }
 
 export function combineSeries(current: Series, incoming: Series): Series {
-  const newer = incoming.updatedAt >= current.updatedAt ? incoming : current;
+  // En caso de empate gana la copia local: así un cambio hecho en este
+  // dispositivo (por ejemplo el estado) no lo borra la copia de Drive, que
+  // puede tener el mismo `updatedAt` sin reflejar ese cambio.
+  const newer = incoming.updatedAt > current.updatedAt ? incoming : current;
   const older = newer === incoming ? current : incoming;
   const lastOpenedAt = Math.max(
     current.lastOpenedAt ?? 0,
@@ -568,7 +573,9 @@ export function combineSeries(current: Series, incoming: Series): Series {
     ...newer,
     id: current.id,
     createdAt: Math.min(current.createdAt, incoming.createdAt),
-    favorite: current.favorite || incoming.favorite,
+    // Gana la copia más reciente para poder quitar de favoritos entre
+    // dispositivos (con un OR nunca se podría desmarcar).
+    favorite: newer.favorite,
     aliases: normalizeAliases([
       ...(current.aliases ?? []),
       ...(incoming.aliases ?? []),
@@ -578,6 +585,11 @@ export function combineSeries(current: Series, incoming: Series): Series {
       incoming.keywordConfidence,
     ),
     semanticFingerprint: newer.semanticFingerprint ?? older.semanticFingerprint,
+    // Los campos opcionales no deben perderse si la copia más nueva no los
+    // trae (por ejemplo, un archivo de Drive creado antes de que existieran).
+    channelId: newer.channelId ?? older.channelId,
+    channelUrl: newer.channelUrl ?? older.channelUrl,
+    thumbnail: newer.thumbnail ?? older.thumbnail,
     parts: mergeParts(current.parts, incoming.parts),
     watched: [...new Set([...current.watched, ...incoming.watched])],
     discardedCandidates: [
@@ -588,7 +600,19 @@ export function combineSeries(current: Series, incoming: Series): Series {
     ],
     updatedAt: Math.max(current.updatedAt, incoming.updatedAt),
     lastOpenedAt: lastOpenedAt > 0 ? lastOpenedAt : undefined,
+    // El borrado es pegajoso: si una de las dos copias tiene lápida, la serie
+    // queda borrada en ambas (no existe función para «desborrar»).
+    deletedAt: earliest(current.deletedAt, incoming.deletedAt),
   };
+}
+
+function earliest(
+  current: number | undefined,
+  incoming: number | undefined,
+): number | undefined {
+  if (current == null) return incoming;
+  if (incoming == null) return current;
+  return Math.min(current, incoming);
 }
 
 export function mergeSeriesCollections(
