@@ -304,6 +304,97 @@ export function useSeriesActions({
     };
   }
 
+  /** Guarda un candidato descartado para no volver a proponerlo. */
+  function discardCandidate(item: Series, videoId: string) {
+    updateSeries((current) =>
+      current.map((existing) =>
+        existing.id === item.id
+          ? {
+              ...existing,
+              discardedCandidates: [
+                ...new Set([...(existing.discardedCandidates ?? []), videoId]),
+              ],
+              updatedAt: Date.now(),
+            }
+          : existing,
+      ),
+    );
+  }
+
+  /**
+   * Actualiza todas las series favoritas de una vez. Devuelve los ids de las
+   * que tienen novedades (capítulos nuevos o candidatos) para revisarlas, y se
+   * sincroniza una sola vez al terminar.
+   */
+  async function handleRefreshFavorites(): Promise<{
+    updatedIds: string[];
+    candidatesById: Record<string, ChapterCandidate[]>;
+    failed: number;
+  }> {
+    if (!apiKey) {
+      throw new Error(
+        "Configura la clave de YouTube en Ajustes para buscar capítulos nuevos.",
+      );
+    }
+
+    const favorites = series.filter((item) => item.favorite);
+    if (favorites.length === 0) {
+      return { updatedIds: [], candidatesById: {}, failed: 0 };
+    }
+
+    let next = series;
+    const updatedIds: string[] = [];
+    const candidatesById: Record<string, ChapterCandidate[]> = {};
+    let failed = 0;
+
+    for (const favorite of favorites) {
+      const current = next.find((item) => item.id === favorite.id) ?? favorite;
+
+      try {
+        const update = await discoverSeriesUpdates(
+          current,
+          apiKey,
+          semanticEndpoint,
+        );
+
+        // Solo cuentan como novedad los capítulos nuevos o los candidatos.
+        if (update.added.length === 0 && update.candidates.length === 0) {
+          continue;
+        }
+
+        const merged: Series = {
+          ...current,
+          channelId: current.channelId ?? update.channelId,
+          channelTitle:
+            current.channelTitle === "YouTube" && update.channelTitle
+              ? update.channelTitle
+              : current.channelTitle,
+          channelUrl: current.channelUrl ?? update.channelUrl,
+          parts: update.parts,
+          semanticFingerprint:
+            update.semanticFingerprint ?? current.semanticFingerprint,
+          updatedAt: Date.now(),
+        };
+
+        next = next.map((item) => (item.id === current.id ? merged : item));
+        updatedIds.push(current.id);
+        candidatesById[current.id] = update.candidates;
+      } catch {
+        failed += 1;
+      }
+    }
+
+    if (updatedIds.length > 0) {
+      updateSeries(() => next);
+      // Una sola sincronización al terminar, no una por cada serie.
+      if (drive.connected) {
+        await drive.syncNow(next);
+      }
+    }
+
+    return { updatedIds, candidatesById, failed };
+  }
+
   async function handleAddCandidate(
     item: Series,
     candidate: ChapterCandidate,
@@ -355,6 +446,8 @@ export function useSeriesActions({
     deleteSeries,
     handleAddParts,
     handleRefreshSeries,
+    handleRefreshFavorites,
     handleAddCandidate,
+    discardCandidate,
   };
 }

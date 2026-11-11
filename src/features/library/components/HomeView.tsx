@@ -1,4 +1,4 @@
-import { useEffect, useRef, type ReactNode } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import { continueWatching } from "../../series/model/series";
 import type { Filter, Series } from "../../series/types";
 import { ContinueCard } from "./ContinueCard";
@@ -21,6 +21,7 @@ interface HomeViewProps {
   onPlay: (series: Series, index: number) => void;
   onToggleFavorite: (id: string) => void;
   onAdd: () => void;
+  onRefreshFavorites: () => Promise<{ updated: number; failed: number }>;
   onOpenSettings: () => void;
 }
 
@@ -37,12 +38,19 @@ export function HomeView({
   onPlay,
   onToggleFavorite,
   onAdd,
+  onRefreshFavorites,
   onOpenSettings,
 }: HomeViewProps) {
   const continueList = continueWatching(allSeries).slice(0, 8);
   const showContinue =
     query.trim().length === 0 && filter === "all" && continueList.length > 0;
   const continueScrollRef = useRef<HTMLDivElement>(null);
+  const [favoritesBusy, setFavoritesBusy] = useState(false);
+  const [favoritesMessage, setFavoritesMessage] = useState<{
+    kind: "info" | "error";
+    text: string;
+  } | null>(null);
+  const favoriteList = allSeries.filter((item) => item.favorite);
 
   // La barra de scroll está oculta, así que en desktop la rueda del ratón no
   // desplaza la fila horizontal. La convertimos en scroll horizontal mientras
@@ -79,6 +87,37 @@ export function HomeView({
   function clearFilters() {
     onQueryChange("");
     onFilterChange("all");
+  }
+
+  async function handleRefreshFavorites() {
+    if (favoritesBusy) return;
+
+    setFavoritesBusy(true);
+    setFavoritesMessage(null);
+
+    try {
+      const result = await onRefreshFavorites();
+      // Con novedades, la ficha se abre sola; solo avisamos si no hay ninguna.
+      if (result.updated > 0) return;
+
+      setFavoritesMessage({
+        kind: result.failed > 0 ? "error" : "info",
+        text:
+          result.failed > 0
+            ? `No se ${result.failed === 1 ? "pudo revisar 1 serie" : `pudieron revisar ${result.failed} series`}. Ninguna tiene novedades.`
+            : "No hay capítulos nuevos ni candidatos en tus favoritas.",
+      });
+    } catch (caught) {
+      setFavoritesMessage({
+        kind: "error",
+        text:
+          caught instanceof Error
+            ? caught.message
+            : "No se pudieron actualizar las favoritas. Inténtalo de nuevo.",
+      });
+    } finally {
+      setFavoritesBusy(false);
+    }
   }
 
   return (
@@ -166,6 +205,36 @@ export function HomeView({
             {series.length} {series.length === 1 ? "serie" : "series"}
           </span>
         </div>
+
+        {filter === "favorites" && favoriteList.length > 0 && (
+          <div className="mt-3 space-y-2">
+            <button
+              type="button"
+              onClick={() => void handleRefreshFavorites()}
+              disabled={favoritesBusy}
+              className="flex w-full items-center justify-center gap-2 rounded-2xl border border-rose-500/30 bg-rose-500/10 px-4 py-3 text-sm font-semibold text-rose-200 transition hover:border-rose-500/50 hover:bg-rose-500/15 hover:text-white active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              <Icon.RefreshCw
+                className={`size-4 ${favoritesBusy ? "animate-spin" : ""}`}
+              />
+              {favoritesBusy
+                ? "Buscando novedades…"
+                : "Actualizar todas las favoritas"}
+            </button>
+
+            {favoritesMessage && (
+              <p
+                className={`rounded-2xl border px-3 py-2 text-[11px] leading-relaxed ${
+                  favoritesMessage.kind === "error"
+                    ? "border-rose-500/20 bg-rose-500/10 text-rose-200"
+                    : "border-zinc-700 bg-zinc-950/60 text-zinc-300"
+                }`}
+              >
+                {favoritesMessage.text}
+              </p>
+            )}
+          </div>
+        )}
 
         {series.length > 0 ? (
           <div className="mt-3 grid grid-cols-2 gap-3">

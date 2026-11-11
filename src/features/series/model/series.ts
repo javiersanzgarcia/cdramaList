@@ -411,6 +411,18 @@ export function normalizeAliases(value: unknown): string[] {
 }
 
 /**
+ * IDs de vídeos descartados a mano en las sugerencias de capítulos. Se guardan
+ * para no volver a proponerlos en futuras actualizaciones de la serie.
+ */
+export function normalizeDiscardedCandidates(value: unknown): string[] {
+  if (!Array.isArray(value)) return [];
+
+  return [
+    ...new Set(value.filter((id): id is string => typeof id === "string")),
+  ];
+}
+
+/**
  * Títulos base de los vídeos de YouTube, sin marcadores de parte ni emojis.
  * Sirven como alias para que una re-subida publicada con otro título siga
  * apareciendo en las búsquedas de la serie.
@@ -533,6 +545,9 @@ export function normalizeSeries(value: Series): Series {
       value.status === "completed"
         ? value.status
         : undefined,
+    discardedCandidates: normalizeDiscardedCandidates(
+      value.discardedCandidates,
+    ),
     createdAt: typeof value.createdAt === "number" ? value.createdAt : now,
     updatedAt: typeof value.updatedAt === "number" ? value.updatedAt : now,
     lastOpenedAt:
@@ -565,6 +580,12 @@ export function combineSeries(current: Series, incoming: Series): Series {
     semanticFingerprint: newer.semanticFingerprint ?? older.semanticFingerprint,
     parts: mergeParts(current.parts, incoming.parts),
     watched: [...new Set([...current.watched, ...incoming.watched])],
+    discardedCandidates: [
+      ...new Set([
+        ...(current.discardedCandidates ?? []),
+        ...(incoming.discardedCandidates ?? []),
+      ]),
+    ],
     updatedAt: Math.max(current.updatedAt, incoming.updatedAt),
     lastOpenedAt: lastOpenedAt > 0 ? lastOpenedAt : undefined,
   };

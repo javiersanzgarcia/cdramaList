@@ -98,6 +98,7 @@ export async function discoverSeriesUpdates(
   }
 
   const known = new Set(series.parts.map((part) => part.videoId));
+  const discarded = new Set(series.discardedCandidates ?? []);
   const [uploads, referenceVideos] = await Promise.all([
     channelId
       ? fetchChannelUploads(channelId, apiKey).catch((cause) => {
@@ -253,7 +254,8 @@ export async function discoverSeriesUpdates(
   );
 
   for (const { video, source } of byId.values()) {
-    if (known.has(video.videoId)) continue;
+    // Los vídeos ya descartados a mano no se vuelven a proponer.
+    if (known.has(video.videoId) || discarded.has(video.videoId)) continue;
 
     const info = detectPart(video.title);
     const descriptionTitle = extractDescriptionTitle(video.description);

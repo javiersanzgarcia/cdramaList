@@ -15,20 +15,25 @@ import * as Icon from "../../../shared/components/Icons";
 interface SeriesRefreshPanelProps {
   series: Series;
   semanticConfigured: boolean;
+  /** Candidatos ya encontrados (p. ej. al actualizar todas las favoritas). */
+  initialCandidates?: ChapterCandidate[];
   onRefresh: (series: Series) => Promise<SeriesRefreshResult>;
   onAddCandidate: (
     series: Series,
     candidate: ChapterCandidate,
     options: { partNumber?: number; isFinal?: boolean },
   ) => Promise<{ synced: boolean }>;
+  onDiscardCandidate: (series: Series, videoId: string) => void;
   onBusyChange?: (busy: boolean) => void;
 }
 
 export function SeriesRefreshPanel({
   series,
   semanticConfigured,
+  initialCandidates,
   onRefresh,
   onAddCandidate,
+  onDiscardCandidate,
   onBusyChange,
 }: SeriesRefreshPanelProps) {
   const [refreshing, setRefreshing] = useState(false);
@@ -36,12 +41,14 @@ export function SeriesRefreshPanel({
     kind: "ok" | "info" | "error";
     text: string;
   } | null>(null);
-  const [candidates, setCandidates] = useState<ChapterCandidate[]>([]);
+  const [candidates, setCandidates] = useState<ChapterCandidate[]>(
+    () => initialCandidates ?? [],
+  );
   const [candidateNumbers, setCandidateNumbers] = useState<
     Record<string, string>
-  >({});
+  >(() => buildCandidateState(initialCandidates ?? [], series.parts).numbers);
   const [candidateFinal, setCandidateFinal] = useState<Record<string, boolean>>(
-    {},
+    () => buildCandidateState(initialCandidates ?? [], series.parts).finals,
   );
   const [addingCandidateId, setAddingCandidateId] = useState<string | null>(
     null,
@@ -60,6 +67,8 @@ export function SeriesRefreshPanel({
   }
 
   function discardCandidate(videoId: string) {
+    // Se guarda en la serie para no volver a proponerlo en próximas búsquedas.
+    onDiscardCandidate(series, videoId);
     setCandidates((current) =>
       current.filter((candidate) => candidate.videoId !== videoId),
     );

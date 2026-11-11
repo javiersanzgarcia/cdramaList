@@ -47,6 +47,8 @@ export interface Series {
    * el estado se calcula automáticamente a partir del progreso.
    */
   status?: SeriesStatus;
+  /** Candidatos descartados a mano: no se vuelven a sugerir en las búsquedas. */
+  discardedCandidates?: string[];
   createdAt: number;
   updatedAt: number;
   lastOpenedAt?: number;

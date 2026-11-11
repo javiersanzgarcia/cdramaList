@@ -23,6 +23,7 @@ import {
 import { useAppStore } from "./store/appStore";
 import { useSeriesActions } from "./features/series/useSeriesActions";
 import type { Filter } from "./features/series/types";
+import type { ChapterCandidate } from "./features/discovery/types";
 import type { PlayerState, Tab } from "./app/types";
 
 const ENV_CLIENT_ID = (import.meta.env.VITE_GOOGLE_CLIENT_ID ?? "").trim();
@@ -53,6 +54,11 @@ export default function App() {
   const [addOpen, setAddOpen] = useState(false);
   const [addTargetId, setAddTargetId] = useState<string | null>(null);
   const [refreshing, setRefreshing] = useState(false);
+  // Series con novedades pendientes de revisar tras actualizar las favoritas.
+  const [reviewQueue, setReviewQueue] = useState<string[]>([]);
+  const [reviewCandidates, setReviewCandidates] = useState<
+    Record<string, ChapterCandidate[]>
+  >({});
   const { canInstall, promptInstall } = useInstallPrompt();
   const {
     updateSeries,
@@ -70,7 +76,9 @@ export default function App() {
     deleteSeries,
     handleAddParts,
     handleRefreshSeries,
+    handleRefreshFavorites,
     handleAddCandidate,
+    discardCandidate,
   } = useSeriesActions({
     series,
     setSeries,
@@ -168,10 +176,45 @@ export default function App() {
     setAddTargetId(null);
   }
 
+  function closeSeries() {
+    setSelectedSeriesId(null);
+    setReviewQueue([]);
+    setReviewCandidates({});
+  }
+
+  async function refreshFavorites() {
+    const result = await handleRefreshFavorites();
+    if (result.updatedIds.length > 0) {
+      // Se autoabre la primera serie con novedades y el resto espera en la cola.
+      setReviewCandidates(result.candidatesById);
+      setReviewQueue(result.updatedIds);
+      setSelectedSeriesId(result.updatedIds[0]);
+    }
+    return { updated: result.updatedIds.length, failed: result.failed };
+  }
+
+  function reviewNext() {
+    const [, ...rest] = reviewQueue;
+    setReviewQueue(rest);
+    if (rest.length > 0) setSelectedSeriesId(rest[0]);
+  }
+
+  function handleDeleteSeries(id: string) {
+    setReviewQueue((current) => current.filter((item) => item !== id));
+    deleteSeries(id);
+  }
+
+  // El botón «Revisar siguiente serie» solo aparece en la ficha de la serie que
+  // encabeza la cola y cuando queda alguna otra pendiente.
+  const reviewHead =
+    reviewQueue.length > 1 && reviewQueue[0] === selectedSeriesId;
+
   function handleReset() {
     updateSeries(() => []);
     setSelectedSeriesId(null);
     setPlayer(null);
+    setReviewQueue([]);
+    setReviewCandidates({});
     setAddOpen(false);
     setAddTargetId(null);
   }
@@ -264,6 +307,7 @@ export default function App() {
             onPlay={playSeries}
             onToggleFavorite={toggleFavorite}
             onAdd={openAdd}
+            onRefreshFavorites={refreshFavorites}
             onOpenSettings={() => setTab("settings")}
           />
         )}
@@ -338,7 +382,7 @@ export default function App() {
           semanticConfigured={ENV_SEMANTIC_API_URL.length > 0}
           refreshing={refreshing}
           onBusyChange={setRefreshing}
-          onClose={() => setSelectedSeriesId(null)}
+          onClose={closeSeries}
           onPlay={playSeries}
           onToggleFavorite={toggleFavorite}
           onSetStatus={setSeriesStatus}
@@ -347,10 +391,14 @@ export default function App() {
           onAddParts={handleAddParts}
           onRefresh={handleRefreshSeries}
           onAddCandidate={handleAddCandidate}
+          onDiscardCandidate={discardCandidate}
           onUpdateAliases={updateAliases}
           onUpdateTitle={updateTitle}
           onFillDurations={fillMissingDurations}
-          onDelete={deleteSeries}
+          onDelete={handleDeleteSeries}
+          reviewRemaining={reviewHead ? reviewQueue.length - 1 : 0}
+          onReviewNext={reviewNext}
+          initialCandidates={reviewCandidates[selectedSeries.id] ?? []}
         />
       )}
 

@@ -40,10 +40,16 @@ interface SeriesSheetProps {
     candidate: ChapterCandidate,
     options: { partNumber?: number; isFinal?: boolean },
   ) => Promise<{ synced: boolean }>;
+  onDiscardCandidate: (series: Series, videoId: string) => void;
   onUpdateAliases: (seriesId: string, aliases: string[]) => void;
   onUpdateTitle: (seriesId: string, title: string) => void;
   onFillDurations: (series: Series) => Promise<void>;
   onDelete: (id: string) => void;
+  /** Series con novedades que quedan por revisar después de esta. */
+  reviewRemaining: number;
+  onReviewNext: () => void;
+  /** Candidatos ya encontrados para esta serie (lote de favoritas). */
+  initialCandidates: ChapterCandidate[];
 }
 
 export function SeriesSheet({
@@ -60,10 +66,14 @@ export function SeriesSheet({
   onAddParts,
   onRefresh,
   onAddCandidate,
+  onDiscardCandidate,
   onUpdateAliases,
   onUpdateTitle,
   onFillDurations,
   onDelete,
+  reviewRemaining,
+  onReviewNext,
+  initialCandidates,
 }: SeriesSheetProps) {
   const [confirmingDelete, setConfirmingDelete] = useState(false);
   const handleClose = () => {
@@ -148,6 +158,29 @@ export function SeriesSheet({
         </div>
 
         <div className="px-4 pt-4">
+          {reviewRemaining > 0 && (
+            <div className="mb-3 rounded-2xl border border-rose-500/30 bg-rose-500/10 p-3">
+              <div className="flex items-start gap-2">
+                <Icon.Sparkles className="mt-0.5 size-4 shrink-0 text-rose-300" />
+                <p className="text-[11px] leading-relaxed text-rose-100">
+                  Esta serie tiene novedades y{" "}
+                  {reviewRemaining === 1
+                    ? "queda 1 serie"
+                    : `quedan ${reviewRemaining} series`}{" "}
+                  por revisar.
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={onReviewNext}
+                className="mt-2 flex w-full items-center justify-center gap-2 rounded-xl bg-rose-500 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-rose-400 active:scale-[0.99]"
+              >
+                Revisar siguiente serie
+                <Icon.ChevronRight className="size-4" />
+              </button>
+            </div>
+          )}
+
           <div className="relative aspect-video overflow-hidden rounded-2xl bg-zinc-950 shadow-lg shadow-black/40">
             {series.thumbnail && (
               <img
@@ -286,10 +319,13 @@ export function SeriesSheet({
           />
 
           <SeriesRefreshPanel
+            key={series.id}
             series={series}
             semanticConfigured={semanticConfigured}
+            initialCandidates={initialCandidates}
             onRefresh={onRefresh}
             onAddCandidate={onAddCandidate}
+            onDiscardCandidate={onDiscardCandidate}
             onBusyChange={onBusyChange}
           />
 
