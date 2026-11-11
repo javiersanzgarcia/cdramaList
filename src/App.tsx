@@ -61,7 +61,8 @@ export default function App() {
     toggleFavorite,
     updateAliases,
     updateTitle,
-    updatePartDescription,
+    updatePartMeta,
+    fillMissingDurations,
     setWatched,
     movePart,
     handleSave,
@@ -346,6 +347,7 @@ export default function App() {
           onAddCandidate={handleAddCandidate}
           onUpdateAliases={updateAliases}
           onUpdateTitle={updateTitle}
+          onFillDurations={fillMissingDurations}
           onDelete={deleteSeries}
         />
       )}
@@ -357,7 +359,8 @@ export default function App() {
           apiKey={apiKey}
           onClose={() => setPlayer(null)}
           onSetWatched={setWatched}
-          onUpdatePartDescription={updatePartDescription}
+          onUpdatePartMeta={updatePartMeta}
+          onFillDurations={fillMissingDurations}
         />
       )}
 

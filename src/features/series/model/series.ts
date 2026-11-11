@@ -197,6 +197,8 @@ export function mergeParts(existing: Part[], incoming: Part[]): Part[] {
             ...previous,
             ...part,
             description: part.description ?? previous.description,
+            durationSeconds:
+              part.durationSeconds ?? previous.durationSeconds,
             sortOrder: part.sortOrder ?? previous.sortOrder,
             addedAt: previous.addedAt,
           }
@@ -205,6 +207,81 @@ export function mergeParts(existing: Part[], incoming: Part[]): Part[] {
   }
 
   return sortParts([...byId.values()]);
+}
+
+export interface PartMetaPatch {
+  description?: string;
+  durationSeconds?: number;
+}
+
+export interface PartDurationMeta {
+  description?: string;
+  durationSeconds?: number;
+}
+
+/** Aplica metadatos de un vídeo (descripción y duración) a una parte. */
+export function applyPartMeta(
+  series: Series,
+  videoId: string,
+  patch: PartMetaPatch,
+): Series {
+  const description = patch.description?.trim();
+  const durationSeconds =
+    typeof patch.durationSeconds === "number" && patch.durationSeconds > 0
+      ? patch.durationSeconds
+      : undefined;
+  if (!description && durationSeconds == null) return series;
+
+  let changed = false;
+  const parts = series.parts.map((part) => {
+    if (part.videoId !== videoId) return part;
+
+    const nextDescription = description || part.description;
+    const nextDuration = durationSeconds ?? part.durationSeconds;
+    if (
+      nextDescription === part.description &&
+      nextDuration === part.durationSeconds
+    ) {
+      return part;
+    }
+
+    changed = true;
+    return {
+      ...part,
+      description: nextDescription,
+      durationSeconds: nextDuration,
+    };
+  });
+
+  return changed ? { ...series, parts, updatedAt: Date.now() } : series;
+}
+
+/** Rellena las duraciones que falten a partir de los metadatos de YouTube. */
+export function applyPartDurations(
+  series: Series,
+  metas: Map<string, PartDurationMeta>,
+): Series {
+  let changed = false;
+  const parts = series.parts.map((part) => {
+    if (part.durationSeconds != null) return part;
+
+    const meta = metas.get(part.videoId);
+    if (!meta) return part;
+
+    const durationSeconds = meta.durationSeconds ?? part.durationSeconds;
+    const description = part.description ?? meta.description;
+    if (
+      durationSeconds === part.durationSeconds &&
+      description === part.description
+    ) {
+      return part;
+    }
+
+    changed = true;
+    return { ...part, durationSeconds, description };
+  });
+
+  return changed ? { ...series, parts, updatedAt: Date.now() } : series;
 }
 
 export function mergeSeries(

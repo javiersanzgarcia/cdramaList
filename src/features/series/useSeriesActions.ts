@@ -3,13 +3,17 @@ import type { PlayerState } from "../../app/types";
 import type { ChapterCandidate, SeriesRefreshResult } from "../discovery/types";
 import { candidateToPart } from "../discovery/model/youtubeDrafts";
 import { discoverSeriesUpdates } from "../discovery/model/seriesUpdates";
+import { fetchVideosByIds } from "../discovery/model/youtubeApi";
 import { reorderParts, sortParts } from "./model/parts";
 import {
+  applyPartDurations,
+  applyPartMeta,
   createSeries,
   learnKeywordConfidence,
   mergeAliasesWithParts,
   mergeSeries,
 } from "./model/series";
+import type { PartMetaPatch } from "./model/series";
 import type { Part, Series, SeriesDraft } from "./types";
 import type { DriveSync } from "../sync/hooks/useDriveSync";
 
@@ -78,30 +82,43 @@ export function useSeriesActions({
     );
   }
 
-  function updatePartDescription(
+  function updatePartMeta(
     seriesId: string,
     videoId: string,
-    description: string,
+    patch: PartMetaPatch,
   ) {
-    const text = description.trim();
-    if (!text) return;
-
     updateSeries((current) =>
-      current.map((item) => {
-        if (item.id !== seriesId) return item;
-
-        let changed = false;
-        const parts = item.parts.map((part) => {
-          if (part.videoId !== videoId || part.description === text) {
-            return part;
-          }
-          changed = true;
-          return { ...part, description: text };
-        });
-
-        return changed ? { ...item, parts, updatedAt: Date.now() } : item;
-      }),
+      current.map((item) =>
+        item.id === seriesId ? applyPartMeta(item, videoId, patch) : item,
+      ),
     );
+  }
+
+  async function fillMissingDurations(item: Series): Promise<void> {
+    if (!apiKey) return;
+
+    const missing = item.parts.filter(
+      (part) => part.durationSeconds == null,
+    );
+    if (missing.length === 0) return;
+
+    try {
+      const metas = await fetchVideosByIds(
+        missing.map((part) => part.videoId),
+        apiKey,
+      );
+      if (metas.size === 0) return;
+
+      updateSeries((current) =>
+        current.map((existing) =>
+          existing.id === item.id
+            ? applyPartDurations(existing, metas)
+            : existing,
+        ),
+      );
+    } catch {
+      // La duración es informativa: si falla, la serie sigue funcionando.
+    }
   }
 
   function updateTitle(id: string, title: string) {
@@ -297,7 +314,8 @@ export function useSeriesActions({
     toggleFavorite,
     updateAliases,
     updateTitle,
-    updatePartDescription,
+    updatePartMeta,
+    fillMissingDurations,
     setWatched,
     movePart,
     handleSave,

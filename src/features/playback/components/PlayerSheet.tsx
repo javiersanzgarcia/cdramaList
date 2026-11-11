@@ -14,11 +14,12 @@ interface PlayerSheetProps {
   apiKey: string;
   onClose: () => void;
   onSetWatched: (seriesId: string, videoId: string, watched: boolean) => void;
-  onUpdatePartDescription: (
+  onUpdatePartMeta: (
     seriesId: string,
     videoId: string,
-    description: string,
+    patch: { description?: string; durationSeconds?: number },
   ) => void;
+  onFillDurations: (series: Series) => Promise<void>;
 }
 
 export function PlayerSheet({
@@ -27,7 +28,8 @@ export function PlayerSheet({
   apiKey,
   onClose,
   onSetWatched,
-  onUpdatePartDescription,
+  onUpdatePartMeta,
+  onFillDurations,
 }: PlayerSheetProps) {
   const [index, setIndex] = useState(startIndex);
   const [playerError, setPlayerError] = useState(false);
@@ -35,9 +37,21 @@ export function PlayerSheet({
   const [descriptionLoading, setDescriptionLoading] = useState(false);
   const [descriptionExpanded, setDescriptionExpanded] = useState(false);
   const [descriptionCanExpand, setDescriptionCanExpand] = useState(false);
+  const [fetchedDuration, setFetchedDuration] = useState<{
+    videoId: string;
+    seconds: number;
+  } | null>(null);
   const descriptionRef = useRef<HTMLParagraphElement>(null);
 
   useSheet(onClose);
+
+  // Completa las duraciones que falten para mostrarlas también en la lista de
+  // partes de la serie.
+  useEffect(() => {
+    void onFillDurations(series);
+    // Solo al abrir el reproductor; el callback cambia en cada render.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [series.id]);
 
   const total = series.parts.length;
   const safeIndex = Math.min(Math.max(index, 0), Math.max(total - 1, 0));
@@ -50,31 +64,48 @@ export function PlayerSheet({
     setDescriptionExpanded(false);
     setDescriptionCanExpand(false);
 
-    if (part.description) {
-      setDescription(part.description);
+    const needsDescription = !part.description;
+    const needsDuration = part.durationSeconds == null;
+
+    if (!needsDescription && !needsDuration) {
+      setDescription(part.description ?? "");
       setDescriptionLoading(false);
       return;
     }
 
     if (!apiKey) {
-      setDescription("");
+      setDescription(part.description ?? "");
       setDescriptionLoading(false);
       return;
     }
 
-    setDescription("");
-    setDescriptionLoading(true);
+    setDescription(part.description ?? "");
+    setDescriptionLoading(needsDescription);
 
     fetchVideoMeta(part.videoId, apiKey)
       .then((meta) => {
         if (cancelled) return;
+
         const text = meta.description?.trim();
-        if (!text) return;
-        setDescription(text);
-        onUpdatePartDescription(series.id, part.videoId, text);
+        if (text && !part.description) setDescription(text);
+        if (meta.durationSeconds) {
+          setFetchedDuration({
+            videoId: part.videoId,
+            seconds: meta.durationSeconds,
+          });
+        }
+
+        const patch: { description?: string; durationSeconds?: number } = {};
+        if (text && !part.description) patch.description = text;
+        if (meta.durationSeconds && part.durationSeconds == null) {
+          patch.durationSeconds = meta.durationSeconds;
+        }
+        if (Object.keys(patch).length > 0) {
+          onUpdatePartMeta(series.id, part.videoId, patch);
+        }
       })
       .catch(() => {
-        // Sin descripción disponible: el reproductor sigue funcionando.
+        // Sin metadatos disponibles: el reproductor sigue funcionando.
       })
       .finally(() => {
         if (!cancelled) setDescriptionLoading(false);
@@ -84,8 +115,8 @@ export function PlayerSheet({
       cancelled = true;
     };
     // El callback cambia en cada render, pero solo depende de la serie y el vídeo.
-    // La descripción no entra en las dependencias: al persistirla se actualiza
-    // la serie y no queremos reiniciar el estado de «Ver más».
+    // La descripción y la duración no entran en las dependencias: al persistirlas
+    // se actualiza la serie y no queremos reiniciar el estado de «Ver más».
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [part?.videoId, apiKey, series.id]);
 
@@ -102,7 +133,12 @@ export function PlayerSheet({
   const watched = series.watched.includes(part.videoId);
   const watchedTotal = watchedCount(series);
   const complete = total > 0 && watchedTotal >= total;
-  const duration = formatDuration(part.durationSeconds);
+  const duration = formatDuration(
+    part.durationSeconds ??
+      (fetchedDuration?.videoId === part.videoId
+        ? fetchedDuration.seconds
+        : undefined),
+  );
   const hasPrevious = safeIndex > 0;
   const hasNext = safeIndex < total - 1;
   const watchUrl = `https://www.youtube.com/watch?v=${part.videoId}`;

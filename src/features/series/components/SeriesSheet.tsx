@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { formatDuration } from "../../../shared/lib/format";
 import { partLabel } from "../model/parts";
 import {
@@ -39,6 +39,7 @@ interface SeriesSheetProps {
   ) => Promise<{ synced: boolean }>;
   onUpdateAliases: (seriesId: string, aliases: string[]) => void;
   onUpdateTitle: (seriesId: string, title: string) => void;
+  onFillDurations: (series: Series) => Promise<void>;
   onDelete: (id: string) => void;
 }
 
@@ -57,6 +58,7 @@ export function SeriesSheet({
   onAddCandidate,
   onUpdateAliases,
   onUpdateTitle,
+  onFillDurations,
   onDelete,
 }: SeriesSheetProps) {
   const [confirmingDelete, setConfirmingDelete] = useState(false);
@@ -64,6 +66,14 @@ export function SeriesSheet({
     if (!refreshing) onClose();
   };
   useSheet(handleClose);
+
+  // Rellena las duraciones que falten (series antiguas o creadas sin cuota)
+  // para poder mostrar la duración de cada parte y el total de la serie.
+  useEffect(() => {
+    void onFillDurations(series);
+    // Solo al abrir la serie; el callback cambia en cada render.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [series.id]);
 
   const total = series.parts.length;
   const watched = watchedCount(series);
