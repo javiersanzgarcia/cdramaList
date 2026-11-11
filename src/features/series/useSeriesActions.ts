@@ -45,14 +45,6 @@ export function useSeriesActions({
     setSeries((current) => updater(current));
   }
 
-  function touchSeries(id: string) {
-    updateSeries((current) =>
-      current.map((item) =>
-        item.id === id ? { ...item, lastOpenedAt: Date.now() } : item,
-      ),
-    );
-  }
-
   function openSeries(item: Series) {
     // Abrir la serie no cuenta como progreso: solo reproducir una parte
     // cambia el estado automático a «en curso».
@@ -64,8 +56,23 @@ export function useSeriesActions({
       Math.max(index, 0),
       Math.max(item.parts.length - 1, 0),
     );
+    const alreadyComplete =
+      item.parts.length > 0 && watchedCount(item) >= item.parts.length;
+
     setPlayer({ seriesId: item.id, index: safeIndex });
-    touchSeries(item.id);
+    updateSeries((current) =>
+      current.map((existing) =>
+        existing.id === item.id
+          ? {
+              ...existing,
+              lastOpenedAt: Date.now(),
+              // Reproducir una parte deja la serie «en curso» automáticamente
+              // (o «completada» si ya se habían visto todas).
+              status: alreadyComplete ? "completed" : "watching",
+            }
+          : existing,
+      ),
+    );
   }
 
   function toggleFavorite(id: string) {

@@ -3,8 +3,8 @@ import * as Icon from "../../../shared/components/Icons";
 
 const filters: { value: Filter; label: string }[] = [
   { value: "all", label: "Todas" },
-  { value: "watching", label: "En curso" },
   { value: "planned", label: "Pendientes" },
+  { value: "watching", label: "En curso" },
   { value: "completed", label: "Completadas" },
   { value: "favorites", label: "Favoritas" },
 ];
