@@ -16,6 +16,7 @@ function toPart(video: VideoMeta, info: ReturnType<typeof detectPart>): Part {
   return {
     videoId: video.videoId,
     title: video.title,
+    description: video.description,
     partNumber: info.partNumber,
     totalParts: info.totalParts,
     isFinal: info.isFinal,
@@ -33,6 +34,7 @@ export function candidateToPart(
   return {
     videoId: candidate.videoId,
     title: candidate.title,
+    description: candidate.description,
     partNumber: options.partNumber,
     totalParts: candidate.totalParts,
     isFinal: options.isFinal ?? candidate.isFinal,

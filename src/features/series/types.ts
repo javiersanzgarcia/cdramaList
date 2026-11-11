@@ -7,6 +7,7 @@ export type Filter = "all" | SeriesStatus | "favorites";
 export interface Part {
   videoId: string;
   title: string;
+  description?: string;
   partNumber?: number;
   totalParts?: number;
   sortOrder?: number;

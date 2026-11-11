@@ -61,6 +61,7 @@ export default function App() {
     toggleFavorite,
     updateAliases,
     updateTitle,
+    updatePartDescription,
     setWatched,
     movePart,
     handleSave,
@@ -353,8 +354,10 @@ export default function App() {
         <PlayerSheet
           series={playerSeries}
           startIndex={player.index}
+          apiKey={apiKey}
           onClose={() => setPlayer(null)}
           onSetWatched={setWatched}
+          onUpdatePartDescription={updatePartDescription}
         />
       )}
 

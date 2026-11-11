@@ -196,6 +196,7 @@ export function mergeParts(existing: Part[], incoming: Part[]): Part[] {
         ? {
             ...previous,
             ...part,
+            description: part.description ?? previous.description,
             sortOrder: part.sortOrder ?? previous.sortOrder,
             addedAt: previous.addedAt,
           }
@@ -415,6 +416,10 @@ export function normalizeSeries(value: Series): Series {
           typeof part.title === "string" && part.title.length > 0
             ? part.title
             : "Vídeo de YouTube",
+        description:
+          typeof part.description === "string"
+            ? part.description.slice(0, 5000)
+            : undefined,
         partNumber:
           typeof part.partNumber === "number" ? part.partNumber : undefined,
         totalParts:

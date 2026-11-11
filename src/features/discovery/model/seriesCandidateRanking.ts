@@ -114,6 +114,7 @@ export function toCandidate(
   return {
     videoId: video.videoId,
     title: video.title,
+    description: video.description,
     descriptionTitle,
     channelId: video.channelId,
     channelTitle: video.channelTitle,
@@ -139,6 +140,7 @@ export function toPart(
   return {
     videoId: video.videoId,
     title: video.title,
+    description: video.description,
     partNumber: info.partNumber,
     totalParts: info.totalParts,
     isFinal: info.isFinal,

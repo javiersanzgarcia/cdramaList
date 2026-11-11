@@ -3,6 +3,7 @@ import type { Part } from "../series/types";
 export interface ChapterCandidate {
   videoId: string;
   title: string;
+  description?: string;
   descriptionTitle?: string;
   channelId?: string;
   channelTitle: string;

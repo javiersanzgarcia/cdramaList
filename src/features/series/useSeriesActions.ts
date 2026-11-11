@@ -78,6 +78,32 @@ export function useSeriesActions({
     );
   }
 
+  function updatePartDescription(
+    seriesId: string,
+    videoId: string,
+    description: string,
+  ) {
+    const text = description.trim();
+    if (!text) return;
+
+    updateSeries((current) =>
+      current.map((item) => {
+        if (item.id !== seriesId) return item;
+
+        let changed = false;
+        const parts = item.parts.map((part) => {
+          if (part.videoId !== videoId || part.description === text) {
+            return part;
+          }
+          changed = true;
+          return { ...part, description: text };
+        });
+
+        return changed ? { ...item, parts, updatedAt: Date.now() } : item;
+      }),
+    );
+  }
+
   function updateTitle(id: string, title: string) {
     const nextTitle = title.trim().replace(/\s+/g, " ");
     if (nextTitle.length < 2) return;
@@ -271,6 +297,7 @@ export function useSeriesActions({
     toggleFavorite,
     updateAliases,
     updateTitle,
+    updatePartDescription,
     setWatched,
     movePart,
     handleSave,

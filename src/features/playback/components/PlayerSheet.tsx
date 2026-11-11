@@ -1,7 +1,8 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { formatDuration } from "../../../shared/lib/format";
 import { partLabel } from "../../series/model/parts";
 import { progressPercent, watchedCount } from "../../series/model/series";
+import { fetchVideoMeta } from "../../discovery/model/youtubeApi";
 import type { Series } from "../../series/types";
 import { useSheet } from "../../../shared/hooks/useSheet";
 import * as Icon from "../../../shared/components/Icons";
@@ -10,24 +11,91 @@ import { YouTubePlayer } from "./YouTubePlayer";
 interface PlayerSheetProps {
   series: Series;
   startIndex: number;
+  apiKey: string;
   onClose: () => void;
   onSetWatched: (seriesId: string, videoId: string, watched: boolean) => void;
+  onUpdatePartDescription: (
+    seriesId: string,
+    videoId: string,
+    description: string,
+  ) => void;
 }
 
 export function PlayerSheet({
   series,
   startIndex,
+  apiKey,
   onClose,
   onSetWatched,
+  onUpdatePartDescription,
 }: PlayerSheetProps) {
   const [index, setIndex] = useState(startIndex);
   const [playerError, setPlayerError] = useState(false);
+  const [description, setDescription] = useState("");
+  const [descriptionLoading, setDescriptionLoading] = useState(false);
+  const [descriptionExpanded, setDescriptionExpanded] = useState(false);
+  const [descriptionCanExpand, setDescriptionCanExpand] = useState(false);
+  const descriptionRef = useRef<HTMLParagraphElement>(null);
 
   useSheet(onClose);
 
   const total = series.parts.length;
   const safeIndex = Math.min(Math.max(index, 0), Math.max(total - 1, 0));
   const part = series.parts[safeIndex];
+
+  useEffect(() => {
+    if (!part) return;
+
+    let cancelled = false;
+    setDescriptionExpanded(false);
+    setDescriptionCanExpand(false);
+
+    if (part.description) {
+      setDescription(part.description);
+      setDescriptionLoading(false);
+      return;
+    }
+
+    if (!apiKey) {
+      setDescription("");
+      setDescriptionLoading(false);
+      return;
+    }
+
+    setDescription("");
+    setDescriptionLoading(true);
+
+    fetchVideoMeta(part.videoId, apiKey)
+      .then((meta) => {
+        if (cancelled) return;
+        const text = meta.description?.trim();
+        if (!text) return;
+        setDescription(text);
+        onUpdatePartDescription(series.id, part.videoId, text);
+      })
+      .catch(() => {
+        // Sin descripción disponible: el reproductor sigue funcionando.
+      })
+      .finally(() => {
+        if (!cancelled) setDescriptionLoading(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+    // El callback cambia en cada render, pero solo depende de la serie y el vídeo.
+    // La descripción no entra en las dependencias: al persistirla se actualiza
+    // la serie y no queremos reiniciar el estado de «Ver más».
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [part?.videoId, apiKey, series.id]);
+
+  useEffect(() => {
+    if (descriptionExpanded || descriptionLoading) return;
+
+    const element = descriptionRef.current;
+    if (!element) return;
+    setDescriptionCanExpand(element.scrollHeight > element.clientHeight + 1);
+  }, [description, descriptionLoading, descriptionExpanded]);
 
   if (!part) return null;
 
@@ -151,6 +219,45 @@ export function PlayerSheet({
               {watched ? "Vista" : "Marcar"}
             </button>
           </div>
+
+          {(description || descriptionLoading) && (
+            <div className="mt-3 rounded-2xl border border-zinc-800/80 bg-zinc-900/40 p-3">
+              <p className="text-[10px] font-semibold uppercase tracking-wide text-zinc-500">
+                Descripción
+              </p>
+
+              {descriptionLoading ? (
+                <div className="mt-2 space-y-1.5" aria-hidden="true">
+                  <div className="h-2.5 w-full animate-pulse rounded bg-zinc-800" />
+                  <div className="h-2.5 w-11/12 animate-pulse rounded bg-zinc-800" />
+                  <div className="h-2.5 w-4/5 animate-pulse rounded bg-zinc-800" />
+                </div>
+              ) : (
+                <>
+                  <p
+                    ref={descriptionRef}
+                    className={`mt-1.5 whitespace-pre-line text-xs leading-relaxed text-zinc-400 ${
+                      descriptionExpanded ? "" : "line-clamp-4"
+                    }`}
+                  >
+                    {description}
+                  </p>
+                  {descriptionCanExpand && (
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setDescriptionExpanded((current) => !current)
+                      }
+                      aria-expanded={descriptionExpanded}
+                      className="mt-1.5 text-[11px] font-semibold text-rose-300 transition hover:text-rose-200 active:scale-95"
+                    >
+                      {descriptionExpanded ? "Ver menos" : "Ver más"}
+                    </button>
+                  )}
+                </>
+              )}
+            </div>
+          )}
 
           <div className="mt-3 flex items-center gap-2">
             <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-zinc-800">
