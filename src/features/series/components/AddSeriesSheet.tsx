@@ -348,6 +348,10 @@ export function AddSeriesSheet({
                 onChange={(event) => setTitle(event.target.value)}
                 className="mt-1.5 w-full rounded-2xl border border-zinc-800 bg-zinc-950/70 px-3.5 py-3 text-sm font-medium text-zinc-100 outline-none transition focus:border-rose-500/60 focus:ring-2 focus:ring-rose-500/20"
               />
+              <p className="mt-1.5 text-[11px] leading-relaxed text-zinc-500">
+                Si escribes un título distinto al del vídeo, el título real de
+                YouTube se guardará como alias de búsqueda.
+              </p>
 
               <div className="mt-3 flex items-center gap-2 text-xs text-zinc-500">
                 <Icon.Youtube className="size-4 shrink-0" />

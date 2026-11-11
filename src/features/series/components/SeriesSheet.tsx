@@ -17,6 +17,7 @@ import { useSheet } from "../../../shared/hooks/useSheet";
 import { SeriesAliasesEditor } from "./SeriesAliasesEditor";
 import { SeriesPartsList } from "./SeriesPartsList";
 import { SeriesRefreshPanel } from "./SeriesRefreshPanel";
+import { SeriesTitleEditor } from "./SeriesTitleEditor";
 import * as Icon from "../../../shared/components/Icons";
 
 interface SeriesSheetProps {
@@ -37,6 +38,7 @@ interface SeriesSheetProps {
     options: { partNumber?: number; isFinal?: boolean },
   ) => Promise<{ synced: boolean }>;
   onUpdateAliases: (seriesId: string, aliases: string[]) => void;
+  onUpdateTitle: (seriesId: string, title: string) => void;
   onDelete: (id: string) => void;
 }
 
@@ -54,6 +56,7 @@ export function SeriesSheet({
   onRefresh,
   onAddCandidate,
   onUpdateAliases,
+  onUpdateTitle,
   onDelete,
 }: SeriesSheetProps) {
   const [confirmingDelete, setConfirmingDelete] = useState(false);
@@ -220,6 +223,12 @@ export function SeriesSheet({
               <p className="mt-0.5 text-[11px] text-zinc-500">Duración</p>
             </div>
           </div>
+
+          <SeriesTitleEditor
+            key={series.id}
+            series={series}
+            onUpdateTitle={onUpdateTitle}
+          />
 
           <SeriesAliasesEditor
             series={series}

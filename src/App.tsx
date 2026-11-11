@@ -60,6 +60,7 @@ export default function App() {
     playSeries,
     toggleFavorite,
     updateAliases,
+    updateTitle,
     setWatched,
     movePart,
     handleSave,
@@ -343,6 +344,7 @@ export default function App() {
           onRefresh={handleRefreshSeries}
           onAddCandidate={handleAddCandidate}
           onUpdateAliases={updateAliases}
+          onUpdateTitle={updateTitle}
           onDelete={deleteSeries}
         />
       )}

@@ -7,6 +7,7 @@ import { reorderParts, sortParts } from "./model/parts";
 import {
   createSeries,
   learnKeywordConfidence,
+  mergeAliasesWithParts,
   mergeSeries,
 } from "./model/series";
 import type { Part, Series, SeriesDraft } from "./types";
@@ -74,6 +75,24 @@ export function useSeriesActions({
       current.map((item) =>
         item.id === id ? { ...item, aliases, updatedAt: Date.now() } : item,
       ),
+    );
+  }
+
+  function updateTitle(id: string, title: string) {
+    const nextTitle = title.trim().replace(/\s+/g, " ");
+    if (nextTitle.length < 2) return;
+
+    updateSeries((current) =>
+      current.map((item) => {
+        if (item.id !== id || nextTitle === item.title) return item;
+
+        return {
+          ...item,
+          title: nextTitle,
+          aliases: mergeAliasesWithParts(item.aliases, item.parts, nextTitle),
+          updatedAt: Date.now(),
+        };
+      }),
     );
   }
 
@@ -251,6 +270,7 @@ export function useSeriesActions({
     playSeries,
     toggleFavorite,
     updateAliases,
+    updateTitle,
     setWatched,
     movePart,
     handleSave,

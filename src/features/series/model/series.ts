@@ -1,6 +1,6 @@
 import type { Filter, Part, Series, SeriesDraft, SeriesStatus } from "../types";
 import { normalizeSemanticFingerprint } from "../../discovery/model/semanticAi";
-import { sortParts } from "./parts";
+import { sortParts, stripPartMarkers } from "./parts";
 import { extractKeywords, titleSimilarity } from "./titleMatching";
 import { statusOrder } from "./status";
 
@@ -163,11 +163,12 @@ export function createSeries(
     typeof crypto !== "undefined" && "randomUUID" in crypto
       ? crypto.randomUUID()
       : `series_${now.toString(36)}_${Math.random().toString(36).slice(2, 8)}`;
+  const finalTitle = title.trim() || draft.title;
 
   return {
     id,
-    title: title.trim() || draft.title,
-    aliases: [],
+    title: finalTitle,
+    aliases: mergeAliasesWithParts([], parts, finalTitle),
     keywordConfidence: learnKeywordConfidence(
       {},
       acceptedCandidateTitles(draft, parts),
@@ -213,10 +214,16 @@ export function mergeSeries(
 ): Series {
   const mergedParts = mergeParts(existing.parts, parts);
   const existingPartIds = new Set(existing.parts.map((part) => part.videoId));
+  const finalTitle = title.trim() || existing.title;
 
   return {
     ...existing,
-    title: title.trim() || existing.title,
+    title: finalTitle,
+    aliases: mergeAliasesWithParts(
+      existing.aliases,
+      mergedParts,
+      finalTitle,
+    ),
     channelId: existing.channelId ?? draft.channelId,
     channelTitle: existing.channelTitle || draft.channelTitle,
     channelUrl: existing.channelUrl ?? draft.channelUrl,
@@ -316,6 +323,59 @@ export function normalizeAliases(value: unknown): string[] {
   }
 
   return result;
+}
+
+/**
+ * Títulos base de los vídeos de YouTube, sin marcadores de parte ni emojis.
+ * Sirven como alias para que una re-subida publicada con otro título siga
+ * apareciendo en las búsquedas de la serie.
+ */
+export function youtubeTitleAliases(parts: Part[]): string[] {
+  const result: string[] = [];
+  const seen = new Set<string>();
+
+  for (const part of parts) {
+    const title = stripPartMarkers(part.title)
+      .replace(
+        /[\s\-–—|:]*\b(?:final|fin|ending|last|[uú]ltima\s+parte)\s*$/iu,
+        "",
+      )
+      .replace(/[\s\-–—|:]+$/gu, "")
+      .trim();
+    if (title.length < 2) continue;
+
+    const key = title.toLowerCase();
+    if (seen.has(key)) continue;
+
+    seen.add(key);
+    result.push(title);
+  }
+
+  return result;
+}
+
+/**
+ * Combina los alias actuales con los títulos reales de YouTube de los vídeos,
+ * descartando los que coinciden con el título principal de la serie.
+ */
+export function mergeAliasesWithParts(
+  current: string[] | undefined,
+  parts: Part[],
+  title: string,
+): string[] {
+  const titleKey = title.trim().toLowerCase();
+  const aliases = (current ?? []).filter(
+    (alias) => alias.trim().toLowerCase() !== titleKey,
+  );
+
+  return normalizeAliases([
+    // Los títulos de YouTube van primero: la búsqueda global solo lanza unas
+    // pocas consultas, así que deben tener prioridad sobre alias antiguos.
+    ...youtubeTitleAliases(parts).filter(
+      (alias) => alias.toLowerCase() !== titleKey,
+    ),
+    ...aliases,
+  ]);
 }
 
 export function isSeries(value: unknown): value is Series {
