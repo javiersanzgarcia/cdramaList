@@ -48,6 +48,10 @@ const MAX_SEMANTIC_CANDIDATES = 12;
 // y una re-subida puede quedar decenas de posiciones por debajo de la última.
 const MAX_RECENT_CHANNEL_CANDIDATES = 30;
 const MAX_FINGERPRINT_CANDIDATES = 39;
+// Consultas globales independientes por actualización: título, alias, título
+// real de la descripción y títulos de las partes. Cada una cuesta 100 unidades
+// de cuota, así que se limita para no agotar la cuota diaria.
+const MAX_GLOBAL_SEARCHES = 4;
 
 export interface SeriesUpdate {
   parts: Part[];
@@ -137,22 +141,55 @@ export async function discoverSeriesUpdates(
   );
   const aliases = buildSynonymAliases(synonyms);
   const baseQuery = buildGlobalSearchQuery(series.title);
-  const query = combineSearchTerms([
+  // Cada referencia se busca por separado: YouTube no trata bien las consultas
+  // largas unidas con «|», así que un alias o el título real de la descripción
+  // puede encontrar capítulos que la consulta combinada no devuelve.
+  const identityQuery = combineSearchTerms([
     baseQuery,
+    ...expandQueryWithSynonyms(baseQuery, synonyms).split("|"),
+  ]);
+  const referenceQueries = [
     ...manualAliases.map((alias) => buildGlobalSearchQuery(alias)),
+    ...descriptionTitles.map((title) => buildGlobalSearchQuery(title)),
     descriptionReference
       ? buildGlobalSearchQuery(descriptionReference)
       : undefined,
-    ...expandQueryWithSynonyms(baseQuery, synonyms).split("|"),
-  ]);
-  const globalResults = query
-    ? await searchYouTubeVideos(query, apiKey).catch((cause) => {
-        failed = true;
-        failure = cause;
-        warnings.push("No se ha podido completar la búsqueda en todo YouTube.");
-        return [] as VideoMeta[];
-      })
-    : [];
+    ...series.parts.map((part) => buildGlobalSearchQuery(part.title)),
+  ];
+  const queries: string[] = [];
+  const seenQueries = new Set<string>();
+  for (const value of [identityQuery, ...referenceQueries]) {
+    const query = value?.trim();
+    if (!query) continue;
+    const key = query.toLowerCase();
+    if (seenQueries.has(key)) continue;
+    seenQueries.add(key);
+    queries.push(query);
+    if (queries.length >= MAX_GLOBAL_SEARCHES) break;
+  }
+
+  const searchOutcomes = await Promise.allSettled(
+    queries.map((query) => searchYouTubeVideos(query, apiKey)),
+  );
+  const globalResults: VideoMeta[] = [];
+  const seenGlobal = new Set<string>();
+  let searchFailed = false;
+  for (const outcome of searchOutcomes) {
+    if (outcome.status === "rejected") {
+      searchFailed = true;
+      failure ??= outcome.reason;
+      continue;
+    }
+    for (const video of outcome.value) {
+      if (seenGlobal.has(video.videoId)) continue;
+      seenGlobal.add(video.videoId);
+      globalResults.push(video);
+    }
+  }
+  if (searchFailed) {
+    failed = true;
+    warnings.push("No se ha podido completar alguna búsqueda en todo YouTube.");
+  }
 
   if (uploads.length === 0 && globalResults.length === 0 && failed) {
     if (failure instanceof Error && failure.message) {

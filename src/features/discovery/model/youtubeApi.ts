@@ -279,7 +279,8 @@ export async function fetchVideosByIds(
 
 /**
  * Busca vídeos en todo YouTube, no solo en un canal. Cada consulta cuesta 100
- * unidades de cuota, así que la actualización de una serie hace una sola.
+ * unidades de cuota; la actualización de una serie hace varias consultas
+ * independientes (título, alias, descripción y partes) con un límite.
  */
 export async function searchYouTubeVideos(
   query: string,
