@@ -21,7 +21,7 @@ import * as Icon from "../../../shared/components/Icons";
 
 interface SeriesSheetProps {
   series: Series;
-  geminiConfigured: boolean;
+  semanticConfigured: boolean;
   onClose: () => void;
   onPlay: (series: Series, index: number) => void;
   onToggleFavorite: (id: string) => void;
@@ -40,7 +40,7 @@ interface SeriesSheetProps {
 
 export function SeriesSheet({
   series,
-  geminiConfigured,
+  semanticConfigured,
   onClose,
   onPlay,
   onToggleFavorite,
@@ -228,7 +228,7 @@ export function SeriesSheet({
 
           <SeriesRefreshPanel
             series={series}
-            geminiConfigured={geminiConfigured}
+            semanticConfigured={semanticConfigured}
             onRefresh={onRefresh}
             onAddCandidate={onAddCandidate}
           />

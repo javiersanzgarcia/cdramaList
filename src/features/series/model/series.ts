@@ -1,5 +1,5 @@
 import type { Filter, Part, Series, SeriesDraft, SeriesStatus } from "../types";
-import { normalizeSemanticFingerprint } from "../../discovery/model/gemini";
+import { normalizeSemanticFingerprint } from "../../discovery/model/semanticAi";
 import { sortParts } from "./parts";
 import { extractKeywords, titleSimilarity } from "./titleMatching";
 import { statusOrder } from "./status";

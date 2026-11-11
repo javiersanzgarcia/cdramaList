@@ -14,7 +14,7 @@ import * as Icon from "../../../shared/components/Icons";
 
 interface SeriesRefreshPanelProps {
   series: Series;
-  geminiConfigured: boolean;
+  semanticConfigured: boolean;
   onRefresh: (series: Series) => Promise<SeriesRefreshResult>;
   onAddCandidate: (
     series: Series,
@@ -25,7 +25,7 @@ interface SeriesRefreshPanelProps {
 
 export function SeriesRefreshPanel({
   series,
-  geminiConfigured,
+  semanticConfigured,
   onRefresh,
   onAddCandidate,
 }: SeriesRefreshPanelProps) {
@@ -196,10 +196,10 @@ export function SeriesRefreshPanel({
         {refreshing ? "Buscando capítulos nuevos…" : "Actualizar serie"}
       </button>
 
-      {!geminiConfigured && (
+      {!semanticConfigured && (
         <p className="text-[11px] leading-relaxed text-zinc-500">
-          Similitud con Gemini desactivada: no se incluyó una clave al compilar
-          esta app.
+          Similitud semántica desactivada: no se configuró el servicio de IA al
+          compilar esta app.
         </p>
       )}
 

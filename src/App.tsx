@@ -26,14 +26,7 @@ import type { PlayerState, Tab } from "./app/types";
 
 const ENV_CLIENT_ID = (import.meta.env.VITE_GOOGLE_CLIENT_ID ?? "").trim();
 const ENV_YOUTUBE_API_KEY = (import.meta.env.VITE_YOUTUBE_API_KEY ?? "").trim();
-const ENV_GEMINI_API_KEY = (import.meta.env.VITE_GEMINI_API_KEY ?? "").trim();
-const CONFIGURED_GEMINI_MODEL = (
-  import.meta.env.VITE_GEMINI_MODEL ?? ""
-).trim();
-const ENV_GEMINI_MODEL =
-  !CONFIGURED_GEMINI_MODEL || CONFIGURED_GEMINI_MODEL === "gemini-2.5-flash"
-    ? "gemini-3.8-flash"
-    : CONFIGURED_GEMINI_MODEL;
+const ENV_SEMANTIC_API_URL = (import.meta.env.VITE_SEMANTIC_API_URL ?? "").trim();
 
 export default function App() {
   const series = useAppStore((state) => state.series);
@@ -76,8 +69,7 @@ export default function App() {
     series,
     setSeries,
     apiKey,
-    geminiApiKey: ENV_GEMINI_API_KEY,
-    geminiModel: ENV_GEMINI_MODEL,
+    semanticEndpoint: ENV_SEMANTIC_API_URL,
     drive,
     setSelectedSeriesId,
     setPlayer,
@@ -303,7 +295,7 @@ export default function App() {
       {selectedSeries && !player && (
         <SeriesSheet
           series={selectedSeries}
-          geminiConfigured={ENV_GEMINI_API_KEY.length > 0}
+          semanticConfigured={ENV_SEMANTIC_API_URL.length > 0}
           onClose={() => setSelectedSeriesId(null)}
           onPlay={playSeries}
           onToggleFavorite={toggleFavorite}

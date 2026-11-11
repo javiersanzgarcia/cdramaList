@@ -16,8 +16,7 @@ interface UseSeriesActionsOptions {
   series: Series[];
   setSeries: Dispatch<SetStateAction<Series[]>>;
   apiKey: string;
-  geminiApiKey: string;
-  geminiModel: string;
+  semanticEndpoint: string;
   drive: Pick<DriveSync, "connected" | "syncNow">;
   setSelectedSeriesId: Dispatch<SetStateAction<string | null>>;
   setPlayer: Dispatch<SetStateAction<PlayerState | null>>;
@@ -29,8 +28,7 @@ export function useSeriesActions({
   series,
   setSeries,
   apiKey,
-  geminiApiKey,
-  geminiModel,
+  semanticEndpoint,
   drive,
   setSelectedSeriesId,
   setPlayer,
@@ -162,8 +160,7 @@ export function useSeriesActions({
     const update = await discoverSeriesUpdates(
       item,
       apiKey,
-      geminiApiKey,
-      geminiModel,
+      semanticEndpoint,
     );
     const learnedFingerprint =
       !item.semanticFingerprint && Boolean(update.semanticFingerprint);

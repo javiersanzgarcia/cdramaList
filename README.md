@@ -29,14 +29,44 @@ La búsqueda automática usa la [YouTube Data API v3](https://console.cloud.goog
 
 La clave se guarda solo en el navegador y nunca se sube a Google Drive. Sin clave puedes seguir añadiendo vídeos uno a uno en modo manual.
 
-## Fingerprint semántico con Gemini (opcional)
+## Fingerprint semántico con Cloudflare Workers AI (opcional)
 
-Gemini clasifica títulos y descripciones en etiquetas abiertas agrupadas por géneros, tropos, roles, escenarios y elementos de trama; no depende de una lista cerrada. Puede reconocer, por ejemplo, `engineer`, `transmigration`, `modern_person_in_past`, `rebirth`, `ancient_china`, `cultivation`, `secretary` o `revenge`, y añadir otros conceptos relevantes. El fingerprint de la serie se genera una vez y se guarda con ella; en cada actualización se clasifican en una sola petición los candidatos encontrados y se comparan sus etiquetas. Sin clave, o si Gemini no está disponible, se mantiene la búsqueda habitual.
+Un **Worker de Cloudflare** clasifica títulos y descripciones en etiquetas abiertas agrupadas por géneros, tropos, roles, escenarios y elementos de trama; no depende de una lista cerrada. Puede reconocer, por ejemplo, `engineer`, `transmigration`, `modern_person_in_past`, `rebirth`, `ancient_china`, `cultivation`, `secretary` o `revenge`, y añadir otros conceptos relevantes. El fingerprint de la serie se genera una vez y se guarda con ella; en cada actualización se clasifican en una sola petición los candidatos encontrados y se comparan sus etiquetas. Sin servicio configurado, o si falla, se mantiene la búsqueda habitual.
 
-1. Obtén una clave de Gemini API en [Google AI Studio](https://aistudio.google.com/apikey) y habilita el acceso a Gemini API.
-2. Añade `VITE_GEMINI_API_KEY` a `.env` localmente. Puedes elegir otro modelo con `VITE_GEMINI_MODEL`; por defecto se usa `gemini-3.8-flash`.
+La credencial de Cloudflare vive **solo en el Worker** (binding `AI` de Workers AI). La PWA únicamente conoce la URL pública del endpoint, así que no se incluye ninguna clave de proveedor en el JavaScript publicado.
 
-Los títulos enviados a Gemini salen del dispositivo. Como Vite inserta las variables `VITE_*` en el código del navegador, la clave será visible en una PWA publicada; úsala solo para pruebas personales y no publiques una clave compartida. La cuota y disponibilidad gratuitas dependen de Google y pueden cambiar.
+### Desplegar el Worker
+
+El Worker está en `cloudflare/semantic-worker`:
+
+```bash
+cd cloudflare/semantic-worker
+npx wrangler login
+npx wrangler deploy
+```
+
+Antes de desplegar, revisa `wrangler.toml`:
+
+- `AI_MODEL`: modelo de Workers AI (por defecto `@cf/meta/llama-3.3-70b-instruct-fp8-fast`).
+- `ALLOWED_ORIGINS`: orígenes permitidos, separados por comas. Incluye `https://javiersanzgarcia.github.io` y, para desarrollo local, `http://localhost:5173`.
+
+Wrangler imprimirá la URL del Worker. El endpoint es:
+
+```text
+https://<nombre-del-worker>.<tu-subdominio>.workers.dev/api/semantic-fingerprint
+```
+
+### Configurar la PWA
+
+1. En local, añade la URL a `.env`:
+
+   ```bash
+   VITE_SEMANTIC_API_URL=https://<nombre-del-worker>.<tu-subdominio>.workers.dev/api/semantic-fingerprint
+   ```
+
+2. En GitHub Pages, crea la variable de repositorio `VITE_SEMANTIC_API_URL` en **Settings → Secrets and variables → Actions → Variables**.
+
+Los títulos enviados al Worker salen del dispositivo. La cuota gratuita de Workers AI es limitada y puede cambiar; el Worker limita el tamaño de la petición y la frecuencia por IP.
 
 > Cada búsqueda consume 100 unidades de la cuota gratuita diaria (10.000). Las peticiones de metadatos consumen mucho menos. **Actualizar serie** hace una sola búsqueda global por actualización.
 
@@ -49,7 +79,7 @@ Al **añadir una serie** desde un vídeo y al pulsar **Actualizar serie** se usa
 - Hace una búsqueda global en YouTube con el título principal y añade el título real extraído de las descripciones como referencia. Si no hay título en las descripciones, sigue usando el título principal (una sola consulta por actualización).
 - Busca también por los **alias manuales** de cada serie. Puedes añadir otros títulos de la misma historia (traducciones o títulos alternativos) desde la ficha de la serie; se combinan con el título principal en la misma consulta OR, así que no se multiplican las llamadas a la API.
 - Amplía la búsqueda con **sinónimos en español** de las palabras principales del título (por ejemplo, `lluvia` → `precipitación`, `aguacero`, `chaparrón`; `apocalipsis` → `catástrofe`, `cataclismo`), porque las traducciones automáticas suelen cambiar unas palabras por otras. Los sinónimos se consultan en [rae-api.com](https://rae-api.com), se guardan en caché durante 60 días y, si la API falla o se agota su cuota, la búsqueda continúa con el título original.
-- Si se configura Gemini, genera el fingerprint semántico de la serie en el primer refresco y clasifica en lote los candidatos para priorizar historias con atributos compartidos. El fingerprint queda guardado con la serie y se sincroniza con Drive.
+- Si se configura el servicio semántico, genera el fingerprint de la serie en el primer refresco y clasifica en lote los candidatos para priorizar historias con atributos compartidos. El fingerprint queda guardado con la serie y se sincroniza con Drive.
 - Añade automáticamente solo los vídeos cuyo título base coincide exactamente con el de la serie o con uno de sus alias (por ejemplo, «Mi drama» → «Mi drama - Parte 3» o «Mi drama | Final»).
 - Las coincidencias por el título de la descripción y el resto de coincidencias parciales aparecen como **posibles capítulos**: puedes revisar el vídeo, ver el título detectado en la descripción, escribir o editar el número de capítulo, marcarlo como final, añadirlo o descartarlo. Al añadir una serie, los candidatos se incorporan a la vista previa y se guardan junto con ella.
 
@@ -125,7 +155,7 @@ npm run lint     # lint con oxlint
 src/
 ├── app/                 # composición raíz, navegación y tipos de aplicación
 ├── features/
-│   ├── discovery/       # model/ (API, playlists, ranking, Gemini), types.ts
+│   ├── discovery/       # model/ (API, playlists, ranking, IA semántica), types.ts
 │   ├── library/         # componentes del inicio, lista y tarjetas
 │   ├── playback/        # componentes de reproducción
 │   ├── series/          # components/, model/ (partes, títulos, progreso), types.ts
@@ -161,7 +191,7 @@ El repositorio incluye el workflow `.github/workflows/deploy.yml`, que compila y
 
 1. Sube el repositorio a GitHub (rama `main`).
 2. En GitHub, entra en **Settings → Pages → Build and deployment** y selecciona **GitHub Actions** como _Source_.
-3. En **Settings → Secrets and variables → Actions**, crea `VITE_GOOGLE_CLIENT_ID` como variable. Para Gemini, añade `VITE_GEMINI_API_KEY` como variable o secreto y, opcionalmente, `VITE_GEMINI_MODEL` como variable (por defecto `gemini-3.8-flash`). El workflow admite ambos tipos para la clave, pero Vite la incluirá en el JavaScript público de Pages; guardarla como secreto no evita esa exposición.
+3. En **Settings → Secrets and variables → Actions**, crea `VITE_GOOGLE_CLIENT_ID` como variable. Si usas la similitud semántica, añade también `VITE_SEMANTIC_API_URL` como variable con la URL del Worker. Es una URL pública, no una credencial: la clave de Cloudflare permanece en el Worker.
 4. Ve a la pestaña **Actions** y espera a que termine el workflow **Deploy to GitHub Pages**.
 5. La app quedará disponible en:
 
