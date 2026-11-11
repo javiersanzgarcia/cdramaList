@@ -10,12 +10,16 @@ export function watchedCount(series: Series): number {
 }
 
 export function seriesStatus(series: Series): SeriesStatus {
-  const total = series.parts.length;
-  const watched = watchedCount(series);
+  if (watchedCount(series) > 0 || series.lastOpenedAt) {
+    const total = series.parts.length;
+    const watched = watchedCount(series);
 
-  if (total > 0 && watched >= total) return "completed";
-  if (watched > 0 || series.lastOpenedAt) return "watching";
-  return "planned";
+    if (total > 0 && watched >= total) return "completed";
+    return "watching";
+  }
+
+  // Sin progreso real se respeta el estado elegido manualmente.
+  return series.status ?? "planned";
 }
 
 export function progressPercent(series: Series): number {
@@ -520,6 +524,12 @@ export function normalizeSeries(value: Series): Series {
       })),
     watched: value.watched.filter((id) => typeof id === "string"),
     favorite: Boolean(value.favorite),
+    status:
+      value.status === "watching" ||
+      value.status === "planned" ||
+      value.status === "completed"
+        ? value.status
+        : undefined,
     createdAt: typeof value.createdAt === "number" ? value.createdAt : now,
     updatedAt: typeof value.updatedAt === "number" ? value.updatedAt : now,
     lastOpenedAt:

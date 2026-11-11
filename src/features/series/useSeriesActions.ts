@@ -14,7 +14,7 @@ import {
   mergeSeries,
 } from "./model/series";
 import type { PartMetaPatch } from "./model/series";
-import type { Part, Series, SeriesDraft } from "./types";
+import type { Part, Series, SeriesDraft, SeriesStatus } from "./types";
 import type { DriveSync } from "../sync/hooks/useDriveSync";
 
 interface UseSeriesActionsOptions {
@@ -70,6 +70,14 @@ export function useSeriesActions({
     updateSeries((current) =>
       current.map((item) =>
         item.id === id ? { ...item, favorite: !item.favorite } : item,
+      ),
+    );
+  }
+
+  function setSeriesStatus(id: string, status: SeriesStatus) {
+    updateSeries((current) =>
+      current.map((item) =>
+        item.id === id ? { ...item, status, updatedAt: Date.now() } : item,
       ),
     );
   }
@@ -312,6 +320,7 @@ export function useSeriesActions({
     openSeries,
     playSeries,
     toggleFavorite,
+    setSeriesStatus,
     updateAliases,
     updateTitle,
     updatePartMeta,

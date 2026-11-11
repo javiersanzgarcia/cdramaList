@@ -41,6 +41,12 @@ export interface Series {
   parts: Part[];
   watched: string[];
   favorite: boolean;
+  /**
+   * Estado elegido manualmente. Solo se respeta cuando la serie no tiene
+   * progreso real (ni capítulos vistos ni última apertura); en caso contrario
+   * el estado se calcula automáticamente a partir del progreso.
+   */
+  status?: SeriesStatus;
   createdAt: number;
   updatedAt: number;
   lastOpenedAt?: number;

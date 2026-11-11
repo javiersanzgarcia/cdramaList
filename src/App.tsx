@@ -59,6 +59,7 @@ export default function App() {
     openSeries,
     playSeries,
     toggleFavorite,
+    setSeriesStatus,
     updateAliases,
     updateTitle,
     updatePartMeta,
@@ -340,6 +341,7 @@ export default function App() {
           onClose={() => setSelectedSeriesId(null)}
           onPlay={playSeries}
           onToggleFavorite={toggleFavorite}
+          onSetStatus={setSeriesStatus}
           onSetWatched={setWatched}
           onMovePart={movePart}
           onAddParts={handleAddParts}

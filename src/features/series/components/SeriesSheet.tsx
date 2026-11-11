@@ -5,14 +5,16 @@ import {
   isSeriesComplete,
   nextPartIndex,
   progressPercent,
+  seriesStatus,
   watchedCount,
 } from "../model/series";
+import { statusMeta, statusOrder } from "../model/status";
 import { channelUrlFor } from "../../discovery/model/youtube";
 import type {
   ChapterCandidate,
   SeriesRefreshResult,
 } from "../../discovery/types";
-import type { Series } from "../types";
+import type { Series, SeriesStatus } from "../types";
 import { useSheet } from "../../../shared/hooks/useSheet";
 import { SeriesAliasesEditor } from "./SeriesAliasesEditor";
 import { SeriesPartsList } from "./SeriesPartsList";
@@ -28,6 +30,7 @@ interface SeriesSheetProps {
   onClose: () => void;
   onPlay: (series: Series, index: number) => void;
   onToggleFavorite: (id: string) => void;
+  onSetStatus: (id: string, status: SeriesStatus) => void;
   onSetWatched: (seriesId: string, videoId: string, watched: boolean) => void;
   onMovePart: (seriesId: string, fromIndex: number, toIndex: number) => void;
   onAddParts: (series: Series) => void;
@@ -51,6 +54,7 @@ export function SeriesSheet({
   onClose,
   onPlay,
   onToggleFavorite,
+  onSetStatus,
   onSetWatched,
   onMovePart,
   onAddParts,
@@ -78,6 +82,8 @@ export function SeriesSheet({
   const total = series.parts.length;
   const watched = watchedCount(series);
   const complete = isSeriesComplete(series);
+  const status = seriesStatus(series);
+  const hasProgress = watched > 0 || Boolean(series.lastOpenedAt);
   const nextIndex = nextPartIndex(series);
   const nextPart = series.parts[nextIndex];
   const progress = progressPercent(series);
@@ -214,6 +220,40 @@ export function SeriesSheet({
                 Ver canal
                 <Icon.ExternalLink className="size-3.5" />
               </a>
+            )}
+          </div>
+
+          <div className="mt-3">
+            <p className="text-[11px] font-semibold uppercase tracking-wide text-zinc-500">
+              Estado
+            </p>
+            <div className="mt-2 grid grid-cols-3 gap-2">
+              {statusOrder.map((option) => {
+                const active = option === status;
+                const locked = hasProgress && !active;
+
+                return (
+                  <button
+                    key={option}
+                    type="button"
+                    onClick={() => onSetStatus(series.id, option)}
+                    disabled={locked}
+                    aria-pressed={active}
+                    className={`rounded-2xl border px-2 py-2 text-xs font-semibold transition active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-40 ${
+                      active
+                        ? `border-transparent ${statusMeta[option].badge}`
+                        : "border-zinc-800 text-zinc-400 hover:border-zinc-700 hover:text-white"
+                    }`}
+                  >
+                    {statusMeta[option].label}
+                  </button>
+                );
+              })}
+            </div>
+            {hasProgress && (
+              <p className="mt-2 text-[11px] text-zinc-500">
+                El estado se calcula automáticamente según tu progreso.
+              </p>
             )}
           </div>
 
