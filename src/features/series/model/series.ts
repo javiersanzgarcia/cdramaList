@@ -10,16 +10,19 @@ export function watchedCount(series: Series): number {
 }
 
 export function seriesStatus(series: Series): SeriesStatus {
-  if (watchedCount(series) > 0 || series.lastOpenedAt) {
-    const total = series.parts.length;
-    const watched = watchedCount(series);
+  // El estado elegido manualmente manda sobre el calculado: permite corregir
+  // discrepancias con el automático.
+  if (series.status) return series.status;
 
-    if (total > 0 && watched >= total) return "completed";
-    return "watching";
-  }
+  const total = series.parts.length;
+  const watched = watchedCount(series);
 
-  // Sin progreso real se respeta el estado elegido manualmente.
-  return series.status ?? "planned";
+  // Automático: con todas las partes vistas, la serie está completada.
+  if (total > 0 && watched >= total) return "completed";
+  // Automático: con algo de progreso (parte vista o reproducida), en curso.
+  if (watched > 0 || series.lastOpenedAt) return "watching";
+
+  return "planned";
 }
 
 export function progressPercent(series: Series): number {

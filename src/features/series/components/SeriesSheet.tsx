@@ -83,7 +83,6 @@ export function SeriesSheet({
   const watched = watchedCount(series);
   const complete = isSeriesComplete(series);
   const status = seriesStatus(series);
-  const hasProgress = watched > 0 || Boolean(series.lastOpenedAt);
   const nextIndex = nextPartIndex(series);
   const nextPart = series.parts[nextIndex];
   const progress = progressPercent(series);
@@ -230,16 +229,14 @@ export function SeriesSheet({
             <div className="mt-2 grid grid-cols-3 gap-2">
               {statusOrder.map((option) => {
                 const active = option === status;
-                const locked = hasProgress && !active;
 
                 return (
                   <button
                     key={option}
                     type="button"
                     onClick={() => onSetStatus(series.id, option)}
-                    disabled={locked}
                     aria-pressed={active}
-                    className={`rounded-2xl border px-2 py-2 text-xs font-semibold transition active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-40 ${
+                    className={`rounded-2xl border px-2 py-2 text-xs font-semibold transition active:scale-[0.98] ${
                       active
                         ? `border-transparent ${statusMeta[option].badge}`
                         : "border-zinc-800 text-zinc-400 hover:border-zinc-700 hover:text-white"
@@ -250,11 +247,6 @@ export function SeriesSheet({
                 );
               })}
             </div>
-            {hasProgress && (
-              <p className="mt-2 text-[11px] text-zinc-500">
-                El estado se calcula automáticamente según tu progreso.
-              </p>
-            )}
           </div>
 
           <div className="mt-3 grid grid-cols-3 gap-2">

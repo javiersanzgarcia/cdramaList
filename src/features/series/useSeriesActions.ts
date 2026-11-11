@@ -12,6 +12,7 @@ import {
   learnKeywordConfidence,
   mergeAliasesWithParts,
   mergeSeries,
+  watchedCount,
 } from "./model/series";
 import type { PartMetaPatch } from "./model/series";
 import type { Part, Series, SeriesDraft, SeriesStatus } from "./types";
@@ -53,8 +54,9 @@ export function useSeriesActions({
   }
 
   function openSeries(item: Series) {
+    // Abrir la serie no cuenta como progreso: solo reproducir una parte
+    // cambia el estado automático a «en curso».
     setSelectedSeriesId(item.id);
-    touchSeries(item.id);
   }
 
   function playSeries(item: Series, index: number) {
@@ -155,11 +157,26 @@ export function useSeriesActions({
         const already = item.watched.includes(videoId);
         if (already === watched) return item;
 
+        const nextWatched = watched
+          ? [...item.watched, videoId]
+          : item.watched.filter((id) => id !== videoId);
+        const wasComplete =
+          item.parts.length > 0 && watchedCount(item) >= item.parts.length;
+        const isComplete =
+          item.parts.length > 0 &&
+          item.parts.filter((part) => nextWatched.includes(part.videoId))
+            .length >= item.parts.length;
+
         return {
           ...item,
-          watched: watched
-            ? [...item.watched, videoId]
-            : item.watched.filter((id) => id !== videoId),
+          watched: nextWatched,
+          // Al completar todas las partes el estado pasa a «completada». Si una
+          // serie completada deja de estarlo, se vuelve al estado automático.
+          status: isComplete
+            ? "completed"
+            : wasComplete
+              ? undefined
+              : item.status,
           updatedAt: Date.now(),
         };
       }),
