@@ -106,11 +106,25 @@ export function SeriesSheet({
     series.channelUrl ??
     (series.channelId ? channelUrlFor(series.channelId) : undefined);
 
+  // Solo se conocen las duraciones que ha devuelto YouTube: si falta alguna,
+  // el total es parcial y se indica con un «+» para no engañar.
   const totalDuration = series.parts.reduce(
     (sum, part) => sum + (part.durationSeconds ?? 0),
     0,
   );
+  const missingDurations = series.parts.filter(
+    (part) => part.durationSeconds == null,
+  ).length;
   const totalLabel = formatDuration(totalDuration);
+  const durationLabel = totalLabel
+    ? `${totalLabel}${missingDurations > 0 ? "+" : ""}`
+    : undefined;
+  const durationCaption =
+    missingDurations === 0
+      ? "Duración"
+      : missingDurations === series.parts.length
+        ? "Sin datos"
+        : "Duración parcial";
 
   // Al crear la serie la portada es la de la parte 1; desde aquí se puede
   // cambiar por la de cualquier otra parte.
@@ -372,18 +386,22 @@ export function SeriesSheet({
             </div>
             <div className="rounded-2xl bg-zinc-950/60 p-3 ring-1 ring-zinc-800">
               <p className="text-lg font-bold text-zinc-100">
-                {totalLabel ?? "—"}
+                {durationLabel ?? "—"}
               </p>
-              <p className="mt-0.5 text-[11px] text-zinc-500">Duración</p>
+              <p className="mt-0.5 text-[11px] text-zinc-500">
+                {durationCaption}
+              </p>
             </div>
           </div>
 
           <SeriesTitleEditor
+            key={`title-${series.id}`}
             series={series}
             onUpdateTitle={onUpdateTitle}
           />
 
           <SeriesAliasesEditor
+            key={`aliases-${series.id}`}
             series={series}
             onUpdateAliases={onUpdateAliases}
           />
@@ -397,6 +415,7 @@ export function SeriesSheet({
           />
 
           <SeriesRefreshPanel
+            key={`refresh-${series.id}`}
             series={series}
             semanticConfigured={semanticConfigured}
             initialCandidates={initialCandidates}

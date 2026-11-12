@@ -102,6 +102,7 @@ async function findDriveFile(token: string): Promise<DriveFile | null> {
     spaces: "appDataFolder",
     fields: "files(id,name,modifiedTime)",
     pageSize: "100",
+    q: `name = '${FILE_NAME}' and trashed = false`,
   });
 
   const response = await driveFetch(
@@ -110,7 +111,13 @@ async function findDriveFile(token: string): Promise<DriveFile | null> {
   );
   const data = (await response.json()) as { files?: DriveFile[] };
 
-  return data.files?.find((file) => file.name === FILE_NAME) ?? null;
+  // Si quedan archivos duplicados, se usa el más reciente por `modifiedTime`.
+  const files = (data.files ?? []).filter((file) => file.name === FILE_NAME);
+  files.sort((left, right) =>
+    (right.modifiedTime ?? "").localeCompare(left.modifiedTime ?? ""),
+  );
+
+  return files[0] ?? null;
 }
 
 export function buildSnapshot(series: Series[]) {
@@ -122,27 +129,22 @@ export function buildSnapshot(series: Series[]) {
   };
 }
 
+const SNAPSHOT_APP = "cdramalist";
+
 export function parseSnapshot(
   value: unknown,
 ): { series: Series[]; exportedAt?: string } | null {
-  const raw = Array.isArray(value)
-    ? value
-    : value &&
-        typeof value === "object" &&
-        Array.isArray((value as { series?: unknown }).series)
-      ? (value as { series: unknown[] }).series
-      : null;
+  // Se exige el identificador de la app para no aceptar cualquier JSON que
+  // contenga una lista «series» (archivos ajenos o corruptos).
+  if (!value || typeof value !== "object" || Array.isArray(value)) return null;
 
-  if (!raw) return null;
+  const record = value as Record<string, unknown>;
+  if (record.app !== SNAPSHOT_APP || !Array.isArray(record.series)) return null;
 
   return {
-    series: raw.filter(isSeries).map(normalizeSeries),
+    series: record.series.filter(isSeries).map(normalizeSeries),
     exportedAt:
-      value &&
-      typeof value === "object" &&
-      typeof (value as { exportedAt?: unknown }).exportedAt === "string"
-        ? (value as { exportedAt: string }).exportedAt
-        : undefined,
+      typeof record.exportedAt === "string" ? record.exportedAt : undefined,
   };
 }
 

@@ -305,7 +305,9 @@ export function useDriveSync({
 
     if (runningRef.current) return;
 
-    const count = seriesRef.current.length;
+    // Las series borradas (lápida) no se cuentan: se conservan solo para
+    // propagar el borrado, no forman parte de la biblioteca visible.
+    const count = seriesRef.current.filter((item) => !item.deletedAt).length;
     const confirmed = window.confirm(
       `Se reemplazará el archivo de Google Drive con tus ${count} series locales. ¿Continuar?`,
     );
@@ -364,8 +366,14 @@ export function useDriveSync({
         return;
       }
 
+      const localCount = seriesRef.current.filter(
+        (item) => !item.deletedAt,
+      ).length;
+      const remoteCount = remote.series.filter(
+        (item) => !item.deletedAt,
+      ).length;
       const confirmed = window.confirm(
-        `Se reemplazarán tus ${seriesRef.current.length} series locales por las ${remote.series.length} de Google Drive. ¿Continuar?`,
+        `Se reemplazarán tus ${localCount} series locales por las ${remoteCount} de Google Drive. ¿Continuar?`,
       );
 
       if (!confirmed) {
@@ -385,7 +393,7 @@ export function useDriveSync({
       setStatus("synced");
       setMessage({
         kind: "ok",
-        text: `Descargadas ${remote.series.length} series de Google Drive.`,
+        text: `Descargadas ${remoteCount} series de Google Drive.`,
       });
     } catch (cause) {
       handleDriveError(cause);

@@ -21,7 +21,12 @@ interface HomeViewProps {
   onPlay: (series: Series, index: number) => void;
   onToggleFavorite: (id: string) => void;
   onAdd: () => void;
-  onRefreshFavorites: () => Promise<{ updated: number; failed: number }>;
+  onRefreshFavorites: () => Promise<{
+    updated: number;
+    failed: number;
+    warnings: string[];
+    syncFailed: boolean;
+  }>;
   onOpenSettings: () => void;
 }
 
@@ -97,15 +102,33 @@ export function HomeView({
 
     try {
       const result = await onRefreshFavorites();
-      // Con novedades, la ficha se abre sola; solo avisamos si no hay ninguna.
-      if (result.updated > 0) return;
+
+      // Con novedades la ficha se abre sola; solo se muestra el aviso si no hay
+      // ninguna o si hubo problemas que el usuario deba conocer (avisos de la
+      // búsqueda o fallo al sincronizar con Drive).
+      const hasNotices = result.warnings.length > 0 || result.syncFailed;
+      if (result.updated > 0 && !hasNotices) return;
+
+      const lines: string[] = [];
+      if (result.updated > 0) {
+        lines.push(
+          `Novedades en ${result.updated} ${result.updated === 1 ? "serie" : "series"}.`,
+        );
+      } else if (result.failed > 0) {
+        lines.push(
+          `No se ${result.failed === 1 ? "pudo revisar 1 serie" : `pudieron revisar ${result.failed} series`}. Ninguna tiene novedades.`,
+        );
+      } else {
+        lines.push("No hay capítulos nuevos ni candidatos en tus favoritas.");
+      }
+      if (result.syncFailed) {
+        lines.push("No se pudo sincronizar con Google Drive.");
+      }
+      lines.push(...result.warnings);
 
       setFavoritesMessage({
-        kind: result.failed > 0 ? "error" : "info",
-        text:
-          result.failed > 0
-            ? `No se ${result.failed === 1 ? "pudo revisar 1 serie" : `pudieron revisar ${result.failed} series`}. Ninguna tiene novedades.`
-            : "No hay capítulos nuevos ni candidatos en tus favoritas.",
+        kind: result.failed > 0 || result.syncFailed ? "error" : "info",
+        text: lines.join(" "),
       });
     } catch (caught) {
       setFavoritesMessage({

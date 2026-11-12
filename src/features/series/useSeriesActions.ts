@@ -46,6 +46,10 @@ export function useSeriesActions({
   // Evita que el lote de favoritas se lance dos veces mientras sigue en curso,
   // aunque la vista que lo inició se haya desmontado y vuelto a montar.
   const favoritesRunningRef = useRef(false);
+  // Vídeos cuya duración ya se ha intentado obtener en esta sesión. Evita
+  // repetir la petición en cada apertura (y la duplicidad entre la ficha y el
+  // reproductor), sobre todo cuando YouTube no devuelve metadatos.
+  const durationAttemptsRef = useRef(new Set<string>());
 
   function updateSeries(updater: (current: Series[]) => Series[]) {
     setSeries((current) => updater(current));
@@ -140,15 +144,19 @@ export function useSeriesActions({
     if (!apiKey) return;
 
     const missing = item.parts.filter(
-      (part) => part.durationSeconds == null,
+      (part) =>
+        part.durationSeconds == null &&
+        !durationAttemptsRef.current.has(part.videoId),
     );
     if (missing.length === 0) return;
 
+    const videoIds = missing.map((part) => part.videoId);
+    // Se marcan antes de pedirlas para que abrir la ficha y el reproductor a la
+    // vez no lance la misma petición dos veces.
+    for (const videoId of videoIds) durationAttemptsRef.current.add(videoId);
+
     try {
-      const metas = await fetchVideosByIds(
-        missing.map((part) => part.videoId),
-        apiKey,
-      );
+      const metas = await fetchVideosByIds(videoIds, apiKey);
       if (metas.size === 0) return;
 
       updateSeries((current) =>
@@ -159,7 +167,11 @@ export function useSeriesActions({
         ),
       );
     } catch {
-      // La duración es informativa: si falla, la serie sigue funcionando.
+      // La duración es informativa: si falla (por ejemplo, sin conexión) se
+      // permite reintentar más tarde en vez de darla por perdida.
+      for (const videoId of videoIds) {
+        durationAttemptsRef.current.delete(videoId);
+      }
     }
   }
 
@@ -382,9 +394,17 @@ export function useSeriesActions({
     updatedIds: string[];
     candidatesById: Record<string, ChapterCandidate[]>;
     failed: number;
+    warnings: string[];
+    syncFailed: boolean;
   }> {
     if (favoritesRunningRef.current) {
-      return { updatedIds: [], candidatesById: {}, failed: 0 };
+      return {
+        updatedIds: [],
+        candidatesById: {},
+        failed: 0,
+        warnings: [],
+        syncFailed: false,
+      };
     }
 
     favoritesRunningRef.current = true;
@@ -400,13 +420,20 @@ export function useSeriesActions({
         (item) => item.favorite && !item.deletedAt,
       );
       if (favorites.length === 0) {
-        return { updatedIds: [], candidatesById: {}, failed: 0 };
+        return {
+          updatedIds: [],
+          candidatesById: {},
+          failed: 0,
+          warnings: [],
+          syncFailed: false,
+        };
       }
 
       let next = series;
       const updatedById = new Map<string, Series>();
       const updatedIds: string[] = [];
       const candidatesById: Record<string, ChapterCandidate[]> = {};
+      const warnings = new Set<string>();
       let failed = 0;
 
       for (const favorite of favorites) {
@@ -418,6 +445,8 @@ export function useSeriesActions({
             apiKey,
             semanticEndpoint,
           );
+
+          for (const warning of update.warnings) warnings.add(warning);
 
           const hasNews =
             update.added.length > 0 || update.candidates.length > 0;
@@ -465,6 +494,8 @@ export function useSeriesActions({
         }
       }
 
+      let syncFailed = false;
+
       if (updatedById.size > 0) {
         // Se aplican solo las series actualizadas sobre el estado más reciente,
         // no se reemplaza toda la lista con el snapshot inicial del lote.
@@ -475,11 +506,17 @@ export function useSeriesActions({
         });
         // Una sola sincronización al terminar, no una por cada serie.
         if (drive.connected) {
-          await drive.syncNow(nextSeries);
+          syncFailed = !(await drive.syncNow(nextSeries));
         }
       }
 
-      return { updatedIds, candidatesById, failed };
+      return {
+        updatedIds,
+        candidatesById,
+        failed,
+        warnings: [...warnings],
+        syncFailed,
+      };
     } finally {
       favoritesRunningRef.current = false;
     }

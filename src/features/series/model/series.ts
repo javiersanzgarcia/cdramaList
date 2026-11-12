@@ -313,7 +313,12 @@ export function mergeSeries(
       finalTitle,
     ),
     channelId: existing.channelId ?? draft.channelId,
-    channelTitle: existing.channelTitle || draft.channelTitle,
+    // «YouTube» es el valor por defecto cuando no se conoce el canal; si ahora
+    // llega el canal real, se actualiza (igual que hace handleRefreshSeries).
+    channelTitle:
+      existing.channelTitle === "YouTube" && draft.channelTitle
+        ? draft.channelTitle
+        : existing.channelTitle,
     channelUrl: existing.channelUrl ?? draft.channelUrl,
     thumbnail:
       existing.thumbnail ?? draft.thumbnail ?? mergedParts[0]?.thumbnail,
@@ -746,6 +751,25 @@ function earliest(
   return Math.min(current, incoming);
 }
 
+/** Tiempo que se conserva una serie borrada para propagar el borrado. */
+export const DELETED_SERIES_TTL = 30 * 24 * 60 * 60 * 1000;
+
+/**
+ * Elimina definitivamente las lápidas con más de `maxAgeMs`. Pasado ese plazo
+ * se asume que el borrado ya se ha propagado a los demás dispositivos, así que
+ * la serie (y sus duplicados huérfanos al volver a añadirla) se puede purgar.
+ */
+export function pruneDeletedSeries(
+  series: Series[],
+  maxAgeMs: number = DELETED_SERIES_TTL,
+  now: number = Date.now(),
+): Series[] {
+  const kept = series.filter(
+    (item) => item.deletedAt == null || now - item.deletedAt < maxAgeMs,
+  );
+  return kept.length === series.length ? series : kept;
+}
+
 export function mergeSeriesCollections(
   local: Series[],
   remote: Series[],
@@ -764,5 +788,9 @@ export function mergeSeriesCollections(
     );
   }
 
-  return [...byId.values()].sort((a, b) => b.updatedAt - a.updatedAt);
+  // Se descartan las lápidas antiguas para que no crezcan sin límite en
+  // localStorage ni en el archivo de Drive.
+  return pruneDeletedSeries(
+    [...byId.values()].sort((a, b) => b.updatedAt - a.updatedAt),
+  );
 }

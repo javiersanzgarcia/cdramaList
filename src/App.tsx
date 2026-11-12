@@ -127,7 +127,11 @@ export default function App() {
     window.history.pushState(guardState, "");
 
     function handlePopState() {
-      window.history.pushState(guardState, "");
+      // Al pulsar «atrás» la entrada de guardia sigue en el historial de avance,
+      // así que se recupera con `forward()` en vez de crear una nueva: si se
+      // hiciera `pushState` en cada pulsación quedarían entradas fantasma.
+      if (window.history.state?.cdramalistBusy) return;
+      window.history.forward();
     }
 
     function handleBeforeUnload(event: BeforeUnloadEvent) {
@@ -140,8 +144,7 @@ export default function App() {
     return () => {
       window.removeEventListener("popstate", handlePopState);
       window.removeEventListener("beforeunload", handleBeforeUnload);
-      // Retira la entrada de guardia sin salir de la app. Cada «atrás» se
-      // absorbe reponiendo la misma entrada, así que basta con retroceder una.
+      // Retira la entrada de guardia sin salir de la app.
       if (window.history.state?.cdramalistBusy) {
         window.history.back();
       }
@@ -195,15 +198,15 @@ export default function App() {
     setAddTargetId(null);
   }
 
+  // Cerrar la ficha no descarta la cola de revisión: se conserva para poder
+  // reabrirla con el botón flotante «Revisar novedades» sin recalcular todo.
   function closeSeries() {
     setSelectedSeriesId(null);
-    setReviewQueue([]);
-    setReviewCandidates({});
   }
 
   async function refreshFavorites() {
     if (favoritesRefreshRef.current) {
-      return { updated: 0, failed: 0 };
+      return { updated: 0, failed: 0, warnings: [], syncFailed: false };
     }
 
     favoritesRefreshRef.current = true;
@@ -221,7 +224,12 @@ export default function App() {
         setReviewQueue(result.updatedIds);
         setSelectedSeriesId(result.updatedIds[0]);
       }
-      return { updated: result.updatedIds.length, failed: result.failed };
+      return {
+        updated: result.updatedIds.length,
+        failed: result.failed,
+        warnings: result.warnings,
+        syncFailed: result.syncFailed,
+      };
     } finally {
       favoritesRefreshRef.current = false;
       setRefreshing(false);
@@ -410,13 +418,24 @@ export default function App() {
 
       <BottomNav tab={tab} savedCount={series.length} onChange={setTab} />
 
-      {tab === "list" &&
-        series.length > 0 &&
+      {(reviewQueue.length > 0 ||
+        (tab === "list" && series.length > 0)) &&
         !selectedSeries &&
         !player &&
         !addOpen && (
-          <div className="pointer-events-none fixed inset-x-0 bottom-[calc(env(safe-area-inset-bottom)_+_5rem)] z-20 mx-auto w-full max-w-md px-4">
-            <div className="flex justify-end">
+          <div className="pointer-events-none fixed inset-x-0 bottom-[calc(env(safe-area-inset-bottom)_+_5rem)] z-20 mx-auto flex w-full max-w-md flex-col items-end gap-3 px-4">
+            {reviewQueue.length > 0 && (
+              <button
+                type="button"
+                onClick={() => setSelectedSeriesId(reviewQueue[0])}
+                className="pointer-events-auto flex items-center gap-2 self-center rounded-full bg-rose-500 px-4 py-2.5 text-sm font-semibold text-white shadow-xl shadow-rose-500/30 transition hover:bg-rose-400 active:scale-95"
+              >
+                <Icon.Sparkles className="size-4" />
+                Revisar novedades ({reviewQueue.length})
+              </button>
+            )}
+
+            {tab === "list" && series.length > 0 && (
               <button
                 type="button"
                 onClick={openAdd}
@@ -425,7 +444,7 @@ export default function App() {
               >
                 <Icon.Plus className="size-5" />
               </button>
-            </div>
+            )}
           </div>
         )}
 

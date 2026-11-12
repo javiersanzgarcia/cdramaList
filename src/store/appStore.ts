@@ -6,7 +6,7 @@ import {
   type StateStorage,
 } from "zustand/middleware";
 import { sanitizeGoogleUser } from "../features/sync/model/google";
-import { isSeries, normalizeSeries } from "../features/series/model/series";
+import { isSeries, normalizeSeries, pruneDeletedSeries } from "../features/series/model/series";
 import type { SynonymCacheEntry } from "../features/discovery/types";
 import type { Series } from "../features/series/types";
 import type { DrivePersistenceState, GoogleUser } from "../features/sync/types";
@@ -44,7 +44,7 @@ const DEFAULT_DRIVE_STATE: DrivePersistenceState = {
 
 function sanitizeSeries(value: unknown): Series[] {
   return Array.isArray(value)
-    ? value.filter(isSeries).map(normalizeSeries)
+    ? pruneDeletedSeries(value.filter(isSeries).map(normalizeSeries))
     : [];
 }
 
