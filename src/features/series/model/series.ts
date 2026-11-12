@@ -576,10 +576,10 @@ export function combineSeries(current: Series, incoming: Series): Series {
     // Gana la copia más reciente para poder quitar de favoritos entre
     // dispositivos (con un OR nunca se podría desmarcar).
     favorite: newer.favorite,
-    aliases: normalizeAliases([
-      ...(current.aliases ?? []),
-      ...(incoming.aliases ?? []),
-    ]),
+    // Igual que `favorite`, los alias y los capítulos vistos son de la copia
+    // más reciente: con una unión, borrar un alias o desmarcar un capítulo en
+    // un dispositivo no se propagaría al resto.
+    aliases: normalizeAliases(newer.aliases ?? []),
     keywordConfidence: combineKeywordConfidence(
       current.keywordConfidence,
       incoming.keywordConfidence,
@@ -591,7 +591,7 @@ export function combineSeries(current: Series, incoming: Series): Series {
     channelUrl: newer.channelUrl ?? older.channelUrl,
     thumbnail: newer.thumbnail ?? older.thumbnail,
     parts: mergeParts(current.parts, incoming.parts),
-    watched: [...new Set([...current.watched, ...incoming.watched])],
+    watched: [...new Set(newer.watched)],
     discardedCandidates: [
       ...new Set([
         ...(current.discardedCandidates ?? []),
