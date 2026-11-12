@@ -617,6 +617,28 @@ function mergeField<T>(
   return pick(newer);
 }
 
+/**
+ * Combina el estado manual. Sin base, una copia sin estado no debe borrar el
+ * estado definido por la otra (por ejemplo, al recibir por primera vez una
+ * serie marcada manualmente en otro dispositivo).
+ */
+function mergeStatus(
+  base: Series | undefined,
+  current: Series,
+  incoming: Series,
+  newer: Series,
+): SeriesStatus | undefined {
+  if (!base) {
+    if (current.status === undefined) return incoming.status;
+    if (incoming.status === undefined) return current.status;
+    return newer.status;
+  }
+
+  if (current.status === base.status) return incoming.status;
+  if (incoming.status === base.status) return current.status;
+  return newer.status;
+}
+
 export function combineSeries(
   current: Series,
   incoming: Series,
@@ -671,13 +693,7 @@ export function combineSeries(
     newer,
     (item) => item.favorite,
   );
-  const mergedStatus = mergeField(
-    base,
-    current,
-    incoming,
-    newer,
-    (item) => item.status,
-  );
+  const mergedStatus = mergeStatus(base, current, incoming, newer);
   // Solo se reconcilia el estado si la unión aporta capítulos que la copia más
   // reciente no tenía; si no, un «completada» manual con progreso parcial se
   // mantiene tal cual.

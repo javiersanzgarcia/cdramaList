@@ -1,4 +1,4 @@
-import type { Dispatch, SetStateAction } from "react";
+import { useRef, type Dispatch, type SetStateAction } from "react";
 import type { PlayerState } from "../../app/types";
 import type { ChapterCandidate, SeriesRefreshResult } from "../discovery/types";
 import { candidateToPart } from "../discovery/model/youtubeDrafts";
@@ -11,6 +11,7 @@ import {
   createSeries,
   learnKeywordConfidence,
   mergeAliasesWithParts,
+  mergeParts,
   mergeSeries,
   reconcileCompletedStatus,
   watchedCount,
@@ -42,6 +43,10 @@ export function useSeriesActions({
   setAddTargetId,
   setAddOpen,
 }: UseSeriesActionsOptions) {
+  // Evita que el lote de favoritas se lance dos veces mientras sigue en curso,
+  // aunque la vista que lo inició se haya desmontado y vuelto a montar.
+  const favoritesRunningRef = useRef(false);
+
   function updateSeries(updater: (current: Series[]) => Series[]) {
     setSeries((current) => updater(current));
   }
@@ -297,41 +302,55 @@ export function useSeriesActions({
       };
     }
 
-    const next: Series = {
-      ...item,
-      channelId: item.channelId ?? update.channelId,
-      channelTitle:
-        item.channelTitle === "YouTube" && update.channelTitle
-          ? update.channelTitle
-          : item.channelTitle,
-      channelUrl: item.channelUrl ?? update.channelUrl,
-      parts: update.parts,
-      // Si se han añadido capítulos, una serie completada vuelve a «en curso».
-      status:
-        update.added.length > 0
-          ? reconcileCompletedStatus(item.status, item.watched, update.parts)
-          : item.status,
-      semanticFingerprint:
-        update.semanticFingerprint ?? item.semanticFingerprint,
-      updatedAt: Date.now(),
-    };
+    // La búsqueda puede durar hasta un minuto: se aplica el resultado sobre la
+    // copia más reciente de la serie, no sobre la que había al pulsar.
+    let nextSeries: Series[] = series;
+    updateSeries((current) => {
+      nextSeries = current.map((existing) => {
+        if (existing.id !== item.id || existing.deletedAt) return existing;
 
-    updateSeries((current) =>
-      current.map((existing) => (existing.id === item.id ? next : existing)),
-    );
+        // Se conservan las partes añadidas o editadas durante la búsqueda.
+        const parts = mergeParts(existing.parts, update.parts);
+
+        return {
+          ...existing,
+          channelId: existing.channelId ?? update.channelId,
+          channelTitle:
+            existing.channelTitle === "YouTube" && update.channelTitle
+              ? update.channelTitle
+              : existing.channelTitle,
+          channelUrl: existing.channelUrl ?? update.channelUrl,
+          parts,
+          // Si se han añadido capítulos, una serie completada vuelve a «en curso».
+          status:
+            update.added.length > 0
+              ? reconcileCompletedStatus(
+                  existing.status,
+                  existing.watched,
+                  parts,
+                )
+              : existing.status,
+          semanticFingerprint:
+            update.semanticFingerprint ?? existing.semanticFingerprint,
+          updatedAt: Date.now(),
+        };
+      });
+      return nextSeries;
+    });
 
     let synced = false;
     if (drive.connected) {
-      const nextSeries = series.map((existing) =>
-        existing.id === item.id ? next : existing,
-      );
       synced = await drive.syncNow(nextSeries);
     }
 
     return {
       added: update.added.length,
       candidates: update.candidates,
-      parts: update.parts,
+      // Se devuelven las partes realmente guardadas, incluidos los cambios
+      // hechos mientras se buscaban capítulos.
+      parts:
+        nextSeries.find((existing) => existing.id === item.id)?.parts ??
+        update.parts,
       warnings: update.warnings,
       synced,
     };
@@ -364,84 +383,106 @@ export function useSeriesActions({
     candidatesById: Record<string, ChapterCandidate[]>;
     failed: number;
   }> {
-    if (!apiKey) {
-      throw new Error(
-        "Configura la clave de YouTube en Ajustes para buscar capítulos nuevos.",
-      );
-    }
-
-    const favorites = series.filter((item) => item.favorite && !item.deletedAt);
-    if (favorites.length === 0) {
+    if (favoritesRunningRef.current) {
       return { updatedIds: [], candidatesById: {}, failed: 0 };
     }
 
-    let next = series;
-    const updatedById = new Map<string, Series>();
-    const updatedIds: string[] = [];
-    const candidatesById: Record<string, ChapterCandidate[]> = {};
-    let failed = 0;
+    favoritesRunningRef.current = true;
 
-    for (const favorite of favorites) {
-      const current = next.find((item) => item.id === favorite.id) ?? favorite;
-
-      try {
-        const update = await discoverSeriesUpdates(
-          current,
-          apiKey,
-          semanticEndpoint,
+    try {
+      if (!apiKey) {
+        throw new Error(
+          "Configura la clave de YouTube en Ajustes para buscar capítulos nuevos.",
         );
+      }
 
-        // Solo cuentan como novedad los capítulos nuevos o los candidatos.
-        if (update.added.length === 0 && update.candidates.length === 0) {
-          continue;
+      const favorites = series.filter(
+        (item) => item.favorite && !item.deletedAt,
+      );
+      if (favorites.length === 0) {
+        return { updatedIds: [], candidatesById: {}, failed: 0 };
+      }
+
+      let next = series;
+      const updatedById = new Map<string, Series>();
+      const updatedIds: string[] = [];
+      const candidatesById: Record<string, ChapterCandidate[]> = {};
+      let failed = 0;
+
+      for (const favorite of favorites) {
+        const current = next.find((item) => item.id === favorite.id) ?? favorite;
+
+        try {
+          const update = await discoverSeriesUpdates(
+            current,
+            apiKey,
+            semanticEndpoint,
+          );
+
+          const hasNews =
+            update.added.length > 0 || update.candidates.length > 0;
+          // Aunque no haya novedades, un fingerprint semántico aprendido en
+          // esta búsqueda debe guardarse para no repetir el trabajo.
+          const learnedFingerprint =
+            !current.semanticFingerprint && Boolean(update.semanticFingerprint);
+
+          if (!hasNews && !learnedFingerprint) {
+            continue;
+          }
+
+          const parts = mergeParts(current.parts, update.parts);
+          const merged: Series = {
+            ...current,
+            channelId: current.channelId ?? update.channelId,
+            channelTitle:
+              current.channelTitle === "YouTube" && update.channelTitle
+                ? update.channelTitle
+                : current.channelTitle,
+            channelUrl: current.channelUrl ?? update.channelUrl,
+            parts,
+            status:
+              update.added.length > 0
+                ? reconcileCompletedStatus(
+                    current.status,
+                    current.watched,
+                    parts,
+                  )
+                : current.status,
+            semanticFingerprint:
+              update.semanticFingerprint ?? current.semanticFingerprint,
+            updatedAt: Date.now(),
+          };
+
+          next = next.map((item) => (item.id === current.id ? merged : item));
+          updatedById.set(current.id, merged);
+
+          if (hasNews) {
+            updatedIds.push(current.id);
+            candidatesById[current.id] = update.candidates;
+          }
+        } catch {
+          failed += 1;
         }
-
-        const merged: Series = {
-          ...current,
-          channelId: current.channelId ?? update.channelId,
-          channelTitle:
-            current.channelTitle === "YouTube" && update.channelTitle
-              ? update.channelTitle
-              : current.channelTitle,
-          channelUrl: current.channelUrl ?? update.channelUrl,
-          parts: update.parts,
-          status:
-            update.added.length > 0
-              ? reconcileCompletedStatus(
-                  current.status,
-                  current.watched,
-                  update.parts,
-                )
-              : current.status,
-          semanticFingerprint:
-            update.semanticFingerprint ?? current.semanticFingerprint,
-          updatedAt: Date.now(),
-        };
-
-        next = next.map((item) => (item.id === current.id ? merged : item));
-        updatedById.set(current.id, merged);
-        updatedIds.push(current.id);
-        candidatesById[current.id] = update.candidates;
-      } catch {
-        failed += 1;
       }
-    }
 
-    if (updatedById.size > 0) {
-      // Se aplican solo las series actualizadas sobre el estado más reciente,
-      // no se reemplaza toda la lista con el snapshot inicial del lote.
-      let nextSeries: Series[] = series;
-      updateSeries((current) => {
-        nextSeries = current.map((item) => updatedById.get(item.id) ?? item);
-        return nextSeries;
-      });
-      // Una sola sincronización al terminar, no una por cada serie.
-      if (drive.connected) {
-        await drive.syncNow(nextSeries);
+      if (updatedById.size > 0) {
+        // Se aplican solo las series actualizadas sobre el estado más reciente,
+        // no se reemplaza toda la lista con el snapshot inicial del lote.
+        let nextSeries: Series[] = series;
+        updateSeries((current) => {
+          nextSeries = current.map((item) => updatedById.get(item.id) ?? item);
+          return nextSeries;
+        });
+        // Una sola sincronización al terminar, no una por cada serie.
+        if (drive.connected) {
+          await drive.syncNow(nextSeries);
+        }
       }
-    }
 
-    return { updatedIds, candidatesById, failed };
+      return { updatedIds, candidatesById, failed };
+    } finally {
+      favoritesRunningRef.current = false;
+    }
   }
 
   async function handleAddCandidate(
@@ -454,27 +495,48 @@ export function useSeriesActions({
     }
 
     const part = candidateToPart(candidate, options);
-    const nextParts = sortParts([...item.parts, part]);
-    const next: Series = {
-      ...item,
-      parts: nextParts,
-      status: reconcileCompletedStatus(item.status, item.watched, nextParts),
-      keywordConfidence: learnKeywordConfidence(item.keywordConfidence, [
-        candidate.title,
-        ...(candidate.descriptionTitle ? [candidate.descriptionTitle] : []),
-      ]),
-      updatedAt: Date.now(),
-    };
 
-    updateSeries((current) =>
-      current.map((existing) => (existing.id === item.id ? next : existing)),
-    );
+    // La confirmación del candidato comparte tiempo con otros cambios (vistos,
+    // estado, partes añadidas…), así que se aplica sobre la copia más reciente
+    // y no sobre la que había al pulsar «Añadir».
+    let nextSeries: Series[] = series;
+    updateSeries((current) => {
+      nextSeries = current.map((existing) => {
+        if (existing.id !== item.id || existing.deletedAt) return existing;
+        // Si otra ruta ya añadió el capítulo, no se duplica ni se toca la serie.
+        if (
+          existing.parts.some((current) => current.videoId === part.videoId)
+        ) {
+          return existing;
+        }
+
+        const nextParts = sortParts([...existing.parts, part]);
+
+        return {
+          ...existing,
+          parts: nextParts,
+          status: reconcileCompletedStatus(
+            existing.status,
+            existing.watched,
+            nextParts,
+          ),
+          keywordConfidence: learnKeywordConfidence(
+            existing.keywordConfidence,
+            [
+              candidate.title,
+              ...(candidate.descriptionTitle
+                ? [candidate.descriptionTitle]
+                : []),
+            ],
+          ),
+          updatedAt: Date.now(),
+        };
+      });
+      return nextSeries;
+    });
 
     let synced = false;
     if (drive.connected) {
-      const nextSeries = series.map((existing) =>
-        existing.id === item.id ? next : existing,
-      );
       synced = await drive.syncNow(nextSeries);
     }
 

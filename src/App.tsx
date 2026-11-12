@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { PlayerSheet } from "./features/playback/components/PlayerSheet";
 import { AddSeriesSheet } from "./features/series/components/AddSeriesSheet";
 import { SeriesSheet } from "./features/series/components/SeriesSheet";
@@ -72,6 +72,9 @@ export default function App() {
   const [reviewCandidates, setReviewCandidates] = useState<
     Record<string, ChapterCandidate[]>
   >({});
+  // Bloqueo síncrono para que dos pulsaciones rápidas no lancen dos lotes
+  // antes de que React aplique el estado de `refreshing`.
+  const favoritesRefreshRef = useRef(false);
   const { canInstall, promptInstall } = useInstallPrompt();
   const {
     updateSeries,
@@ -199,6 +202,11 @@ export default function App() {
   }
 
   async function refreshFavorites() {
+    if (favoritesRefreshRef.current) {
+      return { updated: 0, failed: 0 };
+    }
+
+    favoritesRefreshRef.current = true;
     // Igual que al actualizar una serie, se bloquea toda la interfaz mientras
     // dura el lote: así no se pueden hacer cambios que luego se perderían al
     // guardar el resultado ni borrar series que el snapshot resucitaría.
@@ -215,6 +223,7 @@ export default function App() {
       }
       return { updated: result.updatedIds.length, failed: result.failed };
     } finally {
+      favoritesRefreshRef.current = false;
       setRefreshing(false);
     }
   }
@@ -226,8 +235,23 @@ export default function App() {
   }
 
   function handleDeleteSeries(id: string) {
-    setReviewQueue((current) => current.filter((item) => item !== id));
+    const wasReviewHead = reviewQueue[0] === id;
+    const rest = reviewQueue.filter((item) => item !== id);
+
+    setReviewQueue(rest);
+    setReviewCandidates((current) => {
+      if (!(id in current)) return current;
+      const next = { ...current };
+      delete next[id];
+      return next;
+    });
     deleteSeries(id);
+
+    // Si se borra la serie que encabezaba la cola, se abre la siguiente para
+    // que la revisión no se quede atascada esperando a que se abra a mano.
+    if (wasReviewHead && rest.length > 0) {
+      setSelectedSeriesId(rest[0]);
+    }
   }
 
   // El botón «Revisar siguiente serie» solo aparece en la ficha de la serie que

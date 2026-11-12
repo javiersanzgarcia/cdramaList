@@ -52,7 +52,7 @@ export interface DriveSync {
   email: string | null;
   lastSyncedAt: number | null;
   message: SyncMessage | null;
-  connect: () => Promise<void>;
+  connect: () => Promise<boolean>;
   disconnect: () => void;
   syncNow: (seriesOverride?: Series[]) => Promise<boolean>;
   upload: () => Promise<void>;
@@ -199,7 +199,11 @@ export function useDriveSync({
         fileIdRef.current = fileId;
         lastSyncedSeriesRef.current = merged;
         setLastSyncedSignature(seriesSignature(merged));
-        setSeries(merged);
+        // Si el usuario ha cambiado algo mientras se descargaba Drive, esos
+        // cambios se combinan en lugar de quedar pisados por la copia remota.
+        setSeries((current) =>
+          mergeSeriesCollections(current, merged, local),
+        );
         saveState({
           fileId: fileId ?? undefined,
           lastSyncedAt: Date.now(),
@@ -230,17 +234,17 @@ export function useDriveSync({
     [handleDriveError, saveState, setSeries],
   );
 
-  const connect = useCallback(async () => {
+  const connect = useCallback(async (): Promise<boolean> => {
     if (!clientId) {
       setStatus("error");
       setMessage({
         kind: "error",
         text: "Falta configurar el Client ID de Google en la aplicación.",
       });
-      return;
+      return false;
     }
 
-    if (runningRef.current) return;
+    if (runningRef.current) return false;
 
     runningRef.current = true;
     setBusy(true);
@@ -259,25 +263,31 @@ export function useDriveSync({
       runningRef.current = false;
       setBusy(false);
 
-      await syncWithToken(token);
+      // La conexión solo se considera correcta si la primera sincronización
+      // termina bien; si falla, el llamador debe recibir `false`.
+      return await syncWithToken(token);
     } catch (cause) {
       runningRef.current = false;
       setBusy(false);
       connectedRef.current = false;
       setConnected(false);
       handleDriveError(cause);
+      return false;
     }
   }, [clientId, getToken, handleDriveError, saveState, syncWithToken]);
 
   const syncNow = useCallback(
     async (seriesOverride?: Series[]) => {
       if (!connectedRef.current) {
-        await connect();
-        return connectedRef.current;
+        return connect();
       }
 
       try {
-        const token = await getToken("");
+        // `syncNow` se llama a veces después de esperas largas (búsquedas de
+        // capítulos), fuera del gesto del usuario. Renovar el token ahí abriría
+        // un popup que el navegador puede bloquear, así que solo se usa el
+        // token vigente y, si caducó, se pide reconectar.
+        const token = await getToken("none");
         return await syncWithToken(token, false, seriesOverride);
       } catch (cause) {
         handleDriveError(cause);
