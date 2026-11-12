@@ -14,7 +14,6 @@ import {
   mergeParts,
   mergeSeries,
   reconcileCompletedStatus,
-  watchedCount,
 } from "./model/series";
 import type { PartMetaPatch } from "./model/series";
 import type { Part, Series, SeriesDraft, SeriesStatus } from "./types";
@@ -66,28 +65,14 @@ export function useSeriesActions({
       Math.max(index, 0),
       Math.max(item.parts.length - 1, 0),
     );
-    const alreadyComplete =
-      item.parts.length > 0 && watchedCount(item) >= item.parts.length;
-    // Reproducir una parte deja la serie «en curso» automáticamente (o
-    // «completada» si ya se habían visto todas).
-    const nextStatus: SeriesStatus = alreadyComplete ? "completed" : "watching";
 
     setPlayer({ seriesId: item.id, index: safeIndex });
+    // Reproducir no elige estado: «en curso»/«completada» se deducen del
+    // progreso y de `lastOpenedAt`, así que un estado manual nunca se pisa.
     updateSeries((current) =>
       current.map((existing) =>
         existing.id === item.id
-          ? {
-              ...existing,
-              lastOpenedAt: Date.now(),
-              status: nextStatus,
-              // Un cambio de estado debe marcar la serie como reciente; si no,
-              // otra copia con el mismo `updatedAt` lo sobrescribiría al
-              // sincronizar entre dispositivos.
-              updatedAt:
-                existing.status === nextStatus
-                  ? existing.updatedAt
-                  : Date.now(),
-            }
+          ? { ...existing, lastOpenedAt: Date.now(), updatedAt: Date.now() }
           : existing,
       ),
     );
@@ -114,9 +99,31 @@ export function useSeriesActions({
 
   function setSeriesStatus(id: string, status: SeriesStatus) {
     updateSeries((current) =>
-      current.map((item) =>
-        item.id === id ? { ...item, status, updatedAt: Date.now() } : item,
-      ),
+      current.map((item) => {
+        if (item.id !== id) return item;
+
+        const partIds = item.parts.map((part) => part.videoId);
+        const watchedAll =
+          partIds.length > 0 &&
+          partIds.every((videoId) => item.watched.includes(videoId));
+
+        // «Completada» da por vistas todas las partes; cualquier otro estado
+        // deja de estarlo, para que el estado y el progreso no se contradigan
+        // (una serie no completada nunca puede estar al 100 %).
+        const watched =
+          status === "completed"
+            ? [...new Set([...item.watched, ...partIds])]
+            : watchedAll
+              ? []
+              : item.watched;
+
+        const sameWatched =
+          watched.length === item.watched.length &&
+          watched.every((videoId) => item.watched.includes(videoId));
+        if (status === item.status && sameWatched) return item;
+
+        return { ...item, status, watched, updatedAt: Date.now() };
+      }),
     );
   }
 
@@ -204,23 +211,18 @@ export function useSeriesActions({
         const nextWatched = watched
           ? [...item.watched, videoId]
           : item.watched.filter((id) => id !== videoId);
-        const wasComplete =
-          item.parts.length > 0 && watchedCount(item) >= item.parts.length;
-        const isComplete =
+        const coversAll =
           item.parts.length > 0 &&
-          item.parts.filter((part) => nextWatched.includes(part.videoId))
-            .length >= item.parts.length;
+          item.parts.every((part) => nextWatched.includes(part.videoId));
 
         return {
           ...item,
           watched: nextWatched,
-          // Al completar todas las partes el estado pasa a «completada». Si una
-          // serie completada deja de estarlo, se vuelve al estado automático.
-          status: isComplete
-            ? "completed"
-            : wasComplete
-              ? undefined
-              : item.status,
+          // El estado se deduce del progreso: al cubrir (o dejar de cubrir)
+          // todas las partes se descarta el estado manual para que no quede una
+          // serie «completada» a medias. Otro estado manual se respeta.
+          status:
+            coversAll || item.status === "completed" ? undefined : item.status,
           updatedAt: Date.now(),
         };
       }),
@@ -333,7 +335,8 @@ export function useSeriesActions({
               : existing.channelTitle,
           channelUrl: existing.channelUrl ?? update.channelUrl,
           parts,
-          // Si se han añadido capítulos, una serie completada vuelve a «en curso».
+          // Si se han añadido capítulos, un «completada» que ya no cubre todas
+          // las partes se descarta y el estado vuelve a deducirse del progreso.
           status:
             update.added.length > 0
               ? reconcileCompletedStatus(

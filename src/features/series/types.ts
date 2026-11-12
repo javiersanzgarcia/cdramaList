@@ -42,9 +42,10 @@ export interface Series {
   watched: string[];
   favorite: boolean;
   /**
-   * Estado elegido manualmente. Cuando existe manda sobre el calculado, para
-   * poder corregir discrepancias con el automático. Si no existe, el estado se
-   * deduce del progreso (o «planned» si la serie no tiene actividad).
+   * Estado elegido manualmente. Manda sobre el automático mientras no
+   * contradiga al progreso: una serie con todas las partes vistas se muestra
+   * siempre como «completed». Si no existe, el estado se deduce del progreso
+   * (o «planned» si la serie no tiene actividad).
    */
   status?: SeriesStatus;
   /** Candidatos descartados a mano: no se vuelven a sugerir en las búsquedas. */

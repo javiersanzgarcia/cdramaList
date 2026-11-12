@@ -9,16 +9,31 @@ export function watchedCount(series: Series): number {
     .length;
 }
 
+/**
+ * Estado efectivo de una serie. Es la única fuente de verdad (la usan el badge,
+ * los filtros, «Continuar viendo» y el agrupado de «Mi lista»).
+ *
+ * Prioridad:
+ * 1. Todas las partes vistas ⇒ «completada», aunque haya estado manual: el
+ *    progreso y el estado nunca deben contradecirse.
+ * 2. Estado elegido a mano, si no contradice lo anterior.
+ * 3. Automático: «en curso» con algo de progreso, «pendiente» si no hay nada.
+ */
 export function seriesStatus(series: Series): SeriesStatus {
-  // El estado elegido manualmente manda sobre el calculado: permite corregir
-  // discrepancias con el automático.
-  if (series.status) return series.status;
-
   const total = series.parts.length;
   const watched = watchedCount(series);
 
-  // Automático: con todas las partes vistas, la serie está completada.
   if (total > 0 && watched >= total) return "completed";
+
+  // Un «completada» manual que ya no cubre todas las partes (por ejemplo, tras
+  // añadir capítulos) se ignora y se recalcula; uno sin partes se respeta.
+  if (series.status === "completed") {
+    if (total === 0) return "completed";
+    return watched > 0 || series.lastOpenedAt ? "watching" : "planned";
+  }
+
+  if (series.status) return series.status;
+
   // Automático: con algo de progreso (parte vista o reproducida), en curso.
   if (watched > 0 || series.lastOpenedAt) return "watching";
 
@@ -335,9 +350,9 @@ export function mergeSeries(
 }
 
 /**
- * Una serie marcada como completada que recibe capítulos sin ver deja de
- * estarlo y pasa a «en curso», para que vuelva a aparecer en «Continuar
- * viendo» en lugar de quedarse completada con partes pendientes.
+ * Descarta un «completada» que ya no cubre todas las partes (por ejemplo, tras
+ * añadir capítulos). Devuelve `undefined` para que el estado se recalcule solo a
+ * partir del progreso, en lugar de anclarlo a un valor manual.
  */
 export function reconcileCompletedStatus(
   status: SeriesStatus | undefined,
@@ -348,7 +363,7 @@ export function reconcileCompletedStatus(
 
   const watchedIds = new Set(watched);
   const hasUnwatched = parts.some((part) => !watchedIds.has(part.videoId));
-  return hasUnwatched ? "watching" : status;
+  return hasUnwatched ? undefined : status;
 }
 
 export const MAX_SERIES_ALIASES = 12;
@@ -699,11 +714,6 @@ export function combineSeries(
     (item) => item.favorite,
   );
   const mergedStatus = mergeStatus(base, current, incoming, newer);
-  // Solo se reconcilia el estado si la unión aporta capítulos que la copia más
-  // reciente no tenía; si no, un «completada» manual con progreso parcial se
-  // mantiene tal cual.
-  const newerPartIds = new Set(newer.parts.map((part) => part.videoId));
-  const gainedParts = parts.some((part) => !newerPartIds.has(part.videoId));
 
   return {
     ...older,
@@ -725,9 +735,9 @@ export function combineSeries(
     thumbnail: newer.thumbnail ?? older.thumbnail,
     parts,
     watched,
-    status: gainedParts
-      ? reconcileCompletedStatus(mergedStatus, watched, parts)
-      : mergedStatus,
+    // Se descarta un «completada» que ya no cubra todas las partes, para no
+    // propagar una copia antigua con estado «completada» y progreso parcial.
+    status: reconcileCompletedStatus(mergedStatus, watched, parts),
     discardedCandidates: [
       ...new Set([
         ...(current.discardedCandidates ?? []),
