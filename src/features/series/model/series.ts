@@ -231,21 +231,76 @@ export function mergeParts(existing: Part[], incoming: Part[]): Part[] {
 }
 
 /**
- * Lápida de parte. Quita de la lista los vídeos descartados a mano (por ejemplo,
+ * Lápida de parte. Quita de la lista los vídeos quitados a mano (por ejemplo,
  * al eliminar una parte de la serie). Sin este filtro, cualquier merge —el de la
  * sincronización con Drive o el de una búsqueda de capítulos— volvería a añadir
  * la parte desde la copia que todavía la tiene, igual que una serie borrada sin
- * `deletedAt` reaparecería.
+ * `deletedAt` reaparecería. Una parte reañadida después del borrado (con un
+ * `addedAt` más reciente) se conserva: la re-adición levanta su propia lápida.
  */
-export function filterDiscardedParts(
+export function filterRemovedParts(
   parts: Part[],
-  discarded: string[] | undefined
+  removed: Record<string, number> | undefined
 ): Part[] {
-  if (!discarded || discarded.length === 0) return parts
+  if (!removed) return parts
 
-  const blocked = new Set(discarded)
-  const kept = parts.filter((part) => !blocked.has(part.videoId))
+  const kept = parts.filter((part) => {
+    const removedAt = removed[part.videoId]
+    return removedAt == null || part.addedAt > removedAt
+  })
   return kept.length === parts.length ? parts : kept
+}
+
+/**
+ * Une las lápidas de partes de dos copias quedándose con el borrado más
+ * reciente de cada vídeo: si una copia borró y otra volvió a añadir después, la
+ * re-adición (más nueva) gana al filtrar las partes.
+ */
+function combineRemovedParts(
+  current: Record<string, number> | undefined,
+  incoming: Record<string, number> | undefined
+): Record<string, number> | undefined {
+  const merged: Record<string, number> = { ...(current ?? {}) }
+
+  for (const [videoId, removedAt] of Object.entries(incoming ?? {})) {
+    const previous = merged[videoId]
+    merged[videoId] = previous == null ? removedAt : Math.max(previous, removedAt)
+  }
+
+  return Object.keys(merged).length > 0 ? merged : undefined
+}
+
+/** Quita las lápidas de un vídeo vuelto a añadir a propósito. */
+export function clearRemovedParts(
+  removed: Record<string, number> | undefined,
+  videoIds: Iterable<string>
+): Record<string, number> | undefined {
+  if (!removed) return removed
+
+  const cleared = new Set(videoIds)
+  const result: Record<string, number> = {}
+  for (const [videoId, removedAt] of Object.entries(removed)) {
+    if (!cleared.has(videoId)) result[videoId] = removedAt
+  }
+  return Object.keys(result).length > 0 ? result : undefined
+}
+
+/**
+ * Deja solo las lápidas vigentes: una parte presente con un `addedAt` posterior
+ * a su lápida se considera reañadida y descarta la suya.
+ */
+function keepPendingRemovals(
+  removed: Record<string, number> | undefined,
+  parts: Part[]
+): Record<string, number> | undefined {
+  if (!removed) return removed
+
+  const lifted: string[] = []
+  for (const part of parts) {
+    const removedAt = removed[part.videoId]
+    if (removedAt != null && part.addedAt > removedAt) lifted.push(part.videoId)
+  }
+  return clearRemovedParts(removed, lifted)
 }
 
 export interface PartMetaPatch {
@@ -329,9 +384,16 @@ export function mergeSeries(
   title: string,
   parts: Part[]
 ): Series {
-  const mergedParts = filterDiscardedParts(
+  // Las partes elegidas a mano se consideran una re-adición: levantan su lápida
+  // y dejan de estar descartadas, para que el merge de Drive no las borre.
+  const selectedIds = new Set(parts.map((part) => part.videoId))
+  const removedParts = clearRemovedParts(existing.removedParts, selectedIds)
+  const discardedCandidates = (existing.discardedCandidates ?? []).filter(
+    (videoId) => !selectedIds.has(videoId)
+  )
+  const mergedParts = filterRemovedParts(
     mergeParts(existing.parts, parts),
-    existing.discardedCandidates
+    removedParts
   )
   const existingPartIds = new Set(existing.parts.map((part) => part.videoId))
   const gainedParts = mergedParts.some(
@@ -354,6 +416,8 @@ export function mergeSeries(
     thumbnail:
       existing.thumbnail ?? draft.thumbnail ?? mergedParts[0]?.thumbnail,
     parts: mergedParts,
+    discardedCandidates,
+    removedParts,
     status: gainedParts
       ? reconcileCompletedStatus(existing.status, existing.watched, mergedParts)
       : existing.status,
@@ -482,6 +546,22 @@ export function normalizeDiscardedCandidates(value: unknown): string[] {
 }
 
 /**
+ * Lápidas de partes: id del vídeo y momento en que se quitó de la serie. Se
+ * descartan las entradas sin marca de tiempo válida.
+ */
+export function normalizeRemovedParts(
+  value: unknown
+): Record<string, number> | undefined {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return undefined
+
+  const entries = Object.entries(value as Record<string, unknown>).filter(
+    (entry): entry is [string, number] =>
+      typeof entry[1] === 'number' && Number.isFinite(entry[1])
+  )
+  return entries.length > 0 ? Object.fromEntries(entries) : undefined
+}
+
+/**
  * Títulos base de los vídeos de YouTube, sin marcadores de parte ni emojis.
  * Sirven como alias para que una re-subida publicada con otro título siga
  * apareciendo en las búsquedas de la serie.
@@ -607,6 +687,7 @@ export function normalizeSeries(value: Series): Series {
     discardedCandidates: normalizeDiscardedCandidates(
       value.discardedCandidates
     ),
+    removedParts: normalizeRemovedParts(value.removedParts),
     createdAt: typeof value.createdAt === 'number' ? value.createdAt : now,
     updatedAt: typeof value.updatedAt === 'number' ? value.updatedAt : now,
     lastOpenedAt:
@@ -688,17 +769,15 @@ export function combineSeries(
     current.lastOpenedAt ?? 0,
     incoming.lastOpenedAt ?? 0
   )
-  const discardedCandidates = [
-    ...new Set([
-      ...(current.discardedCandidates ?? []),
-      ...(incoming.discardedCandidates ?? [])
-    ])
-  ]
-  const parts = filterDiscardedParts(
+  const removedParts = combineRemovedParts(
+    current.removedParts,
+    incoming.removedParts
+  )
+  const parts = filterRemovedParts(
     // Un vídeo quitado a mano no vuelve desde la copia que aún lo tiene: la
-    // lista de descartados es la lápida de la parte.
+    // lápida de la parte solo la levanta una re-adición posterior.
     mergeParts(current.parts, incoming.parts),
-    discardedCandidates
+    removedParts
   )
   // Con la base se evita que un cambio en un campo (por ejemplo, marcar una
   // favorita) haga ganar toda la copia y pierda los capítulos vistos que el
@@ -758,7 +837,15 @@ export function combineSeries(
     // Se descarta un «completada» que ya no cubra todas las partes, para no
     // propagar una copia antigua con estado «completada» y progreso parcial.
     status: reconcileCompletedStatus(mergedStatus, watched, parts),
-    discardedCandidates,
+    discardedCandidates: [
+      ...new Set([
+        ...(current.discardedCandidates ?? []),
+        ...(incoming.discardedCandidates ?? [])
+      ])
+    ],
+    // Las lápidas de partes que ya levantó una re-adición posterior no se
+    // propagan: así una parte vuelta a añadir no se borra en el siguiente sync.
+    removedParts: keepPendingRemovals(removedParts, parts),
     updatedAt: Math.max(current.updatedAt, incoming.updatedAt),
     lastOpenedAt: lastOpenedAt > 0 ? lastOpenedAt : undefined,
     // El borrado es pegajoso: si una de las dos copias tiene lápida, la serie

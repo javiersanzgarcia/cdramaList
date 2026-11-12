@@ -49,11 +49,16 @@ export interface Series {
    */
   status?: SeriesStatus
   /**
-   * Vídeos descartados a mano: no se vuelven a sugerir en las búsquedas y
-   * tampoco se re-añaden a las partes. Actúa como lápida de una parte quitada,
-   * para que el merge de la sincronización no la reintroduzca desde otra copia.
+   * Vídeos descartados a mano: no se vuelven a sugerir en las búsquedas.
    */
   discardedCandidates?: string[]
+  /**
+   * Lápidas de partes: id del vídeo quitado a mano y momento del borrado. Hace
+   * falta el instante (y no solo el id) para distinguir una parte borrada de
+   * otra reañadida después: si `addedAt` de la parte es posterior, la lápida ya
+   * no aplica. Al reañadir una parte se borra su entrada.
+   */
+  removedParts?: Record<string, number>
   createdAt: number
   updatedAt: number
   lastOpenedAt?: number

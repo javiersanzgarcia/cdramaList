@@ -8,8 +8,9 @@ import { reorderParts, sortParts } from './model/parts'
 import {
   applyPartDurations,
   applyPartMeta,
+  clearRemovedParts,
   createSeries,
-  filterDiscardedParts,
+  filterRemovedParts,
   learnKeywordConfidence,
   mergeAliasesWithParts,
   mergeParts,
@@ -252,22 +253,25 @@ export function useSeriesActions({
 
         const parts = item.parts.filter((part) => part.videoId !== videoId)
         const watched = item.watched.filter((id) => id !== videoId)
+        const removedAt = Date.now()
 
         return {
           ...item,
           parts,
           // La parte quitada deja de contar como vista aunque lo estuviera.
           watched,
-          // Lápida de la parte: además de no volver a proponerse en las
-          // búsquedas, impide que el merge de la sincronización la re-añada
-          // desde otra copia que todavía la tenga.
+          // Lápida de la parte: impide que el merge de la sincronización la
+          // re-añada desde otra copia que todavía la tenga. Se levanta sola si
+          // la parte se vuelve a añadir después.
+          removedParts: { ...(item.removedParts ?? {}), [videoId]: removedAt },
+          // Además no se vuelve a proponer en las búsquedas de capítulos.
           discardedCandidates: [
             ...new Set([...(item.discardedCandidates ?? []), videoId])
           ],
           // Al cambiar las partes, un «completada» manual puede haber dejado de
           // cubrir la serie; el automático se recalcula solo con seriesStatus.
           status: reconcileCompletedStatus(item.status, watched, parts),
-          updatedAt: Date.now()
+          updatedAt: removedAt
         }
       })
     )
@@ -351,9 +355,9 @@ export function useSeriesActions({
 
         // Se conservan las partes añadidas o editadas durante la búsqueda, pero
         // no se reintroduce un vídeo quitado a mano de la serie.
-        const parts = filterDiscardedParts(
+        const parts = filterRemovedParts(
           mergeParts(existing.parts, update.parts),
-          existing.discardedCandidates
+          existing.removedParts
         )
 
         return {
@@ -494,9 +498,9 @@ export function useSeriesActions({
 
           // Igual que en la búsqueda individual: no se reintroduce un vídeo
           // quitado a mano de la serie.
-          const parts = filterDiscardedParts(
+          const parts = filterRemovedParts(
             mergeParts(current.parts, update.parts),
-            current.discardedCandidates
+            current.removedParts
           )
           const merged: Series = {
             ...current,
@@ -590,6 +594,14 @@ export function useSeriesActions({
         return {
           ...existing,
           parts: nextParts,
+          // Confirmar un candidato es una re-adición explícita: levanta la
+          // lápida de la parte y la saca de los descartados.
+          removedParts: clearRemovedParts(existing.removedParts, [
+            part.videoId
+          ]),
+          discardedCandidates: (existing.discardedCandidates ?? []).filter(
+            (videoId) => videoId !== part.videoId
+          ),
           status: reconcileCompletedStatus(
             existing.status,
             existing.watched,

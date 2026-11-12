@@ -253,6 +253,11 @@ function canonicalSeries(series: Series) {
     favorite: series.favorite,
     status: series.status ?? null,
     discardedCandidates: [...(series.discardedCandidates ?? [])].sort(),
+    removedParts: Object.fromEntries(
+      Object.entries(series.removedParts ?? {}).sort(([a], [b]) =>
+        a.localeCompare(b)
+      )
+    ),
     createdAt: series.createdAt,
     updatedAt: series.updatedAt,
     deletedAt: series.deletedAt ?? null,
