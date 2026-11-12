@@ -9,7 +9,10 @@ import {
   watchedCount,
 } from "../model/series";
 import { statusMeta, statusOrder } from "../model/status";
-import { channelUrlFor } from "../../discovery/model/youtube";
+import {
+  channelUrlFor,
+  youtubeThumbnail,
+} from "../../discovery/model/youtube";
 import type {
   ChapterCandidate,
   SeriesRefreshResult,
@@ -30,6 +33,7 @@ interface SeriesSheetProps {
   onClose: () => void;
   onPlay: (series: Series, index: number) => void;
   onToggleFavorite: (id: string) => void;
+  onSetThumbnail: (id: string, thumbnail: string) => void;
   onSetStatus: (id: string, status: SeriesStatus) => void;
   onSetWatched: (seriesId: string, videoId: string, watched: boolean) => void;
   onMovePart: (seriesId: string, fromIndex: number, toIndex: number) => void;
@@ -60,6 +64,7 @@ export function SeriesSheet({
   onClose,
   onPlay,
   onToggleFavorite,
+  onSetThumbnail,
   onSetStatus,
   onSetWatched,
   onMovePart,
@@ -76,6 +81,7 @@ export function SeriesSheet({
   initialCandidates,
 }: SeriesSheetProps) {
   const [confirmingDelete, setConfirmingDelete] = useState(false);
+  const [coverPickerOpen, setCoverPickerOpen] = useState(false);
   const handleClose = () => {
     if (!refreshing) onClose();
   };
@@ -105,6 +111,14 @@ export function SeriesSheet({
     0,
   );
   const totalLabel = formatDuration(totalDuration);
+
+  // Al crear la serie la portada es la de la parte 1; desde aquí se puede
+  // cambiar por la de cualquier otra parte.
+  const coverOptions = series.parts.map((part, index) => ({
+    videoId: part.videoId,
+    label: partLabel(part, index),
+    thumbnail: part.thumbnail ?? youtubeThumbnail(part.videoId),
+  }));
 
   const continueLabel = complete
     ? "Volver a ver desde el principio"
@@ -192,8 +206,6 @@ export function SeriesSheet({
                 className="absolute inset-0 size-full object-cover"
               />
             )}
-            <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/20 to-transparent" />
-
             <span className="absolute left-2.5 top-2.5 rounded-full bg-black/55 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide text-white backdrop-blur">
               {watched}/{total} partes
             </span>
@@ -214,16 +226,80 @@ export function SeriesSheet({
               <Icon.Heart filled={series.favorite} className="size-4" />
             </button>
 
-            <button
-              type="button"
-              onClick={() => onPlay(series, nextIndex)}
-              disabled={total === 0}
-              className="absolute inset-x-3 bottom-3 flex items-center justify-center gap-2 rounded-2xl bg-rose-500 px-4 py-2.5 text-sm font-semibold text-white shadow-lg shadow-rose-500/30 transition hover:bg-rose-400 active:scale-[0.99] disabled:opacity-40"
-            >
-              <Icon.Play className="size-4" />
-              {continueLabel}
-            </button>
+            {coverOptions.length > 0 && (
+              <button
+                type="button"
+                onClick={() => setCoverPickerOpen((open) => !open)}
+                aria-expanded={coverPickerOpen}
+                className="absolute bottom-2.5 right-2.5 flex items-center gap-1.5 rounded-full bg-black/55 px-2.5 py-1 text-[10px] font-semibold text-white backdrop-blur transition hover:bg-black/75 active:scale-95"
+              >
+                <Icon.Photo className="size-3.5" />
+                Cambiar portada
+              </button>
+            )}
           </div>
+
+          {coverPickerOpen && (
+            <div className="mt-3 rounded-2xl border border-zinc-800 bg-zinc-950/60 p-2">
+              <p className="px-1 pb-2 text-[11px] font-semibold uppercase tracking-wide text-zinc-500">
+                Elige la portada
+              </p>
+              <ul className="grid max-h-56 grid-cols-3 gap-1.5 overflow-y-auto">
+                {coverOptions.map((option) => {
+                  const active = option.thumbnail === series.thumbnail;
+
+                  return (
+                    <li key={option.videoId}>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          onSetThumbnail(series.id, option.thumbnail);
+                          setCoverPickerOpen(false);
+                        }}
+                        aria-pressed={active}
+                        aria-label={`Usar la portada de ${option.label}`}
+                        className={`block w-full overflow-hidden rounded-xl border transition active:scale-[0.98] ${
+                          active
+                            ? "border-rose-500"
+                            : "border-transparent hover:border-zinc-600"
+                        }`}
+                      >
+                        <span className="relative block aspect-video bg-zinc-900">
+                          <img
+                            src={option.thumbnail}
+                            alt=""
+                            loading="lazy"
+                            onError={(event) => {
+                              event.currentTarget.style.display = "none";
+                            }}
+                            className="size-full object-cover"
+                          />
+                          <span className="absolute inset-x-0 bottom-0 truncate bg-black/65 px-1.5 py-0.5 text-center text-[10px] font-semibold text-white">
+                            {option.label}
+                          </span>
+                          {active && (
+                            <span className="absolute right-1 top-1 grid size-4 place-items-center rounded-full bg-rose-500 text-white">
+                              <Icon.Check className="size-3" />
+                            </span>
+                          )}
+                        </span>
+                      </button>
+                    </li>
+                  );
+                })}
+              </ul>
+            </div>
+          )}
+
+          <button
+            type="button"
+            onClick={() => onPlay(series, nextIndex)}
+            disabled={total === 0}
+            className="mt-3 flex w-full items-center justify-center gap-2 rounded-2xl bg-rose-500 px-4 py-3 text-sm font-semibold text-white shadow-lg shadow-rose-500/30 transition hover:bg-rose-400 active:scale-[0.99] disabled:opacity-40"
+          >
+            <Icon.Play className="size-4" />
+            {continueLabel}
+          </button>
 
           <div className="mt-3 flex items-center gap-2">
             <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-zinc-800">

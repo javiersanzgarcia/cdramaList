@@ -149,6 +149,16 @@ export function Info(props: IconProps) {
   )
 }
 
+export function Photo(props: IconProps) {
+  return (
+    <Svg {...props}>
+      <rect x="3.5" y="4.5" width="17" height="15" rx="2.5" />
+      <circle cx="9" cy="10" r="1.6" />
+      <path d="m5 17.5 4.3-4.3 3.4 3.4 2.6-2.6L20 17.5" />
+    </Svg>
+  )
+}
+
 export function Pencil(props: IconProps) {
   return (
     <Svg {...props}>

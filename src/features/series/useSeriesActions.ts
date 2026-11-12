@@ -94,6 +94,15 @@ export function useSeriesActions({
     );
   }
 
+  /** Cambia la portada de la serie por la de otra de sus partes. */
+  function setSeriesThumbnail(id: string, thumbnail: string) {
+    updateSeries((current) =>
+      current.map((item) =>
+        item.id === id ? { ...item, thumbnail, updatedAt: Date.now() } : item,
+      ),
+    );
+  }
+
   function setSeriesStatus(id: string, status: SeriesStatus) {
     updateSeries((current) =>
       current.map((item) =>
@@ -477,6 +486,7 @@ export function useSeriesActions({
     openSeries,
     playSeries,
     toggleFavorite,
+    setSeriesThumbnail,
     setSeriesStatus,
     updateAliases,
     updateTitle,

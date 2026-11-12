@@ -78,6 +78,7 @@ export default function App() {
     openSeries,
     playSeries,
     toggleFavorite,
+    setSeriesThumbnail,
     setSeriesStatus,
     updateAliases,
     updateTitle,
@@ -416,6 +417,7 @@ export default function App() {
           onClose={closeSeries}
           onPlay={playSeries}
           onToggleFavorite={toggleFavorite}
+          onSetThumbnail={setSeriesThumbnail}
           onSetStatus={setSeriesStatus}
           onSetWatched={setWatched}
           onMovePart={movePart}
