@@ -1,17 +1,17 @@
-import { formatDuration } from "../../../shared/lib/format";
-import type { ChapterCandidate } from "../../discovery/types";
-import * as Icon from "../../../shared/components/Icons";
+import { formatDuration } from '../../../shared/lib/format'
+import type { ChapterCandidate } from '../../discovery/types'
+import * as Icon from '../../../shared/components/Icons'
 
 interface CandidateCardProps {
-  candidate: ChapterCandidate;
-  number: string;
-  isFinal: boolean;
-  adding: boolean;
-  busy: boolean;
-  onNumberChange: (value: string) => void;
-  onToggleFinal: () => void;
-  onAdd: () => void;
-  onDiscard: () => void;
+  candidate: ChapterCandidate
+  number: string
+  isFinal: boolean
+  adding: boolean
+  busy: boolean
+  onNumberChange: (value: string) => void
+  onToggleFinal: () => void
+  onAdd: () => void
+  onDiscard: () => void
 }
 
 export function CandidateCard({
@@ -23,9 +23,9 @@ export function CandidateCard({
   onNumberChange,
   onToggleFinal,
   onAdd,
-  onDiscard,
+  onDiscard
 }: CandidateCardProps) {
-  const duration = formatDuration(candidate.durationSeconds);
+  const duration = formatDuration(candidate.durationSeconds)
 
   return (
     <li className="rounded-2xl border border-zinc-800 bg-zinc-950/60 p-2">
@@ -43,7 +43,7 @@ export function CandidateCard({
               alt=""
               loading="lazy"
               onError={(event) => {
-                event.currentTarget.style.display = "none";
+                event.currentTarget.style.display = 'none'
               }}
               className="size-full object-cover"
             />
@@ -59,13 +59,13 @@ export function CandidateCard({
           </p>
           <p className="mt-0.5 truncate text-[10px] text-zinc-500">
             {candidate.channelTitle}
-            {duration ? ` · ${duration}` : ""}
-            {candidate.source === "search" ? " · Fuera del canal" : ""}
-            {candidate.matchedBy === "description" ? " · Por descripción" : ""}
+            {duration ? ` · ${duration}` : ''}
+            {candidate.source === 'search' ? ' · Fuera del canal' : ''}
+            {candidate.matchedBy === 'description' ? ' · Por descripción' : ''}
           </p>
           {candidate.descriptionTitle && (
             <p className="mt-0.5 line-clamp-2 text-[10px] leading-snug text-amber-200/70">
-              Título en la descripción:{" "}
+              Título en la descripción:{' '}
               <span className="font-medium">{candidate.descriptionTitle}</span>
             </p>
           )}
@@ -81,7 +81,7 @@ export function CandidateCard({
                 min={1}
                 value={number}
                 onChange={(event) =>
-                  onNumberChange(event.target.value.replace(/[^\d]/g, ""))
+                  onNumberChange(event.target.value.replace(/[^\d]/g, ''))
                 }
                 aria-label={`Número de capítulo para ${candidate.title}`}
                 className="w-14 rounded-lg border border-zinc-700 bg-zinc-900 px-2 py-1 text-center text-xs font-semibold text-zinc-100 outline-none focus:border-rose-500"
@@ -94,8 +94,8 @@ export function CandidateCard({
               aria-pressed={Boolean(isFinal)}
               className={`rounded-full border px-2 py-1 text-[10px] font-semibold transition active:scale-95 ${
                 isFinal
-                  ? "border-amber-400/40 bg-amber-400/15 text-amber-200"
-                  : "border-zinc-700 text-zinc-500 hover:text-zinc-300"
+                  ? 'border-amber-400/40 bg-amber-400/15 text-amber-200'
+                  : 'border-zinc-700 text-zinc-500 hover:text-zinc-300'
               }`}
             >
               Final
@@ -116,7 +116,7 @@ export function CandidateCard({
           className="flex flex-1 items-center justify-center gap-1 rounded-xl border border-emerald-400/30 bg-emerald-400/10 px-3 py-2 text-[11px] font-semibold text-emerald-200 transition hover:border-emerald-400/50 hover:text-white active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-60"
         >
           <Icon.Check className="size-3.5" />
-          {adding ? "Añadiendo…" : "Añadir capítulo"}
+          {adding ? 'Añadiendo…' : 'Añadir capítulo'}
         </button>
 
         <button
@@ -129,5 +129,5 @@ export function CandidateCard({
         </button>
       </div>
     </li>
-  );
+  )
 }

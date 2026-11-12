@@ -1,47 +1,47 @@
-import { useSheet } from "../../../shared/hooks/useSheet";
-import type { DriveSync } from "../../sync/hooks/useDriveSync";
-import { formatDateTime } from "../../../shared/lib/format";
-import type { GoogleUser } from "../../sync/types";
-import * as Icon from "../../../shared/components/Icons";
+import { useSheet } from '../../../shared/hooks/useSheet'
+import type { DriveSync } from '../../sync/hooks/useDriveSync'
+import { formatDateTime } from '../../../shared/lib/format'
+import type { GoogleUser } from '../../sync/types'
+import * as Icon from '../../../shared/components/Icons'
 
 interface AccountSheetProps {
-  user: GoogleUser | null;
-  clientId: string;
-  drive: DriveSync;
-  onClose: () => void;
+  user: GoogleUser | null
+  clientId: string
+  drive: DriveSync
+  onClose: () => void
 }
 
 export function AccountSheet({
   user,
   clientId,
   drive,
-  onClose,
+  onClose
 }: AccountSheetProps) {
-  useSheet(onClose);
+  useSheet(onClose)
 
-  const busy = drive.busy;
-  const signedIn = Boolean(user) || drive.connected;
-  const accountName = user?.name ?? drive.email ?? "Cuenta de Google";
-  const accountEmail = user?.email ?? drive.email ?? "";
-  const lastSync = formatDateTime(drive.lastSyncedAt ?? undefined);
+  const busy = drive.busy
+  const signedIn = Boolean(user) || drive.connected
+  const accountName = user?.name ?? drive.email ?? 'Cuenta de Google'
+  const accountEmail = user?.email ?? drive.email ?? ''
+  const lastSync = formatDateTime(drive.lastSyncedAt ?? undefined)
 
   const statusLabel = busy
-    ? "Sincronizando…"
-    : drive.status === "error"
-      ? "Error"
+    ? 'Sincronizando…'
+    : drive.status === 'error'
+      ? 'Error'
       : drive.dirty
-        ? "Cambios pendientes"
+        ? 'Cambios pendientes'
         : drive.connected
-          ? "Conectado"
-          : "Sin conectar";
+          ? 'Conectado'
+          : 'Sin conectar'
 
   const statusClass = busy
-    ? "bg-amber-400/15 text-amber-300"
-    : drive.status === "error" || drive.dirty
-      ? "bg-rose-500/15 text-rose-300"
+    ? 'bg-amber-400/15 text-amber-300'
+    : drive.status === 'error' || drive.dirty
+      ? 'bg-rose-500/15 text-rose-300'
       : drive.connected
-        ? "bg-emerald-400/15 text-emerald-300"
-        : "bg-zinc-800 text-zinc-400";
+        ? 'bg-emerald-400/15 text-emerald-300'
+        : 'bg-zinc-800 text-zinc-400'
 
   return (
     <div
@@ -135,7 +135,7 @@ export function AccountSheet({
                   className="flex w-full items-center justify-center gap-2 rounded-2xl bg-white px-4 py-3 text-sm font-semibold text-zinc-900 shadow-lg shadow-black/20 transition hover:bg-zinc-100 active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-40"
                 >
                   <Icon.Google className="size-5" />
-                  {busy ? "Conectando…" : "Conectar con Google Drive"}
+                  {busy ? 'Conectando…' : 'Conectar con Google Drive'}
                 </button>
 
                 <p className="text-center text-[11px] leading-relaxed text-zinc-600">
@@ -171,7 +171,7 @@ export function AccountSheet({
                   </span>
                 </div>
                 <p className="mt-1 text-xs leading-relaxed text-zinc-500">
-                  Tus series se guardan en{" "}
+                  Tus series se guardan en{' '}
                   <span className="text-zinc-300">cdramalist.json</span> dentro
                   de la carpeta privada de la app en tu Drive.
                 </p>
@@ -181,11 +181,11 @@ export function AccountSheet({
             {drive.message && (
               <p
                 className={`mt-3 rounded-2xl border px-3 py-2 text-[11px] leading-relaxed ${
-                  drive.message.kind === "error"
-                    ? "border-rose-500/20 bg-rose-500/10 text-rose-200"
-                    : drive.message.kind === "ok"
-                      ? "border-emerald-400/20 bg-emerald-400/10 text-emerald-200"
-                      : "border-zinc-700 bg-zinc-950/60 text-zinc-300"
+                  drive.message.kind === 'error'
+                    ? 'border-rose-500/20 bg-rose-500/10 text-rose-200'
+                    : drive.message.kind === 'ok'
+                      ? 'border-emerald-400/20 bg-emerald-400/10 text-emerald-200'
+                      : 'border-zinc-700 bg-zinc-950/60 text-zinc-300'
                 }`}
               >
                 {drive.message.text}
@@ -199,12 +199,12 @@ export function AccountSheet({
                     Cuenta conectada
                   </p>
                   <p className="mt-0.5 truncate text-sm font-medium text-zinc-200">
-                    {accountEmail || "Cuenta de Google"}
+                    {accountEmail || 'Cuenta de Google'}
                   </p>
                   <p className="mt-1 text-[11px] text-zinc-600">
                     {lastSync
                       ? `Última sincronización: ${lastSync}`
-                      : "Todavía no se ha sincronizado."}
+                      : 'Todavía no se ha sincronizado.'}
                   </p>
                 </div>
 
@@ -215,8 +215,8 @@ export function AccountSheet({
                     </p>
                     <p className="mt-0.5 text-[11px] leading-relaxed text-zinc-500">
                       {drive.auto
-                        ? "Activa: los cambios se suben solos."
-                        : "Desactivada: usa los botones manuales."}
+                        ? 'Activa: los cambios se suben solos.'
+                        : 'Desactivada: usa los botones manuales.'}
                     </p>
                   </div>
                   <button
@@ -226,12 +226,12 @@ export function AccountSheet({
                     aria-label="Sincronización automática"
                     onClick={() => drive.setAuto(!drive.auto)}
                     className={`relative h-6 w-11 shrink-0 rounded-full transition ${
-                      drive.auto ? "bg-rose-500" : "bg-zinc-700"
+                      drive.auto ? 'bg-rose-500' : 'bg-zinc-700'
                     }`}
                   >
                     <span
                       className={`absolute top-0.5 size-5 rounded-full bg-white shadow transition-all ${
-                        drive.auto ? "left-[1.375rem]" : "left-0.5"
+                        drive.auto ? 'left-[1.375rem]' : 'left-0.5'
                       }`}
                     />
                   </button>
@@ -244,9 +244,9 @@ export function AccountSheet({
                   className="flex w-full items-center justify-center gap-2 rounded-2xl bg-rose-500 px-4 py-3 text-sm font-semibold text-white shadow-lg shadow-rose-500/25 transition hover:bg-rose-400 active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-40"
                 >
                   <Icon.RefreshCw
-                    className={`size-4 ${busy ? "animate-spin" : ""}`}
+                    className={`size-4 ${busy ? 'animate-spin' : ''}`}
                   />
-                  {busy ? "Sincronizando…" : "Sincronizar y combinar"}
+                  {busy ? 'Sincronizando…' : 'Sincronizar y combinar'}
                 </button>
 
                 <div className="grid grid-cols-2 gap-2">
@@ -296,15 +296,15 @@ export function AccountSheet({
                 >
                   <Icon.Google className="size-5" />
                   {busy
-                    ? "Conectando…"
+                    ? 'Conectando…'
                     : user
-                      ? "Reconectar Google Drive"
-                      : "Conectar con Google Drive"}
+                      ? 'Reconectar Google Drive'
+                      : 'Conectar con Google Drive'}
                 </button>
                 <p className="text-center text-[11px] leading-relaxed text-zinc-600">
                   {user
-                    ? "La sesión de Google ha caducado. Vuelve a conectar para reanudar la sincronización."
-                    : "Conecta tu cuenta de Google para activar la sincronización entre dispositivos."}
+                    ? 'La sesión de Google ha caducado. Vuelve a conectar para reanudar la sincronización.'
+                    : 'Conecta tu cuenta de Google para activar la sincronización entre dispositivos.'}
                 </p>
               </div>
             ) : (
@@ -317,7 +317,7 @@ export function AccountSheet({
             <div className="mt-3 flex items-start gap-2 rounded-2xl border border-emerald-400/15 bg-emerald-400/5 px-3 py-2.5 text-[11px] leading-relaxed text-emerald-200/80">
               <Icon.Shield className="mt-0.5 size-4 shrink-0" />
               <span>
-                Los datos se guardan en la carpeta privada{" "}
+                Los datos se guardan en la carpeta privada{' '}
                 <code>appDataFolder</code> de tu Google Drive. CdramaList solo
                 puede acceder a sus propios archivos, no al resto de tu Drive.
               </span>
@@ -329,7 +329,7 @@ export function AccountSheet({
               </summary>
               <ol className="mt-2 list-decimal space-y-1.5 pl-4 leading-relaxed">
                 <li>
-                  En{" "}
+                  En{' '}
                   <a
                     href="https://console.cloud.google.com/apis/library/drive.googleapis.com"
                     target="_blank"
@@ -338,11 +338,11 @@ export function AccountSheet({
                   >
                     Google Cloud
                   </a>
-                  , activa la{" "}
+                  , activa la{' '}
                   <span className="text-zinc-200">Google Drive API</span>.
                 </li>
                 <li>
-                  En la pantalla de consentimiento OAuth, añade el permiso{" "}
+                  En la pantalla de consentimiento OAuth, añade el permiso{' '}
                   <code className="rounded bg-zinc-800 px-1 py-0.5 text-[10px] text-zinc-300">
                     https://www.googleapis.com/auth/drive.appdata
                   </code>
@@ -353,7 +353,7 @@ export function AccountSheet({
                   modo pruebas.
                 </li>
                 <li>
-                  Usa el mismo <span className="text-zinc-200">Client ID</span>{" "}
+                  Usa el mismo <span className="text-zinc-200">Client ID</span>{' '}
                   de tipo «Aplicación web» que ya utiliza la app.
                 </li>
               </ol>
@@ -362,5 +362,5 @@ export function AccountSheet({
         </div>
       </div>
     </div>
-  );
+  )
 }

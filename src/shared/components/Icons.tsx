@@ -62,7 +62,10 @@ export function X(props: IconProps) {
   )
 }
 
-export function Heart({ filled = false, ...props }: IconProps & { filled?: boolean }) {
+export function Heart({
+  filled = false,
+  ...props
+}: IconProps & { filled?: boolean }) {
   return (
     <Svg {...props} fill={filled ? 'currentColor' : 'none'}>
       <path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z" />
@@ -243,7 +246,10 @@ export function Key(props: IconProps) {
   )
 }
 
-export function Eye({ filled = false, ...props }: IconProps & { filled?: boolean }) {
+export function Eye({
+  filled = false,
+  ...props
+}: IconProps & { filled?: boolean }) {
   return (
     <Svg {...props}>
       <path d="M2.5 12S6 5.5 12 5.5 21.5 12 21.5 12 18 18.5 12 18.5 2.5 12 2.5 12Z" />

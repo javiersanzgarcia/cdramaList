@@ -1,14 +1,14 @@
-import { formatDuration } from "../../../shared/lib/format";
-import { partLabel } from "../model/parts";
-import type { Series } from "../types";
-import * as Icon from "../../../shared/components/Icons";
+import { formatDuration } from '../../../shared/lib/format'
+import { partLabel } from '../model/parts'
+import type { Series } from '../types'
+import * as Icon from '../../../shared/components/Icons'
 
 interface SeriesPartsListProps {
-  series: Series;
-  onPlay: (series: Series, index: number) => void;
-  onSetWatched: (seriesId: string, videoId: string, watched: boolean) => void;
-  onMovePart: (seriesId: string, fromIndex: number, toIndex: number) => void;
-  onAddParts: (series: Series) => void;
+  series: Series
+  onPlay: (series: Series, index: number) => void
+  onSetWatched: (seriesId: string, videoId: string, watched: boolean) => void
+  onMovePart: (seriesId: string, fromIndex: number, toIndex: number) => void
+  onAddParts: (series: Series) => void
 }
 
 export function SeriesPartsList({
@@ -16,9 +16,9 @@ export function SeriesPartsList({
   onPlay,
   onSetWatched,
   onMovePart,
-  onAddParts,
+  onAddParts
 }: SeriesPartsListProps) {
-  const total = series.parts.length;
+  const total = series.parts.length
 
   return (
     <>
@@ -39,8 +39,8 @@ export function SeriesPartsList({
       {total > 0 ? (
         <ul className="mt-2 space-y-1">
           {series.parts.map((part, index) => {
-            const isWatched = series.watched.includes(part.videoId);
-            const duration = formatDuration(part.durationSeconds);
+            const isWatched = series.watched.includes(part.videoId)
+            const duration = formatDuration(part.durationSeconds)
 
             return (
               <li
@@ -59,7 +59,7 @@ export function SeriesPartsList({
                         alt=""
                         loading="lazy"
                         onError={(event) => {
-                          event.currentTarget.style.display = "none";
+                          event.currentTarget.style.display = 'none'
                         }}
                         className="size-full object-cover"
                       />
@@ -120,14 +120,14 @@ export function SeriesPartsList({
                   }
                   className={`mr-1.5 grid size-8 shrink-0 place-items-center rounded-full border transition active:scale-90 ${
                     isWatched
-                      ? "border-emerald-400/30 bg-emerald-400/15 text-emerald-300"
-                      : "border-zinc-700 bg-zinc-900 text-zinc-500 hover:text-zinc-300"
+                      ? 'border-emerald-400/30 bg-emerald-400/15 text-emerald-300'
+                      : 'border-zinc-700 bg-zinc-900 text-zinc-500 hover:text-zinc-300'
                   }`}
                 >
                   <Icon.Check className="size-4" />
                 </button>
               </li>
-            );
+            )
           })}
         </ul>
       ) : (
@@ -141,5 +141,5 @@ export function SeriesPartsList({
         </div>
       )}
     </>
-  );
+  )
 }

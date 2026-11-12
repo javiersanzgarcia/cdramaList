@@ -2,30 +2,30 @@ import {
   isSeriesComplete,
   nextPartIndex,
   progressPercent,
-  watchedCount,
-} from "../../series/model/series";
-import { partLabel } from "../../series/model/parts";
-import type { Series } from "../../series/types";
-import * as Icon from "../../../shared/components/Icons";
+  watchedCount
+} from '../../series/model/series'
+import { partLabel } from '../../series/model/parts'
+import type { Series } from '../../series/types'
+import * as Icon from '../../../shared/components/Icons'
 
 interface ContinueCardProps {
-  series: Series;
-  onPlay: (series: Series, index: number) => void;
-  onOpen: (series: Series) => void;
+  series: Series
+  onPlay: (series: Series, index: number) => void
+  onOpen: (series: Series) => void
 }
 
 export function ContinueCard({ series, onPlay, onOpen }: ContinueCardProps) {
-  const nextIndex = nextPartIndex(series);
-  const nextPart = series.parts[nextIndex];
-  if (!nextPart) return null;
+  const nextIndex = nextPartIndex(series)
+  const nextPart = series.parts[nextIndex]
+  if (!nextPart) return null
 
-  const complete = isSeriesComplete(series);
-  const watched = watchedCount(series);
+  const complete = isSeriesComplete(series)
+  const watched = watchedCount(series)
   const label = complete
-    ? "Volver a ver desde el principio"
+    ? 'Volver a ver desde el principio'
     : watched === 0
-      ? "Empezar"
-      : partLabel(nextPart, nextIndex);
+      ? 'Empezar'
+      : partLabel(nextPart, nextIndex)
 
   return (
     <article className="w-64 shrink-0">
@@ -41,7 +41,7 @@ export function ContinueCard({ series, onPlay, onOpen }: ContinueCardProps) {
               alt=""
               loading="lazy"
               onError={(event) => {
-                event.currentTarget.style.display = "none";
+                event.currentTarget.style.display = 'none'
               }}
               className="absolute inset-0 size-full object-cover"
             />
@@ -60,7 +60,7 @@ export function ContinueCard({ series, onPlay, onOpen }: ContinueCardProps) {
 
           <div className="absolute inset-x-2.5 bottom-2.5 h-1.5 overflow-hidden rounded-full bg-white/25">
             <div
-              className={`h-full rounded-full ${complete ? "bg-emerald-400" : "bg-rose-400"}`}
+              className={`h-full rounded-full ${complete ? 'bg-emerald-400' : 'bg-rose-400'}`}
               style={{ width: `${progressPercent(series)}%` }}
             />
           </div>
@@ -87,5 +87,5 @@ export function ContinueCard({ series, onPlay, onOpen }: ContinueCardProps) {
         <p className="mt-0.5 text-xs font-medium text-rose-400">{label}</p>
       </button>
     </article>
-  );
+  )
 }

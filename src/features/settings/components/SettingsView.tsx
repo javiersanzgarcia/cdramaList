@@ -1,25 +1,25 @@
-import { useState } from "react";
-import type { GoogleUser } from "../../sync/types";
-import * as Icon from "../../../shared/components/Icons";
-import { TopBar } from "../../../shared/components/TopBar";
+import { useState } from 'react'
+import type { GoogleUser } from '../../sync/types'
+import * as Icon from '../../../shared/components/Icons'
+import { TopBar } from '../../../shared/components/TopBar'
 
 interface SettingsViewProps {
-  apiKey: string;
-  apiKeyLocked: boolean;
-  seriesCount: number;
-  watchedPartsCount: number;
-  favoriteCount: number;
-  canInstall: boolean;
-  googleUser: GoogleUser | null;
-  syncEnabled: boolean;
-  syncDirty: boolean;
-  syncBusy: boolean;
-  onApiKeyChange: (key: string) => void;
-  onInstall: () => void;
-  onReset: () => void;
-  onExport: () => void;
-  onImport: (file: File) => void;
-  onOpenAccount: () => void;
+  apiKey: string
+  apiKeyLocked: boolean
+  seriesCount: number
+  watchedPartsCount: number
+  favoriteCount: number
+  canInstall: boolean
+  googleUser: GoogleUser | null
+  syncEnabled: boolean
+  syncDirty: boolean
+  syncBusy: boolean
+  onApiKeyChange: (key: string) => void
+  onInstall: () => void
+  onReset: () => void
+  onExport: () => void
+  onImport: (file: File) => void
+  onOpenAccount: () => void
 }
 
 export function SettingsView({
@@ -38,33 +38,33 @@ export function SettingsView({
   onReset,
   onExport,
   onImport,
-  onOpenAccount,
+  onOpenAccount
 }: SettingsViewProps) {
-  const [draftKey, setDraftKey] = useState(apiKey);
-  const [showKey, setShowKey] = useState(false);
+  const [draftKey, setDraftKey] = useState(apiKey)
+  const [showKey, setShowKey] = useState(false)
 
-  const saved = draftKey.trim() === apiKey && apiKey.length > 0;
+  const saved = draftKey.trim() === apiKey && apiKey.length > 0
 
   function handleSaveKey() {
-    const value = draftKey.trim();
-    if (!value) return;
-    onApiKeyChange(value);
-    setShowKey(false);
+    const value = draftKey.trim()
+    if (!value) return
+    onApiKeyChange(value)
+    setShowKey(false)
   }
 
   function handleClearKey() {
-    setDraftKey("");
-    onApiKeyChange("");
-    setShowKey(false);
+    setDraftKey('')
+    onApiKeyChange('')
+    setShowKey(false)
   }
 
   function handleReset() {
     const confirmed = window.confirm(
       syncEnabled
-        ? "¿Seguro que quieres borrar todas tus series y tu progreso? Si la sincronización automática está activa, también se borrarán en la nube."
-        : "¿Seguro que quieres borrar todas tus series y tu progreso? Esta acción no se puede deshacer.",
-    );
-    if (confirmed) onReset();
+        ? '¿Seguro que quieres borrar todas tus series y tu progreso? Si la sincronización automática está activa, también se borrarán en la nube.'
+        : '¿Seguro que quieres borrar todas tus series y tu progreso? Esta acción no se puede deshacer.'
+    )
+    if (confirmed) onReset()
   }
 
   return (
@@ -104,22 +104,22 @@ export function SettingsView({
                 Cuenta y sincronización
               </h2>
               <p className="truncate text-xs text-zinc-500">
-                {googleUser ? googleUser.email : "Inicia sesión con Google"}
+                {googleUser ? googleUser.email : 'Inicia sesión con Google'}
               </p>
               <p
                 className={`mt-0.5 text-[11px] ${
                   syncEnabled
                     ? syncDirty
-                      ? "text-rose-300"
-                      : "text-emerald-300"
-                    : "text-zinc-600"
+                      ? 'text-rose-300'
+                      : 'text-emerald-300'
+                    : 'text-zinc-600'
                 }`}
               >
                 {syncEnabled
                   ? syncDirty
-                    ? "Cambios pendientes de subir"
-                    : "Sincronización activa"
-                  : "Solo en este dispositivo"}
+                    ? 'Cambios pendientes de subir'
+                    : 'Sincronización activa'
+                  : 'Solo en este dispositivo'}
               </p>
             </div>
             <Icon.ChevronRight className="size-5 shrink-0 text-zinc-500" />
@@ -176,7 +176,7 @@ export function SettingsView({
                 <input
                   id="youtube-api-key"
                   name="youtube-api-key"
-                  type={showKey ? "text" : "password"}
+                  type={showKey ? 'text' : 'password'}
                   value={draftKey}
                   onChange={(event) => setDraftKey(event.target.value)}
                   placeholder="AIza…"
@@ -187,7 +187,7 @@ export function SettingsView({
                 <button
                   type="button"
                   onClick={() => setShowKey((value) => !value)}
-                  aria-label={showKey ? "Ocultar clave" : "Mostrar clave"}
+                  aria-label={showKey ? 'Ocultar clave' : 'Mostrar clave'}
                   className="absolute right-2 top-1/2 grid size-8 -translate-y-1/2 place-items-center rounded-full text-zinc-400 transition hover:bg-zinc-800 hover:text-white"
                 >
                   {showKey ? (
@@ -210,7 +210,7 @@ export function SettingsView({
                   ) : (
                     <Icon.Key className="size-4" />
                   )}
-                  {saved ? "Clave guardada" : "Guardar clave"}
+                  {saved ? 'Clave guardada' : 'Guardar clave'}
                 </button>
                 {apiKey.length > 0 && (
                   <button
@@ -272,9 +272,9 @@ export function SettingsView({
                 accept="application/json,.json"
                 className="sr-only"
                 onChange={(event) => {
-                  const file = event.target.files?.[0];
-                  if (file) onImport(file);
-                  event.target.value = "";
+                  const file = event.target.files?.[0]
+                  if (file) onImport(file)
+                  event.target.value = ''
                 }}
               />
             </label>
@@ -315,10 +315,10 @@ export function SettingsView({
             </>
           ) : (
             <p className="mt-2 text-sm leading-relaxed text-zinc-400">
-              Abre el menú del navegador y elige{" "}
+              Abre el menú del navegador y elige{' '}
               <span className="font-medium text-zinc-200">
                 «Añadir a pantalla de inicio»
-              </span>{" "}
+              </span>{' '}
               para usar la app como una aplicación nativa.
             </p>
           )}
@@ -347,5 +347,5 @@ export function SettingsView({
         </p>
       </div>
     </>
-  );
+  )
 }

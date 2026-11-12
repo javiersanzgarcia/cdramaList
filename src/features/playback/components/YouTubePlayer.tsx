@@ -18,7 +18,7 @@ interface YTNamespace {
         onStateChange?: (event: { data: number }) => void
         onError?: () => void
       }
-    },
+    }
   ) => YTPlayer
 }
 
@@ -76,7 +76,11 @@ interface YouTubePlayerProps {
   onError?: () => void
 }
 
-export function YouTubePlayer({ videoId, onEnded, onError }: YouTubePlayerProps) {
+export function YouTubePlayer({
+  videoId,
+  onEnded,
+  onError
+}: YouTubePlayerProps) {
   const containerRef = useRef<HTMLDivElement>(null)
   const playerRef = useRef<YTPlayer | null>(null)
   const currentVideoRef = useRef<string | null>(null)
@@ -104,7 +108,7 @@ export function YouTubePlayer({ videoId, onEnded, onError }: YouTubePlayerProps)
             rel: 0,
             modestbranding: 1,
             iv_load_policy: 3,
-            origin: window.location.origin,
+            origin: window.location.origin
           },
           events: {
             onReady: () => {
@@ -112,12 +116,13 @@ export function YouTubePlayer({ videoId, onEnded, onError }: YouTubePlayerProps)
               setMode('api')
             },
             onStateChange: (event) => {
-              if (!cancelled && event.data === ENDED) callbacks.current.onEnded?.()
+              if (!cancelled && event.data === ENDED)
+                callbacks.current.onEnded?.()
             },
             onError: () => {
               if (!cancelled) callbacks.current.onError?.()
-            },
-          },
+            }
+          }
         })
 
         playerRef.current = player

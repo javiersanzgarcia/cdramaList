@@ -1,16 +1,16 @@
-import type { ReactNode } from "react";
-import { statusMeta, statusOrder } from "../../series/model/status";
-import type { Series, SeriesStatus } from "../../series/types";
-import { EmptyState } from "./EmptyState";
-import * as Icon from "../../../shared/components/Icons";
-import { SeriesCard } from "./SeriesCard";
+import type { ReactNode } from 'react'
+import { statusMeta, statusOrder } from '../../series/model/status'
+import type { Series, SeriesStatus } from '../../series/types'
+import { EmptyState } from './EmptyState'
+import * as Icon from '../../../shared/components/Icons'
+import { SeriesCard } from './SeriesCard'
 
 interface ListViewProps {
-  header: ReactNode;
-  groups: Record<SeriesStatus, Series[]>;
-  onOpen: (series: Series) => void;
-  onToggleFavorite: (id: string) => void;
-  onAdd: () => void;
+  header: ReactNode
+  groups: Record<SeriesStatus, Series[]>
+  onOpen: (series: Series) => void
+  onToggleFavorite: (id: string) => void
+  onAdd: () => void
 }
 
 export function ListView({
@@ -18,12 +18,12 @@ export function ListView({
   groups,
   onOpen,
   onToggleFavorite,
-  onAdd,
+  onAdd
 }: ListViewProps) {
   const savedCount = statusOrder.reduce(
     (total, status) => total + groups[status].length,
-    0,
-  );
+    0
+  )
 
   return (
     <>
@@ -42,9 +42,9 @@ export function ListView({
       ) : (
         <div className="space-y-6 px-4 pt-5">
           {statusOrder.map((status) => {
-            const list = groups[status];
-            if (list.length === 0) return null;
-            const meta = statusMeta[status];
+            const list = groups[status]
+            if (list.length === 0) return null
+            const meta = statusMeta[status]
 
             return (
               <section key={status} className="animate-rise">
@@ -67,10 +67,10 @@ export function ListView({
                   ))}
                 </div>
               </section>
-            );
+            )
           })}
         </div>
       )}
     </>
-  );
+  )
 }

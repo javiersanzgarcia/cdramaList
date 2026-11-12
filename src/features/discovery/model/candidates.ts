@@ -1,9 +1,9 @@
-import type { ChapterCandidate } from "../types";
-import type { Part } from "../../series/types";
+import type { ChapterCandidate } from '../types'
+import type { Part } from '../../series/types'
 
 export interface CandidateState {
-  numbers: Record<string, string>;
-  finals: Record<string, boolean>;
+  numbers: Record<string, string>
+  finals: Record<string, boolean>
 }
 
 /**
@@ -12,36 +12,36 @@ export interface CandidateState {
  */
 export function buildCandidateState(
   candidates: ChapterCandidate[],
-  parts: Part[],
+  parts: Part[]
 ): CandidateState {
-  const used = new Set<number>();
+  const used = new Set<number>()
   for (const part of parts) {
-    if (part.partNumber != null) used.add(part.partNumber);
+    if (part.partNumber != null) used.add(part.partNumber)
   }
 
-  let next = Math.max(0, ...parts.map((part) => part.partNumber ?? 0)) + 1;
-  const numbers: Record<string, string> = {};
-  const finals: Record<string, boolean> = {};
+  let next = Math.max(0, ...parts.map((part) => part.partNumber ?? 0)) + 1
+  const numbers: Record<string, string> = {}
+  const finals: Record<string, boolean> = {}
 
   for (const candidate of candidates) {
-    let value = candidate.partNumber;
+    let value = candidate.partNumber
     if (value == null || used.has(value)) {
-      value = next;
-      while (used.has(value)) value += 1;
+      value = next
+      while (used.has(value)) value += 1
     }
 
-    used.add(value);
-    next = Math.max(next, value + 1);
-    numbers[candidate.videoId] = String(value);
-    finals[candidate.videoId] = Boolean(candidate.isFinal);
+    used.add(value)
+    next = Math.max(next, value + 1)
+    numbers[candidate.videoId] = String(value)
+    finals[candidate.videoId] = Boolean(candidate.isFinal)
   }
 
-  return { numbers, finals };
+  return { numbers, finals }
 }
 
 export function parseCandidateNumber(value: string): number | undefined {
-  const raw = value.trim();
-  return raw === "" ? undefined : Number(raw);
+  const raw = value.trim()
+  return raw === '' ? undefined : Number(raw)
 }
 
 /**
@@ -52,29 +52,29 @@ export function validateCandidateNumber(
   value: string,
   parts: Part[],
   otherNumbers: Record<string, string> = {},
-  currentVideoId?: string,
+  currentVideoId?: string
 ): string | undefined {
-  const partNumber = parseCandidateNumber(value);
-  if (partNumber == null) return undefined;
+  const partNumber = parseCandidateNumber(value)
+  if (partNumber == null) return undefined
 
   if (!Number.isInteger(partNumber) || partNumber <= 0) {
-    return "Escribe un número de capítulo válido.";
+    return 'Escribe un número de capítulo válido.'
   }
 
   if (parts.some((part) => part.partNumber === partNumber)) {
-    return `El número ${partNumber} ya está ocupado por otra parte.`;
+    return `El número ${partNumber} ya está ocupado por otra parte.`
   }
 
   const duplicate = Object.entries(otherNumbers).some(
     ([videoId, raw]) =>
       videoId !== currentVideoId &&
-      raw.trim() !== "" &&
-      Number(raw) === partNumber,
-  );
+      raw.trim() !== '' &&
+      Number(raw) === partNumber
+  )
 
   if (duplicate) {
-    return `El número ${partNumber} ya está asignado a otro candidato.`;
+    return `El número ${partNumber} ya está asignado a otro candidato.`
   }
 
-  return undefined;
+  return undefined
 }

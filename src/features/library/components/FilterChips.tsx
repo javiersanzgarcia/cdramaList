@@ -1,17 +1,17 @@
-import type { Filter } from "../../series/types";
-import * as Icon from "../../../shared/components/Icons";
+import type { Filter } from '../../series/types'
+import * as Icon from '../../../shared/components/Icons'
 
 const filters: { value: Filter; label: string }[] = [
-  { value: "all", label: "Todas" },
-  { value: "planned", label: "Pendientes" },
-  { value: "watching", label: "En curso" },
-  { value: "completed", label: "Completadas" },
-  { value: "favorites", label: "Favoritas" },
-];
+  { value: 'all', label: 'Todas' },
+  { value: 'planned', label: 'Pendientes' },
+  { value: 'watching', label: 'En curso' },
+  { value: 'completed', label: 'Completadas' },
+  { value: 'favorites', label: 'Favoritas' }
+]
 
 interface FilterChipsProps {
-  value: Filter;
-  onChange: (filter: Filter) => void;
+  value: Filter
+  onChange: (filter: Filter) => void
 }
 
 export function FilterChips({ value, onChange }: FilterChipsProps) {
@@ -39,5 +39,5 @@ export function FilterChips({ value, onChange }: FilterChipsProps) {
         <Icon.ChevronDown className="size-4" />
       </span>
     </div>
-  );
+  )
 }

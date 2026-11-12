@@ -1,15 +1,15 @@
-import type { GoogleUser } from "../../features/sync/types";
-import * as Icon from "./Icons";
+import type { GoogleUser } from '../../features/sync/types'
+import * as Icon from './Icons'
 
 interface TopBarProps {
-  eyebrow: string;
-  title: string;
-  canInstall: boolean;
-  onInstall: () => void;
-  user: GoogleUser | null;
-  syncDirty: boolean;
-  syncBusy: boolean;
-  onOpenAccount: () => void;
+  eyebrow: string
+  title: string
+  canInstall: boolean
+  onInstall: () => void
+  user: GoogleUser | null
+  syncDirty: boolean
+  syncBusy: boolean
+  onOpenAccount: () => void
 }
 
 export function TopBar({
@@ -20,7 +20,7 @@ export function TopBar({
   user,
   syncDirty,
   syncBusy,
-  onOpenAccount,
+  onOpenAccount
 }: TopBarProps) {
   return (
     <header className="sticky top-0 z-20 border-b border-zinc-900/80 bg-zinc-950/85 backdrop-blur-xl">
@@ -71,7 +71,7 @@ export function TopBar({
             {(syncBusy || syncDirty) && (
               <span
                 className={`absolute right-0.5 top-0.5 size-2.5 rounded-full border-2 border-zinc-950 ${
-                  syncBusy ? "animate-pulse bg-amber-400" : "bg-rose-400"
+                  syncBusy ? 'animate-pulse bg-amber-400' : 'bg-rose-400'
                 }`}
               />
             )}
@@ -79,5 +79,5 @@ export function TopBar({
         </div>
       </div>
     </header>
-  );
+  )
 }

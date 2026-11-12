@@ -1,80 +1,80 @@
-import { parseIsoDuration } from "../../../shared/lib/format";
+import { parseIsoDuration } from '../../../shared/lib/format'
 
-const API_BASE = "https://www.googleapis.com/youtube/v3";
+const API_BASE = 'https://www.googleapis.com/youtube/v3'
 
 export interface Thumbnails {
-  default?: { url: string };
-  medium?: { url: string };
-  high?: { url: string };
-  standard?: { url: string };
-  maxres?: { url: string };
+  default?: { url: string }
+  medium?: { url: string }
+  high?: { url: string }
+  standard?: { url: string }
+  maxres?: { url: string }
 }
 
 interface VideoSnippet {
-  title: string;
-  channelId: string;
-  channelTitle: string;
-  publishedAt: string;
-  description?: string;
-  tags?: string[];
-  thumbnails?: Thumbnails;
+  title: string
+  channelId: string
+  channelTitle: string
+  publishedAt: string
+  description?: string
+  tags?: string[]
+  thumbnails?: Thumbnails
 }
 
 interface VideoItem {
-  id: string;
-  snippet: VideoSnippet;
-  contentDetails?: { duration?: string };
+  id: string
+  snippet: VideoSnippet
+  contentDetails?: { duration?: string }
 }
 
 interface SearchItem {
-  id: { videoId?: string; playlistId?: string };
-  snippet: VideoSnippet;
+  id: { videoId?: string; playlistId?: string }
+  snippet: VideoSnippet
 }
 
 interface GoogleErrorBody {
   error?: {
-    message?: string;
-    errors?: { reason?: string; message?: string }[];
-  };
-}
-
-export interface VideoMeta {
-  videoId: string;
-  title: string;
-  channelId?: string;
-  channelTitle: string;
-  channelUrl?: string;
-  publishedAt?: string;
-  description?: string;
-  tags?: string[];
-  thumbnail?: string;
-  durationSeconds?: number;
-}
-
-export interface ParsedYouTubeUrl {
-  videoId?: string;
-  playlistId?: string;
-}
-
-export class YouTubeError extends Error {
-  reason?: string;
-
-  constructor(message: string, reason?: string) {
-    super(message);
-    this.name = "YouTubeError";
-    this.reason = reason;
+    message?: string
+    errors?: { reason?: string; message?: string }[]
   }
 }
 
-const VIDEO_ID = /^[\w-]{11}$/;
-const PLAYLIST_ID = /^[\w-]{10,}$/;
+export interface VideoMeta {
+  videoId: string
+  title: string
+  channelId?: string
+  channelTitle: string
+  channelUrl?: string
+  publishedAt?: string
+  description?: string
+  tags?: string[]
+  thumbnail?: string
+  durationSeconds?: number
+}
+
+export interface ParsedYouTubeUrl {
+  videoId?: string
+  playlistId?: string
+}
+
+export class YouTubeError extends Error {
+  reason?: string
+
+  constructor(message: string, reason?: string) {
+    super(message)
+    this.name = 'YouTubeError'
+    this.reason = reason
+  }
+}
+
+const VIDEO_ID = /^[\w-]{11}$/
+const PLAYLIST_ID = /^[\w-]{10,}$/
 
 export function youtubeThumbnail(videoId: string): string {
-  return `https://i.ytimg.com/vi/${videoId}/hqdefault.jpg`;
+  return `https://i.ytimg.com/vi/${videoId}/hqdefault.jpg`
 }
 
 export function channelUrlFor(channelId: string): string {
-  return `https://www.youtube.com/channel/${channelId}`;
+  return `https://www.youtube.com/channel/${channelId}`
 }
 
 export function pickThumbnail(thumbnails?: Thumbnails): string | undefined {
@@ -84,7 +84,7 @@ export function pickThumbnail(thumbnails?: Thumbnails): string | undefined {
     thumbnails?.high?.url ??
     thumbnails?.medium?.url ??
     thumbnails?.default?.url
-  );
+  )
 }
 
 function toVideoMeta(item: VideoItem): VideoMeta {
@@ -101,180 +101,180 @@ function toVideoMeta(item: VideoItem): VideoMeta {
     tags: item.snippet.tags,
     thumbnail:
       pickThumbnail(item.snippet.thumbnails) ?? youtubeThumbnail(item.id),
-    durationSeconds: parseIsoDuration(item.contentDetails?.duration),
-  };
+    durationSeconds: parseIsoDuration(item.contentDetails?.duration)
+  }
 }
 
 export async function fetchJson<T>(
   endpoint: string,
   params: Record<string, string>,
-  apiKey: string,
+  apiKey: string
 ): Promise<T> {
-  const url = new URL(`${API_BASE}/${endpoint}`);
+  const url = new URL(`${API_BASE}/${endpoint}`)
 
   for (const [key, value] of Object.entries(params)) {
-    url.searchParams.set(key, value);
+    url.searchParams.set(key, value)
   }
-  url.searchParams.set("key", apiKey);
+  url.searchParams.set('key', apiKey)
 
-  let response: Response;
-  const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), 20_000);
+  let response: Response
+  const controller = new AbortController()
+  const timeout = setTimeout(() => controller.abort(), 20_000)
   try {
-    response = await fetch(url.toString(), { signal: controller.signal });
+    response = await fetch(url.toString(), { signal: controller.signal })
   } catch {
     throw new YouTubeError(
       controller.signal.aborted
-        ? "YouTube tardó demasiado en responder. Inténtalo de nuevo."
-        : "No se pudo conectar con YouTube. Revisa tu conexión.",
-    );
+        ? 'YouTube tardó demasiado en responder. Inténtalo de nuevo.'
+        : 'No se pudo conectar con YouTube. Revisa tu conexión.'
+    )
   } finally {
-    clearTimeout(timeout);
+    clearTimeout(timeout)
   }
 
   if (!response.ok) {
-    let body: GoogleErrorBody | undefined;
+    let body: GoogleErrorBody | undefined
     try {
-      body = (await response.json()) as GoogleErrorBody;
+      body = (await response.json()) as GoogleErrorBody
     } catch {
-      body = undefined;
+      body = undefined
     }
 
-    const reason = body?.error?.errors?.[0]?.reason;
+    const reason = body?.error?.errors?.[0]?.reason
     const detail =
       body?.error?.message ??
-      `YouTube respondió con el código ${response.status}.`;
+      `YouTube respondió con el código ${response.status}.`
 
-    if (reason === "quotaExceeded") {
+    if (reason === 'quotaExceeded') {
       throw new YouTubeError(
-        "Se ha agotado la cuota diaria de YouTube. Inténtalo mañana o usa el modo manual.",
-        reason,
-      );
+        'Se ha agotado la cuota diaria de YouTube. Inténtalo mañana o usa el modo manual.',
+        reason
+      )
     }
 
     if (response.status === 400 || response.status === 403) {
       throw new YouTubeError(
-        "La clave de API no es válida o no tiene permiso para YouTube Data API v3. Revísala en Ajustes.",
-        reason,
-      );
+        'La clave de API no es válida o no tiene permiso para YouTube Data API v3. Revísala en Ajustes.',
+        reason
+      )
     }
 
     if (response.status === 404) {
       throw new YouTubeError(
-        "No se encontró el vídeo o la lista de reproducción.",
-        reason,
-      );
+        'No se encontró el vídeo o la lista de reproducción.',
+        reason
+      )
     }
 
-    throw new YouTubeError(detail, reason);
+    throw new YouTubeError(detail, reason)
   }
 
-  return (await response.json()) as T;
+  return (await response.json()) as T
 }
 
 export function parseYouTubeUrl(input: string): ParsedYouTubeUrl | null {
-  const value = input.trim();
-  if (!value) return null;
+  const value = input.trim()
+  if (!value) return null
 
-  if (VIDEO_ID.test(value)) return { videoId: value };
-  if (!value.startsWith("http") && PLAYLIST_ID.test(value))
-    return { playlistId: value };
+  if (VIDEO_ID.test(value)) return { videoId: value }
+  if (!value.startsWith('http') && PLAYLIST_ID.test(value))
+    return { playlistId: value }
 
-  let url: URL;
+  let url: URL
   try {
-    url = new URL(value.startsWith("http") ? value : `https://${value}`);
+    url = new URL(value.startsWith('http') ? value : `https://${value}`)
   } catch {
-    return null;
+    return null
   }
 
-  const host = url.hostname.replace(/^www\./, "").replace(/^m\./, "");
+  const host = url.hostname.replace(/^www\./, '').replace(/^m\./, '')
   if (
     ![
-      "youtube.com",
-      "youtu.be",
-      "music.youtube.com",
-      "youtube-nocookie.com",
+      'youtube.com',
+      'youtu.be',
+      'music.youtube.com',
+      'youtube-nocookie.com'
     ].includes(host)
   ) {
-    return null;
+    return null
   }
 
-  let videoId = url.searchParams.get("v") ?? undefined;
-  const playlistId = url.searchParams.get("list") ?? undefined;
+  let videoId = url.searchParams.get('v') ?? undefined
+  const playlistId = url.searchParams.get('list') ?? undefined
 
-  if (host === "youtu.be") {
-    videoId = url.pathname.split("/").filter(Boolean)[0];
+  if (host === 'youtu.be') {
+    videoId = url.pathname.split('/').filter(Boolean)[0]
   } else {
-    const segments = url.pathname.split("/").filter(Boolean);
+    const segments = url.pathname.split('/').filter(Boolean)
     if (
       !videoId &&
-      ["shorts", "embed", "live", "v"].includes(segments[0] ?? "")
+      ['shorts', 'embed', 'live', 'v'].includes(segments[0] ?? '')
     ) {
-      videoId = segments[1];
+      videoId = segments[1]
     }
   }
 
-  if (videoId && !VIDEO_ID.test(videoId)) videoId = undefined;
-  if (playlistId && !PLAYLIST_ID.test(playlistId)) return null;
-  if (!videoId && !playlistId) return null;
+  if (videoId && !VIDEO_ID.test(videoId)) videoId = undefined
+  if (playlistId && !PLAYLIST_ID.test(playlistId)) return null
+  if (!videoId && !playlistId) return null
 
-  return { videoId, playlistId };
+  return { videoId, playlistId }
 }
 
 export async function fetchVideoMeta(
   videoId: string,
-  apiKey: string,
+  apiKey: string
 ): Promise<VideoMeta> {
   const data = await fetchJson<{ items?: VideoItem[] }>(
-    "videos",
-    { part: "snippet,contentDetails", id: videoId },
-    apiKey,
-  );
-  const item = data.items?.[0];
+    'videos',
+    { part: 'snippet,contentDetails', id: videoId },
+    apiKey
+  )
+  const item = data.items?.[0]
 
   if (!item) {
     throw new YouTubeError(
-      "No se encontró el vídeo. Puede ser privado o haber sido eliminado.",
-    );
+      'No se encontró el vídeo. Puede ser privado o haber sido eliminado.'
+    )
   }
 
-  return toVideoMeta(item);
+  return toVideoMeta(item)
 }
 
 export async function fetchVideosByIds(
   ids: string[],
-  apiKey: string,
+  apiKey: string
 ): Promise<Map<string, VideoMeta>> {
-  const unique = [...new Set(ids.filter((id) => VIDEO_ID.test(id)))];
-  const result = new Map<string, VideoMeta>();
-  if (unique.length === 0) return result;
+  const unique = [...new Set(ids.filter((id) => VIDEO_ID.test(id)))]
+  const result = new Map<string, VideoMeta>()
+  if (unique.length === 0) return result
 
-  const chunks: string[][] = [];
+  const chunks: string[][] = []
   for (let index = 0; index < unique.length; index += 50) {
-    chunks.push(unique.slice(index, index + 50));
+    chunks.push(unique.slice(index, index + 50))
   }
 
   const pages = await Promise.all(
     chunks.map((chunk) =>
       fetchJson<{ items?: VideoItem[] }>(
-        "videos",
+        'videos',
         {
-          part: "snippet,contentDetails",
-          id: chunk.join(","),
-          maxResults: "50",
+          part: 'snippet,contentDetails',
+          id: chunk.join(','),
+          maxResults: '50'
         },
-        apiKey,
-      ),
-    ),
-  );
+        apiKey
+      )
+    )
+  )
 
   for (const page of pages) {
     for (const item of page.items ?? []) {
-      result.set(item.id, toVideoMeta(item));
+      result.set(item.id, toVideoMeta(item))
     }
   }
 
-  return result;
+  return result
 }
 
 /**
@@ -285,23 +285,23 @@ export async function fetchVideosByIds(
 export async function searchYouTubeVideos(
   query: string,
   apiKey: string,
-  maxResults = 50,
+  maxResults = 50
 ): Promise<VideoMeta[]> {
-  const term = query.trim();
-  if (!term) return [];
+  const term = query.trim()
+  if (!term) return []
 
   const data = await fetchJson<{ items?: SearchItem[] }>(
-    "search",
+    'search',
     {
-      part: "snippet",
+      part: 'snippet',
       q: term,
-      type: "video",
+      type: 'video',
       maxResults: String(Math.min(Math.max(maxResults, 1), 50)),
-      order: "relevance",
-      relevanceLanguage: "es",
+      order: 'relevance',
+      relevanceLanguage: 'es'
     },
-    apiKey,
-  );
+    apiKey
+  )
 
   const videos = (data.items ?? [])
     .filter((item) => item.id.videoId)
@@ -316,67 +316,67 @@ export async function searchYouTubeVideos(
       tags: item.snippet.tags,
       thumbnail:
         pickThumbnail(item.snippet.thumbnails) ??
-        youtubeThumbnail(item.id.videoId as string),
-    }));
+        youtubeThumbnail(item.id.videoId as string)
+    }))
 
   // La búsqueda no devuelve la duración: la pedimos en una sola llamada extra.
   const durations = await fetchVideosByIds(
     videos.map((video) => video.videoId),
-    apiKey,
-  ).catch(() => new Map<string, VideoMeta>());
+    apiKey
+  ).catch(() => new Map<string, VideoMeta>())
 
   return videos.map((video) => ({
     ...video,
     description: durations.get(video.videoId)?.description ?? video.description,
-    durationSeconds: durations.get(video.videoId)?.durationSeconds,
-  }));
+    durationSeconds: durations.get(video.videoId)?.durationSeconds
+  }))
 }
 
 export async function fetchVideoMetaWithoutKey(
-  videoId: string,
+  videoId: string
 ): Promise<VideoMeta> {
   const endpoint = `https://www.youtube.com/oembed?url=${encodeURIComponent(
-    `https://www.youtube.com/watch?v=${videoId}`,
-  )}&format=json`;
+    `https://www.youtube.com/watch?v=${videoId}`
+  )}&format=json`
 
   const proxies = [
     `https://api.allorigins.win/raw?url=${encodeURIComponent(endpoint)}`,
-    `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(endpoint)}`,
-  ];
+    `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(endpoint)}`
+  ]
 
   for (const proxy of proxies) {
-    const controller = new AbortController();
-    const timeout = window.setTimeout(() => controller.abort(), 8_000);
+    const controller = new AbortController()
+    const timeout = window.setTimeout(() => controller.abort(), 8_000)
 
     try {
-      const response = await fetch(proxy, { signal: controller.signal });
-      if (!response.ok) continue;
+      const response = await fetch(proxy, { signal: controller.signal })
+      if (!response.ok) continue
 
       const data = (await response.json()) as {
-        title?: string;
-        author_name?: string;
-        author_url?: string;
-        thumbnail_url?: string;
-      };
+        title?: string
+        author_name?: string
+        author_url?: string
+        thumbnail_url?: string
+      }
 
       return {
         videoId,
-        title: data.title || "Vídeo de YouTube",
-        channelTitle: data.author_name || "YouTube",
+        title: data.title || 'Vídeo de YouTube',
+        channelTitle: data.author_name || 'YouTube',
         channelUrl: data.author_url,
-        thumbnail: data.thumbnail_url || youtubeThumbnail(videoId),
-      };
+        thumbnail: data.thumbnail_url || youtubeThumbnail(videoId)
+      }
     } catch {
       // Probamos el siguiente proxy.
     } finally {
-      window.clearTimeout(timeout);
+      window.clearTimeout(timeout)
     }
   }
 
   return {
     videoId,
-    title: "Vídeo de YouTube",
-    channelTitle: "YouTube",
-    thumbnail: youtubeThumbnail(videoId),
-  };
+    title: 'Vídeo de YouTube',
+    channelTitle: 'YouTube',
+    thumbnail: youtubeThumbnail(videoId)
+  }
 }

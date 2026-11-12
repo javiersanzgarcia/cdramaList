@@ -1,83 +1,87 @@
-import type { Dispatch, SetStateAction } from "react";
-import { create } from "zustand";
+import type { Dispatch, SetStateAction } from 'react'
+import { create } from 'zustand'
 import {
   createJSONStorage,
   persist,
-  type StateStorage,
-} from "zustand/middleware";
-import { sanitizeGoogleUser } from "../features/sync/model/google";
-import { isSeries, normalizeSeries, pruneDeletedSeries } from "../features/series/model/series";
-import type { SynonymCacheEntry } from "../features/discovery/types";
-import type { Series } from "../features/series/types";
-import type { DrivePersistenceState, GoogleUser } from "../features/sync/types";
+  type StateStorage
+} from 'zustand/middleware'
+import { sanitizeGoogleUser } from '../features/sync/model/google'
+import {
+  isSeries,
+  normalizeSeries,
+  pruneDeletedSeries
+} from '../features/series/model/series'
+import type { SynonymCacheEntry } from '../features/discovery/types'
+import type { Series } from '../features/series/types'
+import type { DrivePersistenceState, GoogleUser } from '../features/sync/types'
 
-const STORE_KEY = "cdramalist:zustand";
-const STORE_VERSION = 1;
+const STORE_KEY = 'cdramalist:zustand'
+const STORE_VERSION = 1
 const LEGACY_KEYS = [
-  "cdramalist:series",
-  "cdramalist:apiKey",
-  "cdramalist:googleUser",
-  "cdramalist:drive",
-  "cdramalist:synonyms:v1",
-];
+  'cdramalist:series',
+  'cdramalist:apiKey',
+  'cdramalist:googleUser',
+  'cdramalist:drive',
+  'cdramalist:synonyms:v1'
+]
 
 interface PersistedAppState {
-  series: Series[];
-  apiKeyOverride: string;
-  googleUser: GoogleUser | null;
-  drive: DrivePersistenceState;
-  synonymCache: Record<string, SynonymCacheEntry>;
+  series: Series[]
+  apiKeyOverride: string
+  googleUser: GoogleUser | null
+  drive: DrivePersistenceState
+  synonymCache: Record<string, SynonymCacheEntry>
 }
 
 interface AppStore extends PersistedAppState {
-  setSeries: Dispatch<SetStateAction<Series[]>>;
-  setApiKeyOverride: (value: string) => void;
-  setGoogleUser: (value: GoogleUser | null) => void;
-  setDrive: Dispatch<SetStateAction<DrivePersistenceState>>;
-  setSynonymCache: (value: Record<string, SynonymCacheEntry>) => void;
+  setSeries: Dispatch<SetStateAction<Series[]>>
+  setApiKeyOverride: (value: string) => void
+  setGoogleUser: (value: GoogleUser | null) => void
+  setDrive: Dispatch<SetStateAction<DrivePersistenceState>>
+  setSynonymCache: (value: Record<string, SynonymCacheEntry>) => void
 }
 
 const DEFAULT_DRIVE_STATE: DrivePersistenceState = {
   enabled: false,
-  auto: true,
-};
+  auto: true
+}
 
 function sanitizeSeries(value: unknown): Series[] {
   return Array.isArray(value)
     ? pruneDeletedSeries(value.filter(isSeries).map(normalizeSeries))
-    : [];
+    : []
 }
 
 function sanitizeDriveState(value: unknown): DrivePersistenceState {
-  if (!value || typeof value !== "object") return DEFAULT_DRIVE_STATE;
+  if (!value || typeof value !== 'object') return DEFAULT_DRIVE_STATE
 
-  const record = value as Record<string, unknown>;
+  const record = value as Record<string, unknown>
   return {
     enabled: record.enabled === true,
     auto: record.auto !== false,
-    email: typeof record.email === "string" ? record.email : undefined,
-    fileId: typeof record.fileId === "string" ? record.fileId : undefined,
+    email: typeof record.email === 'string' ? record.email : undefined,
+    fileId: typeof record.fileId === 'string' ? record.fileId : undefined,
     lastSyncedAt:
-      typeof record.lastSyncedAt === "number" ? record.lastSyncedAt : undefined,
-  };
+      typeof record.lastSyncedAt === 'number' ? record.lastSyncedAt : undefined
+  }
 }
 
 function sanitizeSynonymCache(
-  value: unknown,
+  value: unknown
 ): Record<string, SynonymCacheEntry> {
-  if (!value || typeof value !== "object" || Array.isArray(value)) return {};
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return {}
 
   return Object.fromEntries(
     Object.entries(value as Record<string, unknown>).flatMap(([key, entry]) => {
-      if (!entry || typeof entry !== "object") return [];
+      if (!entry || typeof entry !== 'object') return []
 
-      const record = entry as Record<string, unknown>;
+      const record = entry as Record<string, unknown>
       if (
-        typeof record.at !== "number" ||
+        typeof record.at !== 'number' ||
         !Array.isArray(record.synonyms) ||
-        !record.synonyms.every((word) => typeof word === "string")
+        !record.synonyms.every((word) => typeof word === 'string')
       ) {
-        return [];
+        return []
       }
 
       return [
@@ -86,110 +90,110 @@ function sanitizeSynonymCache(
           {
             at: record.at,
             synonyms: record.synonyms,
-            notFound: record.notFound === true,
-          },
-        ],
-      ];
-    }),
-  );
+            notFound: record.notFound === true
+          }
+        ]
+      ]
+    })
+  )
 }
 
 function readLegacyValue(key: string): unknown {
   try {
-    const raw = window.localStorage.getItem(key);
-    return raw ? (JSON.parse(raw) as unknown) : undefined;
+    const raw = window.localStorage.getItem(key)
+    return raw ? (JSON.parse(raw) as unknown) : undefined
   } catch {
-    return undefined;
+    return undefined
   }
 }
 
 function migrateLegacyStorage(): PersistedAppState | undefined {
   const hasLegacyData = LEGACY_KEYS.some((key) => {
     try {
-      return window.localStorage.getItem(key) !== null;
+      return window.localStorage.getItem(key) !== null
     } catch {
-      return false;
+      return false
     }
-  });
-  if (!hasLegacyData) return undefined;
+  })
+  if (!hasLegacyData) return undefined
 
-  const apiKey = readLegacyValue("cdramalist:apiKey");
+  const apiKey = readLegacyValue('cdramalist:apiKey')
   return {
-    series: sanitizeSeries(readLegacyValue("cdramalist:series")),
-    apiKeyOverride: typeof apiKey === "string" ? apiKey : "",
-    googleUser: sanitizeGoogleUser(readLegacyValue("cdramalist:googleUser")),
-    drive: sanitizeDriveState(readLegacyValue("cdramalist:drive")),
+    series: sanitizeSeries(readLegacyValue('cdramalist:series')),
+    apiKeyOverride: typeof apiKey === 'string' ? apiKey : '',
+    googleUser: sanitizeGoogleUser(readLegacyValue('cdramalist:googleUser')),
+    drive: sanitizeDriveState(readLegacyValue('cdramalist:drive')),
     synonymCache: sanitizeSynonymCache(
-      readLegacyValue("cdramalist:synonyms:v1"),
-    ),
-  };
+      readLegacyValue('cdramalist:synonyms:v1')
+    )
+  }
 }
 
 const storage: StateStorage = {
   getItem(name) {
     try {
-      const stored = window.localStorage.getItem(name);
-      if (stored !== null) return stored;
+      const stored = window.localStorage.getItem(name)
+      if (stored !== null) return stored
 
-      const legacyState = migrateLegacyStorage();
-      if (!legacyState) return null;
+      const legacyState = migrateLegacyStorage()
+      if (!legacyState) return null
 
       const migrated = JSON.stringify({
         state: legacyState,
-        version: STORE_VERSION,
-      });
-      window.localStorage.setItem(name, migrated);
-      for (const key of LEGACY_KEYS) window.localStorage.removeItem(key);
-      return migrated;
+        version: STORE_VERSION
+      })
+      window.localStorage.setItem(name, migrated)
+      for (const key of LEGACY_KEYS) window.localStorage.removeItem(key)
+      return migrated
     } catch {
-      return null;
+      return null
     }
   },
   setItem(name, value) {
     try {
-      window.localStorage.setItem(name, value);
+      window.localStorage.setItem(name, value)
     } catch {
       // Si el almacenamiento no está disponible, Zustand mantiene el estado en memoria.
     }
   },
   removeItem(name) {
     try {
-      window.localStorage.removeItem(name);
+      window.localStorage.removeItem(name)
     } catch {
       // No hay nada que borrar si localStorage está bloqueado.
     }
-  },
-};
+  }
+}
 
 export const useAppStore = create<AppStore>()(
   persist<AppStore, [], [], PersistedAppState>(
     (set) => ({
       series: [],
-      apiKeyOverride: "",
+      apiKeyOverride: '',
       googleUser: null,
       drive: DEFAULT_DRIVE_STATE,
       synonymCache: {},
       setSeries: (next) =>
         set((state) => ({
           series:
-            typeof next === "function"
+            typeof next === 'function'
               ? (next as (current: Series[]) => Series[])(state.series)
-              : next,
+              : next
         })),
       setApiKeyOverride: (apiKeyOverride) => set({ apiKeyOverride }),
       setGoogleUser: (googleUser) => set({ googleUser }),
       setDrive: (next) =>
         set((state) => ({
           drive:
-            typeof next === "function"
+            typeof next === 'function'
               ? (
                   next as (
-                    current: DrivePersistenceState,
+                    current: DrivePersistenceState
                   ) => DrivePersistenceState
                 )(state.drive)
-              : next,
+              : next
         })),
-      setSynonymCache: (synonymCache) => set({ synonymCache }),
+      setSynonymCache: (synonymCache) => set({ synonymCache })
     }),
     {
       name: STORE_KEY,
@@ -200,27 +204,27 @@ export const useAppStore = create<AppStore>()(
         apiKeyOverride,
         googleUser,
         drive,
-        synonymCache,
+        synonymCache
       }) => ({ series, apiKeyOverride, googleUser, drive, synonymCache }),
       merge: (persisted, current) => {
-        const saved = (persisted ?? {}) as Partial<PersistedAppState>;
+        const saved = (persisted ?? {}) as Partial<PersistedAppState>
         return {
           ...current,
           series: sanitizeSeries(saved.series ?? current.series),
           apiKeyOverride:
-            typeof saved.apiKeyOverride === "string"
+            typeof saved.apiKeyOverride === 'string'
               ? saved.apiKeyOverride
               : current.apiKeyOverride,
           googleUser:
-            "googleUser" in saved
+            'googleUser' in saved
               ? sanitizeGoogleUser(saved.googleUser)
               : current.googleUser,
           drive: sanitizeDriveState(saved.drive ?? current.drive),
           synonymCache: sanitizeSynonymCache(
-            saved.synonymCache ?? current.synonymCache,
-          ),
-        };
-      },
-    },
-  ),
-);
+            saved.synonymCache ?? current.synonymCache
+          )
+        }
+      }
+    }
+  )
+)

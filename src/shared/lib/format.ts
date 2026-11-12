@@ -1,5 +1,4 @@
-const ISO_DURATION =
-  /^P(?:(\d+)D)?(?:T(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?)?$/
+const ISO_DURATION = /^P(?:(\d+)D)?(?:T(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?)?$/
 
 export function parseIsoDuration(iso?: string): number | undefined {
   if (!iso) return undefined
@@ -40,7 +39,7 @@ export function formatDate(iso?: string): string | undefined {
   return date.toLocaleDateString('es-ES', {
     day: 'numeric',
     month: 'short',
-    year: 'numeric',
+    year: 'numeric'
   })
 }
 
@@ -54,6 +53,6 @@ export function formatDateTime(value?: number | string): string | undefined {
     day: 'numeric',
     month: 'short',
     hour: '2-digit',
-    minute: '2-digit',
+    minute: '2-digit'
   })
 }

@@ -1,8 +1,8 @@
-import * as Icon from "../../../shared/components/Icons";
+import * as Icon from '../../../shared/components/Icons'
 
 interface SearchBarProps {
-  value: string;
-  onChange: (value: string) => void;
+  value: string
+  onChange: (value: string) => void
 }
 
 export function SearchBar({ value, onChange }: SearchBarProps) {
@@ -24,7 +24,7 @@ export function SearchBar({ value, onChange }: SearchBarProps) {
       {value.length > 0 && (
         <button
           type="button"
-          onClick={() => onChange("")}
+          onClick={() => onChange('')}
           aria-label="Borrar búsqueda"
           className="absolute right-2 top-1/2 grid size-8 -translate-y-1/2 place-items-center rounded-full text-zinc-400 transition hover:bg-zinc-800 hover:text-white"
         >
@@ -32,5 +32,5 @@ export function SearchBar({ value, onChange }: SearchBarProps) {
         </button>
       )}
     </div>
-  );
+  )
 }

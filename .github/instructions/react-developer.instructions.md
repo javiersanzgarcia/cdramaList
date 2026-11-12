@@ -1,10 +1,6 @@
 ---
-name: react-developer
-description: >
-  Aplica a cualquier proyecto React con TypeScript. Usar cuando se trabaje
-  con proyectos de frontend React independientemente del dominio o stack
-  específico.
-applyTo: "**/*.{tsx,ts,jsx,js}"
+applyTo: '**/*.{tsx,ts,jsx,js}'
+description: 'Aplica a cualquier proyecto React con TypeScript. Usar cuando se trabaje con proyectos de frontend React independientemente del dominio o stack específico.'
 ---
 
 # React + TypeScript — Developer Skill (Global)
@@ -37,15 +33,15 @@ Skill global para el desarrollo de proyectos **React + TypeScript**. Recoge las 
 
 ## Stack de Referencia
 
-| Tech                    | Versión recomendada | Uso                        |
-| ----------------------- | ------------------- | -------------------------- |
-| React                   | 18+                 | UI framework               |
-| TypeScript              | 5+ (strict)         | Sin `any` en ningún caso   |
-| React Router            | v6+                 | Routing                    |
-| Vitest / Jest           | Latest              | Testing unitario           |
-| React Testing Library   | Latest              | Testing de componentes     |
-| ESLint + Prettier       | Latest              | Calidad y formato          |
-| Node.js                 | 20+                 | Runtime                    |
+| Tech                  | Versión recomendada | Uso                      |
+| --------------------- | ------------------- | ------------------------ |
+| React                 | 18+                 | UI framework             |
+| TypeScript            | 5+ (strict)         | Sin `any` en ningún caso |
+| React Router          | v6+                 | Routing                  |
+| Vitest / Jest         | Latest              | Testing unitario         |
+| React Testing Library | Latest              | Testing de componentes   |
+| ESLint + Prettier     | Latest              | Calidad y formato        |
+| Node.js               | 20+                 | Runtime                  |
 
 > El proyecto puede usar cualquier librería de UI (MUI, Tailwind, Radix, etc.) o de estado (Zustand, Redux, Jotai, Context API). Las reglas de esta skill son agnósticas a esas elecciones.
 
@@ -73,16 +69,16 @@ Skill global para el desarrollo de proyectos **React + TypeScript**. Recoge las 
 
 ### Nomenclatura
 
-| Elemento              | Convención             | Ejemplo               |
-| --------------------- | ---------------------- | --------------------- |
-| Componentes           | **PascalCase**         | `UserProfile`         |
-| Hooks personalizados  | prefijo `use`          | `useAuthSession`      |
-| Event handlers        | prefijo `handle`       | `handleSubmit`        |
-| Funciones / variables | **camelCase**          | `fetchUserData`       |
-| Constantes globales   | **UPPER_SNAKE_CASE**   | `MAX_RETRY_COUNT`     |
-| Archivos de comp.     | PascalCase             | `UserProfile.tsx`     |
-| Archivos de hooks     | camelCase con `use`    | `useAuthSession.ts`   |
-| Tipos e interfaces    | PascalCase             | `UserProfileProps`    |
+| Elemento              | Convención           | Ejemplo             |
+| --------------------- | -------------------- | ------------------- |
+| Componentes           | **PascalCase**       | `UserProfile`       |
+| Hooks personalizados  | prefijo `use`        | `useAuthSession`    |
+| Event handlers        | prefijo `handle`     | `handleSubmit`      |
+| Funciones / variables | **camelCase**        | `fetchUserData`     |
+| Constantes globales   | **UPPER_SNAKE_CASE** | `MAX_RETRY_COUNT`   |
+| Archivos de comp.     | PascalCase           | `UserProfile.tsx`   |
+| Archivos de hooks     | camelCase con `use`  | `useAuthSession.ts` |
+| Tipos e interfaces    | PascalCase           | `UserProfileProps`  |
 
 ### Calidad de Código
 
@@ -129,19 +125,19 @@ src/
 ```typescript
 // Encapsular fetching en un hook por dominio
 function useUsers() {
-  const [data, setData] = React.useState<User[]>([]);
-  const [isLoading, setIsLoading] = React.useState(false);
-  const [error, setError] = React.useState<Error | null>(null);
+  const [data, setData] = React.useState<User[]>([])
+  const [isLoading, setIsLoading] = React.useState(false)
+  const [error, setError] = React.useState<Error | null>(null)
 
   React.useEffect(() => {
-    setIsLoading(true);
+    setIsLoading(true)
     fetchUsers()
       .then(setData)
       .catch(setError)
-      .finally(() => setIsLoading(false));
-  }, []);
+      .finally(() => setIsLoading(false))
+  }, [])
 
-  return { data, isLoading, error };
+  return { data, isLoading, error }
 }
 ```
 
@@ -157,12 +153,12 @@ function toUserDTO(user: User): UserDTO { ... }
 
 ```typescript
 // Patrón context + hook de acceso tipado
-const UserContext = React.createContext<UserContextValue | undefined>(undefined);
+const UserContext = React.createContext<UserContextValue | undefined>(undefined)
 
 function useUserContext(): UserContextValue {
-  const ctx = React.useContext(UserContext);
-  if (!ctx) throw new Error("useUserContext must be used within UserProvider");
-  return ctx;
+  const ctx = React.useContext(UserContext)
+  if (!ctx) throw new Error('useUserContext must be used within UserProvider')
+  return ctx
 }
 ```
 
@@ -246,12 +242,14 @@ function Avatar() {
 ```
 
 **Cuándo usar Context:**
+
 - Datos de sesión / autenticación
 - Preferencias de UI (tema, idioma)
 - Estado compartido de una feature concreta (ej. wizard multi-paso, carrito de compra)
 - Callbacks globales (toast/notificaciones, modal manager)
 
 **Cuándo NO usar Context:**
+
 - Estado local que solo necesita un componente → `useState`
 - Estado muy frecuentemente mutable (cambia en cada keystroke) → puede causar re-renders masivos; usar store externo o `useReducer` + `memo`
 
@@ -294,6 +292,7 @@ function Page() {
 ```
 
 **Cuándo usar composición:**
+
 - El componente intermedio es puramente estructural (layout, wrappers, listas)
 - Quieres mantener el componente intermedio reutilizable y desacoplado
 - La prop solo es necesaria para un hijo directo, no para varios niveles
@@ -329,6 +328,7 @@ function Avatar() {
 ```
 
 **Cuándo usar store global:**
+
 - Estado compartido entre features no relacionadas por árbol
 - Necesitas acceder al estado desde fuera de componentes (servicios, workers)
 - El estado muta con mucha frecuencia y necesitas control fino de re-renders con selectores
@@ -351,12 +351,12 @@ function Avatar() {
 
 ### Anti-patrones relacionados que evitar
 
-| Anti-patrón | Por qué es un problema | Alternativa |
-| --- | --- | --- |
-| Pasar `props` entero hacia abajo (`<Child {...props} />`) | Acopla tipos, oscurece dependencias, dificulta refactors | Pasar solo las props que el hijo necesita explícitamente |
-| Context con un objeto enorme que incluye todo el estado app | Re-renderiza todos los consumidores ante cualquier cambio | Dividir en contextos por dominio o usar selectores con `useMemo` |
-| Elevar estado innecesariamente al componente raíz | Convierte la raíz en un "god component" y fuerza prop drilling | Colocar el estado en el ancestro común más cercano que lo necesite |
-| Props opcionales con `?` para evitar pasar el dato | Oculta dependencias reales, el componente parece independiente pero no lo es | Hacer explícita la dependencia o eliminarla con Context / composición |
+| Anti-patrón                                                 | Por qué es un problema                                                       | Alternativa                                                           |
+| ----------------------------------------------------------- | ---------------------------------------------------------------------------- | --------------------------------------------------------------------- |
+| Pasar `props` entero hacia abajo (`<Child {...props} />`)   | Acopla tipos, oscurece dependencias, dificulta refactors                     | Pasar solo las props que el hijo necesita explícitamente              |
+| Context con un objeto enorme que incluye todo el estado app | Re-renderiza todos los consumidores ante cualquier cambio                    | Dividir en contextos por dominio o usar selectores con `useMemo`      |
+| Elevar estado innecesariamente al componente raíz           | Convierte la raíz en un "god component" y fuerza prop drilling               | Colocar el estado en el ancestro común más cercano que lo necesite    |
+| Props opcionales con `?` para evitar pasar el dato          | Oculta dependencias reales, el componente parece independiente pero no lo es | Hacer explícita la dependencia o eliminarla con Context / composición |
 
 ---
 

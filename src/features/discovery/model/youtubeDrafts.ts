@@ -1,16 +1,16 @@
-import type { ChapterCandidate } from "../types";
-import type { Part, Series, SeriesDraft } from "../../series/types";
-import { detectPart, stripPartMarkers } from "../../series/model/parts";
-import { discoverSeriesUpdates } from "./seriesUpdates";
-import { MAX_PLAYLIST_ITEMS, fetchPlaylist } from "./youtubePlaylists";
+import type { ChapterCandidate } from '../types'
+import type { Part, Series, SeriesDraft } from '../../series/types'
+import { detectPart, stripPartMarkers } from '../../series/model/parts'
+import { discoverSeriesUpdates } from './seriesUpdates'
+import { MAX_PLAYLIST_ITEMS, fetchPlaylist } from './youtubePlaylists'
 import {
   channelUrlFor,
   fetchVideoMeta,
   fetchVideoMetaWithoutKey,
-  youtubeThumbnail,
-} from "./youtubeApi";
-import type { PlaylistData } from "./youtubePlaylists";
-import type { VideoMeta } from "./youtubeApi";
+  youtubeThumbnail
+} from './youtubeApi'
+import type { PlaylistData } from './youtubePlaylists'
+import type { VideoMeta } from './youtubeApi'
 
 function toPart(video: VideoMeta, info: ReturnType<typeof detectPart>): Part {
   return {
@@ -23,13 +23,13 @@ function toPart(video: VideoMeta, info: ReturnType<typeof detectPart>): Part {
     durationSeconds: video.durationSeconds,
     publishedAt: video.publishedAt,
     thumbnail: video.thumbnail ?? youtubeThumbnail(video.videoId),
-    addedAt: Date.now(),
-  };
+    addedAt: Date.now()
+  }
 }
 
 export function candidateToPart(
   candidate: ChapterCandidate,
-  options: { partNumber?: number; isFinal?: boolean } = {},
+  options: { partNumber?: number; isFinal?: boolean } = {}
 ): Part {
   return {
     videoId: candidate.videoId,
@@ -41,12 +41,12 @@ export function candidateToPart(
     durationSeconds: candidate.durationSeconds,
     publishedAt: candidate.publishedAt,
     thumbnail: candidate.thumbnail ?? youtubeThumbnail(candidate.videoId),
-    addedAt: Date.now(),
-  };
+    addedAt: Date.now()
+  }
 }
 
 export function buildManualDraft(video: VideoMeta): SeriesDraft {
-  const part = toPart(video, detectPart(video.title));
+  const part = toPart(video, detectPart(video.title))
 
   return {
     title: stripPartMarkers(video.title),
@@ -55,29 +55,29 @@ export function buildManualDraft(video: VideoMeta): SeriesDraft {
     channelUrl: video.channelUrl,
     thumbnail: video.thumbnail ?? part.thumbnail,
     parts: [part],
-    source: "manual",
+    source: 'manual',
     warnings: [
-      "Se ha añadido solo este vídeo. Puedes añadir más partes desde la serie o configurar la clave de YouTube para buscarlas automáticamente.",
+      'Se ha añadido solo este vídeo. Puedes añadir más partes desde la serie o configurar la clave de YouTube para buscarlas automáticamente.'
     ],
-    selectedIds: [video.videoId],
-  };
+    selectedIds: [video.videoId]
+  }
 }
 
 export function buildPlaylistDraft(playlist: PlaylistData): SeriesDraft {
-  const warnings: string[] = [];
+  const warnings: string[] = []
 
   if (playlist.truncated) {
     warnings.push(
-      `La lista es muy larga. Se han importado las primeras ${MAX_PLAYLIST_ITEMS} partes.`,
-    );
+      `La lista es muy larga. Se han importado las primeras ${MAX_PLAYLIST_ITEMS} partes.`
+    )
   }
 
   if (playlist.parts.length === 0) {
-    warnings.push("La lista no contiene vídeos disponibles.");
+    warnings.push('La lista no contiene vídeos disponibles.')
   } else if (playlist.parts.length > 1) {
     warnings.push(
-      "Revisa que todas las partes pertenezcan a la misma historia.",
-    );
+      'Revisa que todas las partes pertenezcan a la misma historia.'
+    )
   }
 
   return {
@@ -87,21 +87,21 @@ export function buildPlaylistDraft(playlist: PlaylistData): SeriesDraft {
     channelUrl: channelUrlFor(playlist.channelId),
     thumbnail: playlist.thumbnail,
     parts: playlist.parts,
-    source: "playlist",
+    source: 'playlist',
     warnings,
-    selectedIds: playlist.parts.map((part) => part.videoId),
-  };
+    selectedIds: playlist.parts.map((part) => part.videoId)
+  }
 }
 
 export async function discoverVideoSeries(
   videoId: string,
-  apiKey: string,
+  apiKey: string
 ): Promise<SeriesDraft> {
-  const original = await fetchVideoMeta(videoId, apiKey);
-  const title = stripPartMarkers(original.title);
+  const original = await fetchVideoMeta(videoId, apiKey)
+  const title = stripPartMarkers(original.title)
 
   const seed: Series = {
-    id: "draft",
+    id: 'draft',
     title,
     aliases: [],
     channelId: original.channelId,
@@ -112,20 +112,20 @@ export async function discoverVideoSeries(
     watched: [],
     favorite: false,
     createdAt: Date.now(),
-    updatedAt: Date.now(),
-  };
+    updatedAt: Date.now()
+  }
 
-  const update = await discoverSeriesUpdates(seed, apiKey);
-  const warnings = [...update.warnings];
+  const update = await discoverSeriesUpdates(seed, apiKey)
+  const warnings = [...update.warnings]
 
   if (update.parts.length === 1 && update.candidates.length === 0) {
     warnings.push(
-      "No se han encontrado más capítulos en el canal ni en todo YouTube. Puedes añadirlos manualmente desde la serie.",
-    );
+      'No se han encontrado más capítulos en el canal ni en todo YouTube. Puedes añadirlos manualmente desde la serie.'
+    )
   } else if (update.candidates.length > 0) {
     warnings.push(
-      "Revisa los posibles capítulos: solo se guardarán los que añadas manualmente.",
-    );
+      'Revisa los posibles capítulos: solo se guardarán los que añadas manualmente.'
+    )
   }
 
   return {
@@ -136,26 +136,26 @@ export async function discoverVideoSeries(
     thumbnail: original.thumbnail ?? update.parts[0]?.thumbnail,
     parts: update.parts,
     candidates: update.candidates,
-    source: "search",
+    source: 'search',
     warnings,
-    selectedIds: update.parts.map((part) => part.videoId),
-  };
+    selectedIds: update.parts.map((part) => part.videoId)
+  }
 }
 
 export async function discoverPlaylist(
   playlistId: string,
-  apiKey: string,
+  apiKey: string
 ): Promise<SeriesDraft> {
-  return buildPlaylistDraft(await fetchPlaylist(playlistId, apiKey));
+  return buildPlaylistDraft(await fetchPlaylist(playlistId, apiKey))
 }
 
 export async function fetchManualVideo(
   videoId: string,
-  apiKey?: string,
+  apiKey?: string
 ): Promise<SeriesDraft> {
   const video = apiKey
     ? await fetchVideoMeta(videoId, apiKey)
-    : await fetchVideoMetaWithoutKey(videoId);
+    : await fetchVideoMetaWithoutKey(videoId)
 
-  return buildManualDraft(video);
+  return buildManualDraft(video)
 }

@@ -56,9 +56,7 @@ repositorio en GitHub Actions).
 
 ```json
 {
-  "entries": [
-    { "id": "video-id", "text": "Título y descripción del drama" }
-  ]
+  "entries": [{ "id": "video-id", "text": "Título y descripción del drama" }]
 }
 ```
 

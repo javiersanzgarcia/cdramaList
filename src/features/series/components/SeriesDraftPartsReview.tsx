@@ -1,24 +1,24 @@
-import { formatDuration } from "../../../shared/lib/format";
-import { partLabel } from "../model/parts";
-import type { ChapterCandidate } from "../../discovery/types";
-import type { Part } from "../types";
-import { CandidateCard } from "./CandidateCard";
-import * as Icon from "../../../shared/components/Icons";
+import { formatDuration } from '../../../shared/lib/format'
+import { partLabel } from '../model/parts'
+import type { ChapterCandidate } from '../../discovery/types'
+import type { Part } from '../types'
+import { CandidateCard } from './CandidateCard'
+import * as Icon from '../../../shared/components/Icons'
 
 interface SeriesDraftPartsReviewProps {
-  parts: Part[];
-  selected: Set<string>;
-  allSelected: boolean;
-  candidates: ChapterCandidate[];
-  candidateNumbers: Record<string, string>;
-  candidateFinal: Record<string, boolean>;
-  candidateMessage: { kind: "ok" | "error"; text: string } | null;
-  onToggleAll: () => void;
-  onTogglePart: (videoId: string) => void;
-  onCandidateNumberChange: (videoId: string, value: string) => void;
-  onToggleCandidateFinal: (videoId: string) => void;
-  onAddCandidate: (candidate: ChapterCandidate) => void;
-  onDiscardCandidate: (videoId: string) => void;
+  parts: Part[]
+  selected: Set<string>
+  allSelected: boolean
+  candidates: ChapterCandidate[]
+  candidateNumbers: Record<string, string>
+  candidateFinal: Record<string, boolean>
+  candidateMessage: { kind: 'ok' | 'error'; text: string } | null
+  onToggleAll: () => void
+  onTogglePart: (videoId: string) => void
+  onCandidateNumberChange: (videoId: string, value: string) => void
+  onToggleCandidateFinal: (videoId: string) => void
+  onAddCandidate: (candidate: ChapterCandidate) => void
+  onDiscardCandidate: (videoId: string) => void
 }
 
 export function SeriesDraftPartsReview({
@@ -34,7 +34,7 @@ export function SeriesDraftPartsReview({
   onCandidateNumberChange,
   onToggleCandidateFinal,
   onAddCandidate,
-  onDiscardCandidate,
+  onDiscardCandidate
 }: SeriesDraftPartsReviewProps) {
   return (
     <>
@@ -51,7 +51,7 @@ export function SeriesDraftPartsReview({
             onClick={onToggleAll}
             className="text-xs font-medium text-rose-300 transition hover:text-rose-200"
           >
-            {allSelected ? "Quitar todas" : "Seleccionar todas"}
+            {allSelected ? 'Quitar todas' : 'Seleccionar todas'}
           </button>
         )}
       </div>
@@ -59,16 +59,16 @@ export function SeriesDraftPartsReview({
       {parts.length > 0 ? (
         <ul className="mt-2 max-h-72 space-y-1.5 overflow-y-auto rounded-2xl border border-zinc-800 bg-zinc-950/50 p-2">
           {parts.map((part, index) => {
-            const checked = selected.has(part.videoId);
-            const duration = formatDuration(part.durationSeconds);
+            const checked = selected.has(part.videoId)
+            const duration = formatDuration(part.durationSeconds)
 
             return (
               <li key={part.videoId}>
                 <label
                   className={`flex cursor-pointer items-center gap-2.5 rounded-xl border p-2 transition ${
                     checked
-                      ? "border-rose-500/40 bg-rose-500/10"
-                      : "border-transparent hover:bg-zinc-900"
+                      ? 'border-rose-500/40 bg-rose-500/10'
+                      : 'border-transparent hover:bg-zinc-900'
                   }`}
                 >
                   <input
@@ -86,7 +86,7 @@ export function SeriesDraftPartsReview({
                         alt=""
                         loading="lazy"
                         onError={(event) => {
-                          event.currentTarget.style.display = "none";
+                          event.currentTarget.style.display = 'none'
                         }}
                         className="size-full object-cover"
                       />
@@ -107,7 +107,7 @@ export function SeriesDraftPartsReview({
                   </span>
                 </label>
               </li>
-            );
+            )
           })}
         </ul>
       ) : (
@@ -140,9 +140,9 @@ export function SeriesDraftPartsReview({
               <CandidateCard
                 key={candidate.videoId}
                 candidate={candidate}
-                number={candidateNumbers[candidate.videoId] ?? ""}
+                number={candidateNumbers[candidate.videoId] ?? ''}
                 isFinal={Boolean(
-                  candidateFinal[candidate.videoId] ?? candidate.isFinal,
+                  candidateFinal[candidate.videoId] ?? candidate.isFinal
                 )}
                 adding={false}
                 busy={false}
@@ -161,14 +161,14 @@ export function SeriesDraftPartsReview({
       {candidateMessage && (
         <p
           className={`mt-3 rounded-2xl border px-3 py-2 text-[11px] leading-relaxed ${
-            candidateMessage.kind === "error"
-              ? "border-rose-500/20 bg-rose-500/10 text-rose-200"
-              : "border-emerald-400/20 bg-emerald-400/10 text-emerald-200"
+            candidateMessage.kind === 'error'
+              ? 'border-rose-500/20 bg-rose-500/10 text-rose-200'
+              : 'border-emerald-400/20 bg-emerald-400/10 text-emerald-200'
           }`}
         >
           {candidateMessage.text}
         </p>
       )}
     </>
-  );
+  )
 }

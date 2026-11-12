@@ -49,9 +49,9 @@ export default defineConfig({
             src: 'maskable-icon-512x512.png',
             sizes: '512x512',
             type: 'image/png',
-            purpose: 'maskable',
-          },
-        ],
+            purpose: 'maskable'
+          }
+        ]
       },
       workbox: {
         globPatterns: ['**/*.{js,css,html,svg,png,ico,woff2}'],
@@ -65,16 +65,16 @@ export default defineConfig({
               cacheName: 'youtube-thumbnails',
               expiration: {
                 maxEntries: 200,
-                maxAgeSeconds: 60 * 60 * 24 * 30,
+                maxAgeSeconds: 60 * 60 * 24 * 30
               },
-              cacheableResponse: { statuses: [0, 200] },
-            },
-          },
-        ],
+              cacheableResponse: { statuses: [0, 200] }
+            }
+          }
+        ]
       },
       devOptions: {
-        enabled: false,
-      },
-    }),
-  ],
+        enabled: false
+      }
+    })
+  ]
 })

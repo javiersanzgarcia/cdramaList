@@ -1,33 +1,33 @@
-import { useEffect, useRef, useState, type ReactNode } from "react";
-import { continueWatching } from "../../series/model/series";
-import type { Filter, Series } from "../../series/types";
-import { ContinueCard } from "./ContinueCard";
-import { EmptyState } from "./EmptyState";
-import { FilterChips } from "./FilterChips";
-import * as Icon from "../../../shared/components/Icons";
-import { SearchBar } from "./SearchBar";
-import { SeriesCard } from "./SeriesCard";
+import { useEffect, useRef, useState, type ReactNode } from 'react'
+import { continueWatching } from '../../series/model/series'
+import type { Filter, Series } from '../../series/types'
+import { ContinueCard } from './ContinueCard'
+import { EmptyState } from './EmptyState'
+import { FilterChips } from './FilterChips'
+import * as Icon from '../../../shared/components/Icons'
+import { SearchBar } from './SearchBar'
+import { SeriesCard } from './SeriesCard'
 
 interface HomeViewProps {
-  header: ReactNode;
-  series: Series[];
-  allSeries: Series[];
-  query: string;
-  filter: Filter;
-  apiKeyConfigured: boolean;
-  onQueryChange: (value: string) => void;
-  onFilterChange: (filter: Filter) => void;
-  onOpen: (series: Series) => void;
-  onPlay: (series: Series, index: number) => void;
-  onToggleFavorite: (id: string) => void;
-  onAdd: () => void;
+  header: ReactNode
+  series: Series[]
+  allSeries: Series[]
+  query: string
+  filter: Filter
+  apiKeyConfigured: boolean
+  onQueryChange: (value: string) => void
+  onFilterChange: (filter: Filter) => void
+  onOpen: (series: Series) => void
+  onPlay: (series: Series, index: number) => void
+  onToggleFavorite: (id: string) => void
+  onAdd: () => void
   onRefreshFavorites: () => Promise<{
-    updated: number;
-    failed: number;
-    warnings: string[];
-    syncFailed: boolean;
-  }>;
-  onOpenSettings: () => void;
+    updated: number
+    failed: number
+    warnings: string[]
+    syncFailed: boolean
+  }>
+  onOpenSettings: () => void
 }
 
 export function HomeView({
@@ -44,102 +44,102 @@ export function HomeView({
   onToggleFavorite,
   onAdd,
   onRefreshFavorites,
-  onOpenSettings,
+  onOpenSettings
 }: HomeViewProps) {
-  const continueList = continueWatching(allSeries).slice(0, 8);
+  const continueList = continueWatching(allSeries).slice(0, 8)
   const showContinue =
-    query.trim().length === 0 && filter === "all" && continueList.length > 0;
-  const continueScrollRef = useRef<HTMLDivElement>(null);
-  const [favoritesBusy, setFavoritesBusy] = useState(false);
+    query.trim().length === 0 && filter === 'all' && continueList.length > 0
+  const continueScrollRef = useRef<HTMLDivElement>(null)
+  const [favoritesBusy, setFavoritesBusy] = useState(false)
   const [favoritesMessage, setFavoritesMessage] = useState<{
-    kind: "info" | "error";
-    text: string;
-  } | null>(null);
-  const favoriteList = allSeries.filter((item) => item.favorite);
+    kind: 'info' | 'error'
+    text: string
+  } | null>(null)
+  const favoriteList = allSeries.filter((item) => item.favorite)
 
   // La barra de scroll está oculta, así que en desktop la rueda del ratón no
   // desplaza la fila horizontal. La convertimos en scroll horizontal mientras
   // quede contenido por mostrar; en los extremos dejamos libre el scroll vertical.
   useEffect(() => {
-    const element = continueScrollRef.current;
-    if (!element) return;
-    const scroller: HTMLDivElement = element;
+    const element = continueScrollRef.current
+    if (!element) return
+    const scroller: HTMLDivElement = element
 
     function handleWheel(event: WheelEvent) {
-      if (event.deltaY === 0 || event.deltaX !== 0) return;
-      if (scroller.scrollWidth <= scroller.clientWidth) return;
+      if (event.deltaY === 0 || event.deltaX !== 0) return
+      if (scroller.scrollWidth <= scroller.clientWidth) return
 
-      const atStart = scroller.scrollLeft <= 0;
+      const atStart = scroller.scrollLeft <= 0
       const atEnd =
-        scroller.scrollLeft + scroller.clientWidth >= scroller.scrollWidth - 1;
-      if ((event.deltaY < 0 && atStart) || (event.deltaY > 0 && atEnd)) return;
+        scroller.scrollLeft + scroller.clientWidth >= scroller.scrollWidth - 1
+      if ((event.deltaY < 0 && atStart) || (event.deltaY > 0 && atEnd)) return
 
-      event.preventDefault();
-      scroller.scrollLeft += event.deltaY;
+      event.preventDefault()
+      scroller.scrollLeft += event.deltaY
     }
 
-    element.addEventListener("wheel", handleWheel, { passive: false });
-    return () => element.removeEventListener("wheel", handleWheel);
-  }, [showContinue]);
+    element.addEventListener('wheel', handleWheel, { passive: false })
+    return () => element.removeEventListener('wheel', handleWheel)
+  }, [showContinue])
 
   const sectionTitle =
-    filter === "favorites"
-      ? "Tus favoritas"
-      : filter === "all"
-        ? "Tus series"
-        : "Resultados";
+    filter === 'favorites'
+      ? 'Tus favoritas'
+      : filter === 'all'
+        ? 'Tus series'
+        : 'Resultados'
 
   function clearFilters() {
-    onQueryChange("");
-    onFilterChange("all");
+    onQueryChange('')
+    onFilterChange('all')
   }
 
   async function handleRefreshFavorites() {
-    if (favoritesBusy) return;
+    if (favoritesBusy) return
 
-    setFavoritesBusy(true);
-    setFavoritesMessage(null);
+    setFavoritesBusy(true)
+    setFavoritesMessage(null)
 
     try {
-      const result = await onRefreshFavorites();
+      const result = await onRefreshFavorites()
 
       // Con novedades la ficha se abre sola; solo se muestra el aviso si no hay
       // ninguna o si hubo problemas que el usuario deba conocer (avisos de la
       // búsqueda o fallo al sincronizar con Drive).
-      const hasNotices = result.warnings.length > 0 || result.syncFailed;
-      if (result.updated > 0 && !hasNotices) return;
+      const hasNotices = result.warnings.length > 0 || result.syncFailed
+      if (result.updated > 0 && !hasNotices) return
 
-      const lines: string[] = [];
+      const lines: string[] = []
       if (result.updated > 0) {
         lines.push(
-          `Novedades en ${result.updated} ${result.updated === 1 ? "serie" : "series"}.`,
-        );
+          `Novedades en ${result.updated} ${result.updated === 1 ? 'serie' : 'series'}.`
+        )
       } else if (result.failed > 0) {
         lines.push(
-          `No se ${result.failed === 1 ? "pudo revisar 1 serie" : `pudieron revisar ${result.failed} series`}. Ninguna tiene novedades.`,
-        );
+          `No se ${result.failed === 1 ? 'pudo revisar 1 serie' : `pudieron revisar ${result.failed} series`}. Ninguna tiene novedades.`
+        )
       } else {
-        lines.push("No hay capítulos nuevos ni candidatos en tus favoritas.");
+        lines.push('No hay capítulos nuevos ni candidatos en tus favoritas.')
       }
       if (result.syncFailed) {
-        lines.push("No se pudo sincronizar con Google Drive.");
+        lines.push('No se pudo sincronizar con Google Drive.')
       }
-      lines.push(...result.warnings);
+      lines.push(...result.warnings)
 
       setFavoritesMessage({
-        kind: result.failed > 0 || result.syncFailed ? "error" : "info",
-        text: lines.join(" "),
-      });
+        kind: result.failed > 0 || result.syncFailed ? 'error' : 'info',
+        text: lines.join(' ')
+      })
     } catch (caught) {
       setFavoritesMessage({
-        kind: "error",
+        kind: 'error',
         text:
           caught instanceof Error
             ? caught.message
-            : "No se pudieron actualizar las favoritas. Inténtalo de nuevo.",
-      });
+            : 'No se pudieron actualizar las favoritas. Inténtalo de nuevo.'
+      })
     } finally {
-      setFavoritesBusy(false);
+      setFavoritesBusy(false)
     }
   }
 
@@ -198,8 +198,8 @@ export function HomeView({
               Continuar viendo
             </h3>
             <span className="shrink-0 text-xs text-zinc-500">
-              {continueList.length}{" "}
-              {continueList.length === 1 ? "serie" : "series"}
+              {continueList.length}{' '}
+              {continueList.length === 1 ? 'serie' : 'series'}
             </span>
           </div>
 
@@ -225,11 +225,11 @@ export function HomeView({
             {sectionTitle}
           </h3>
           <span className="shrink-0 text-xs text-zinc-500">
-            {series.length} {series.length === 1 ? "serie" : "series"}
+            {series.length} {series.length === 1 ? 'serie' : 'series'}
           </span>
         </div>
 
-        {filter === "favorites" && favoriteList.length > 0 && (
+        {filter === 'favorites' && favoriteList.length > 0 && (
           <div className="mt-3 space-y-2">
             <button
               type="button"
@@ -238,19 +238,19 @@ export function HomeView({
               className="flex w-full items-center justify-center gap-2 rounded-2xl border border-rose-500/30 bg-rose-500/10 px-4 py-3 text-sm font-semibold text-rose-200 transition hover:border-rose-500/50 hover:bg-rose-500/15 hover:text-white active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-60"
             >
               <Icon.RefreshCw
-                className={`size-4 ${favoritesBusy ? "animate-spin" : ""}`}
+                className={`size-4 ${favoritesBusy ? 'animate-spin' : ''}`}
               />
               {favoritesBusy
-                ? "Buscando novedades…"
-                : "Actualizar todas las favoritas"}
+                ? 'Buscando novedades…'
+                : 'Actualizar todas las favoritas'}
             </button>
 
             {favoritesMessage && (
               <p
                 className={`rounded-2xl border px-3 py-2 text-[11px] leading-relaxed ${
-                  favoritesMessage.kind === "error"
-                    ? "border-rose-500/20 bg-rose-500/10 text-rose-200"
-                    : "border-zinc-700 bg-zinc-950/60 text-zinc-300"
+                  favoritesMessage.kind === 'error'
+                    ? 'border-rose-500/20 bg-rose-500/10 text-rose-200'
+                    : 'border-zinc-700 bg-zinc-950/60 text-zinc-300'
                 }`}
               >
                 {favoritesMessage.text}
@@ -285,7 +285,7 @@ export function HomeView({
             description={
               query.trim().length > 0
                 ? `No encontramos series para «${query}». Prueba con otro título o canal.`
-                : "Todavía no tienes series en este apartado. Marca una como en curso, pendiente o completada."
+                : 'Todavía no tienes series en este apartado. Marca una como en curso, pendiente o completada.'
             }
             actionLabel="Ver todas las series"
             onAction={clearFilters}
@@ -293,5 +293,5 @@ export function HomeView({
         )}
       </section>
     </>
-  );
+  )
 }

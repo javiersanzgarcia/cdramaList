@@ -54,7 +54,7 @@ export function loadGoogleIdentity(): Promise<GoogleNamespace> {
     }, 12_000)
 
     const existing = document.querySelector<HTMLScriptElement>(
-      'script[data-google-identity]',
+      'script[data-google-identity]'
     )
 
     function finish() {
@@ -71,7 +71,7 @@ export function loadGoogleIdentity(): Promise<GoogleNamespace> {
           window.clearTimeout(timeout)
           reject(new Error('No se pudo cargar Google.'))
         },
-        { once: true },
+        { once: true }
       )
       return
     }
@@ -88,7 +88,7 @@ export function loadGoogleIdentity(): Promise<GoogleNamespace> {
         window.clearTimeout(timeout)
         reject(new Error('No se pudo cargar Google.'))
       },
-      { once: true },
+      { once: true }
     )
     document.head.appendChild(script)
   }).catch((error: unknown) => {
@@ -118,7 +118,10 @@ export function loadStoredDriveToken(): AccessToken | null {
 
     const parsed = JSON.parse(raw) as { token?: unknown; expiresAt?: unknown }
 
-    if (typeof parsed.token !== 'string' || typeof parsed.expiresAt !== 'number') {
+    if (
+      typeof parsed.token !== 'string' ||
+      typeof parsed.expiresAt !== 'number'
+    ) {
       window.sessionStorage.removeItem(TOKEN_STORAGE_KEY)
       return null
     }
@@ -157,7 +160,7 @@ export function clearStoredDriveToken() {
  */
 export async function requestDriveToken(
   clientId: string,
-  prompt: '' | 'none' | 'consent' = '',
+  prompt: '' | 'none' | 'consent' = ''
 ): Promise<AccessToken> {
   const google = await loadGoogleIdentity()
   const oauth2 = google.accounts.oauth2
@@ -181,18 +184,20 @@ export async function requestDriveToken(
             new Error(
               response.error_description ??
                 response.error ??
-                'No se pudo autorizar el acceso a Google Drive.',
-            ),
+                'No se pudo autorizar el acceso a Google Drive.'
+            )
           )
           return
         }
 
         const expiresIn = Number(response.expires_in)
-        const lifetime = Number.isFinite(expiresIn) ? Math.max(expiresIn - 60, 60) : 3_000
+        const lifetime = Number.isFinite(expiresIn)
+          ? Math.max(expiresIn - 60, 60)
+          : 3_000
 
         resolve({
           token: response.access_token,
-          expiresAt: Date.now() + lifetime * 1_000,
+          expiresAt: Date.now() + lifetime * 1_000
         })
       },
       error_callback: (error) => {
@@ -201,10 +206,10 @@ export async function requestDriveToken(
         reject(
           new Error(
             error.message ||
-              'No se pudo autorizar el acceso a Google Drive. Inténtalo de nuevo.',
-          ),
+              'No se pudo autorizar el acceso a Google Drive. Inténtalo de nuevo.'
+          )
         )
-      },
+      }
     })
 
     client.requestAccessToken({ prompt })
@@ -217,7 +222,7 @@ export async function fetchGoogleUserInfo(token: string): Promise<GoogleUser> {
   try {
     response = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
       headers: { Authorization: `Bearer ${token}` },
-      cache: 'no-store',
+      cache: 'no-store'
     })
   } catch {
     throw new Error('No se pudo conectar con Google. Revisa tu conexión.')
@@ -242,7 +247,7 @@ export async function fetchGoogleUserInfo(token: string): Promise<GoogleUser> {
     sub: data.sub,
     name: data.name || data.email.split('@')[0],
     email: data.email,
-    picture: data.picture,
+    picture: data.picture
   }
 }
 
@@ -258,12 +263,13 @@ export function sanitizeGoogleUser(value: unknown): GoogleUser | null {
   if (!value || typeof value !== 'object') return null
   const item = value as Record<string, unknown>
 
-  if (typeof item.sub !== 'string' || typeof item.email !== 'string') return null
+  if (typeof item.sub !== 'string' || typeof item.email !== 'string')
+    return null
 
   return {
     sub: item.sub,
     email: item.email,
     name: typeof item.name === 'string' && item.name ? item.name : item.email,
-    picture: typeof item.picture === 'string' ? item.picture : undefined,
+    picture: typeof item.picture === 'string' ? item.picture : undefined
   }
 }

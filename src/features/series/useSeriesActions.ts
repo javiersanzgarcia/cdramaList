@@ -1,10 +1,10 @@
-import { useRef, type Dispatch, type SetStateAction } from "react";
-import type { PlayerState } from "../../app/types";
-import type { ChapterCandidate, SeriesRefreshResult } from "../discovery/types";
-import { candidateToPart } from "../discovery/model/youtubeDrafts";
-import { discoverSeriesUpdates } from "../discovery/model/seriesUpdates";
-import { fetchVideosByIds } from "../discovery/model/youtubeApi";
-import { reorderParts, sortParts } from "./model/parts";
+import { useRef, type Dispatch, type SetStateAction } from 'react'
+import type { PlayerState } from '../../app/types'
+import type { ChapterCandidate, SeriesRefreshResult } from '../discovery/types'
+import { candidateToPart } from '../discovery/model/youtubeDrafts'
+import { discoverSeriesUpdates } from '../discovery/model/seriesUpdates'
+import { fetchVideosByIds } from '../discovery/model/youtubeApi'
+import { reorderParts, sortParts } from './model/parts'
 import {
   applyPartDurations,
   applyPartMeta,
@@ -13,22 +13,22 @@ import {
   mergeAliasesWithParts,
   mergeParts,
   mergeSeries,
-  reconcileCompletedStatus,
-} from "./model/series";
-import type { PartMetaPatch } from "./model/series";
-import type { Part, Series, SeriesDraft, SeriesStatus } from "./types";
-import type { DriveSync } from "../sync/hooks/useDriveSync";
+  reconcileCompletedStatus
+} from './model/series'
+import type { PartMetaPatch } from './model/series'
+import type { Part, Series, SeriesDraft, SeriesStatus } from './types'
+import type { DriveSync } from '../sync/hooks/useDriveSync'
 
 interface UseSeriesActionsOptions {
-  series: Series[];
-  setSeries: Dispatch<SetStateAction<Series[]>>;
-  apiKey: string;
-  semanticEndpoint: string;
-  drive: Pick<DriveSync, "connected" | "syncNow">;
-  setSelectedSeriesId: Dispatch<SetStateAction<string | null>>;
-  setPlayer: Dispatch<SetStateAction<PlayerState | null>>;
-  setAddTargetId: Dispatch<SetStateAction<string | null>>;
-  setAddOpen: Dispatch<SetStateAction<boolean>>;
+  series: Series[]
+  setSeries: Dispatch<SetStateAction<Series[]>>
+  apiKey: string
+  semanticEndpoint: string
+  drive: Pick<DriveSync, 'connected' | 'syncNow'>
+  setSelectedSeriesId: Dispatch<SetStateAction<string | null>>
+  setPlayer: Dispatch<SetStateAction<PlayerState | null>>
+  setAddTargetId: Dispatch<SetStateAction<string | null>>
+  setAddOpen: Dispatch<SetStateAction<boolean>>
 }
 
 export function useSeriesActions({
@@ -40,42 +40,42 @@ export function useSeriesActions({
   setSelectedSeriesId,
   setPlayer,
   setAddTargetId,
-  setAddOpen,
+  setAddOpen
 }: UseSeriesActionsOptions) {
   // Evita que el lote de favoritas se lance dos veces mientras sigue en curso,
   // aunque la vista que lo inició se haya desmontado y vuelto a montar.
-  const favoritesRunningRef = useRef(false);
+  const favoritesRunningRef = useRef(false)
   // Vídeos cuya duración ya se ha intentado obtener en esta sesión. Evita
   // repetir la petición en cada apertura (y la duplicidad entre la ficha y el
   // reproductor), sobre todo cuando YouTube no devuelve metadatos.
-  const durationAttemptsRef = useRef(new Set<string>());
+  const durationAttemptsRef = useRef(new Set<string>())
 
   function updateSeries(updater: (current: Series[]) => Series[]) {
-    setSeries((current) => updater(current));
+    setSeries((current) => updater(current))
   }
 
   function openSeries(item: Series) {
     // Abrir la serie no cuenta como progreso: solo reproducir una parte
     // cambia el estado automático a «en curso».
-    setSelectedSeriesId(item.id);
+    setSelectedSeriesId(item.id)
   }
 
   function playSeries(item: Series, index: number) {
     const safeIndex = Math.min(
       Math.max(index, 0),
-      Math.max(item.parts.length - 1, 0),
-    );
+      Math.max(item.parts.length - 1, 0)
+    )
 
-    setPlayer({ seriesId: item.id, index: safeIndex });
+    setPlayer({ seriesId: item.id, index: safeIndex })
     // Reproducir no elige estado: «en curso»/«completada» se deducen del
     // progreso y de `lastOpenedAt`, así que un estado manual nunca se pisa.
     updateSeries((current) =>
       current.map((existing) =>
         existing.id === item.id
           ? { ...existing, lastOpenedAt: Date.now(), updatedAt: Date.now() }
-          : existing,
-      ),
-    );
+          : existing
+      )
+    )
   }
 
   function toggleFavorite(id: string) {
@@ -83,137 +83,137 @@ export function useSeriesActions({
       current.map((item) =>
         item.id === id
           ? { ...item, favorite: !item.favorite, updatedAt: Date.now() }
-          : item,
-      ),
-    );
+          : item
+      )
+    )
   }
 
   /** Cambia la portada de la serie por la de otra de sus partes. */
   function setSeriesThumbnail(id: string, thumbnail: string) {
     updateSeries((current) =>
       current.map((item) =>
-        item.id === id ? { ...item, thumbnail, updatedAt: Date.now() } : item,
-      ),
-    );
+        item.id === id ? { ...item, thumbnail, updatedAt: Date.now() } : item
+      )
+    )
   }
 
   function setSeriesStatus(id: string, status: SeriesStatus) {
     updateSeries((current) =>
       current.map((item) => {
-        if (item.id !== id) return item;
+        if (item.id !== id) return item
 
-        const partIds = item.parts.map((part) => part.videoId);
+        const partIds = item.parts.map((part) => part.videoId)
         const watchedAll =
           partIds.length > 0 &&
-          partIds.every((videoId) => item.watched.includes(videoId));
+          partIds.every((videoId) => item.watched.includes(videoId))
 
         // «Completada» da por vistas todas las partes; cualquier otro estado
         // deja de estarlo, para que el estado y el progreso no se contradigan
         // (una serie no completada nunca puede estar al 100 %).
         const watched =
-          status === "completed"
+          status === 'completed'
             ? [...new Set([...item.watched, ...partIds])]
             : watchedAll
               ? []
-              : item.watched;
+              : item.watched
 
         const sameWatched =
           watched.length === item.watched.length &&
-          watched.every((videoId) => item.watched.includes(videoId));
-        if (status === item.status && sameWatched) return item;
+          watched.every((videoId) => item.watched.includes(videoId))
+        if (status === item.status && sameWatched) return item
 
-        return { ...item, status, watched, updatedAt: Date.now() };
-      }),
-    );
+        return { ...item, status, watched, updatedAt: Date.now() }
+      })
+    )
   }
 
   function updateAliases(id: string, aliases: string[]) {
     updateSeries((current) =>
       current.map((item) =>
-        item.id === id ? { ...item, aliases, updatedAt: Date.now() } : item,
-      ),
-    );
+        item.id === id ? { ...item, aliases, updatedAt: Date.now() } : item
+      )
+    )
   }
 
   function updatePartMeta(
     seriesId: string,
     videoId: string,
-    patch: PartMetaPatch,
+    patch: PartMetaPatch
   ) {
     updateSeries((current) =>
       current.map((item) =>
-        item.id === seriesId ? applyPartMeta(item, videoId, patch) : item,
-      ),
-    );
+        item.id === seriesId ? applyPartMeta(item, videoId, patch) : item
+      )
+    )
   }
 
   async function fillMissingDurations(item: Series): Promise<void> {
-    if (!apiKey) return;
+    if (!apiKey) return
 
     const missing = item.parts.filter(
       (part) =>
         part.durationSeconds == null &&
-        !durationAttemptsRef.current.has(part.videoId),
-    );
-    if (missing.length === 0) return;
+        !durationAttemptsRef.current.has(part.videoId)
+    )
+    if (missing.length === 0) return
 
-    const videoIds = missing.map((part) => part.videoId);
+    const videoIds = missing.map((part) => part.videoId)
     // Se marcan antes de pedirlas para que abrir la ficha y el reproductor a la
     // vez no lance la misma petición dos veces.
-    for (const videoId of videoIds) durationAttemptsRef.current.add(videoId);
+    for (const videoId of videoIds) durationAttemptsRef.current.add(videoId)
 
     try {
-      const metas = await fetchVideosByIds(videoIds, apiKey);
-      if (metas.size === 0) return;
+      const metas = await fetchVideosByIds(videoIds, apiKey)
+      if (metas.size === 0) return
 
       updateSeries((current) =>
         current.map((existing) =>
           existing.id === item.id
             ? applyPartDurations(existing, metas)
-            : existing,
-        ),
-      );
+            : existing
+        )
+      )
     } catch {
       // La duración es informativa: si falla (por ejemplo, sin conexión) se
       // permite reintentar más tarde en vez de darla por perdida.
       for (const videoId of videoIds) {
-        durationAttemptsRef.current.delete(videoId);
+        durationAttemptsRef.current.delete(videoId)
       }
     }
   }
 
   function updateTitle(id: string, title: string) {
-    const nextTitle = title.trim().replace(/\s+/g, " ");
-    if (nextTitle.length < 2) return;
+    const nextTitle = title.trim().replace(/\s+/g, ' ')
+    if (nextTitle.length < 2) return
 
     updateSeries((current) =>
       current.map((item) => {
-        if (item.id !== id || nextTitle === item.title) return item;
+        if (item.id !== id || nextTitle === item.title) return item
 
         return {
           ...item,
           title: nextTitle,
           aliases: mergeAliasesWithParts(item.aliases, item.parts, nextTitle),
-          updatedAt: Date.now(),
-        };
-      }),
-    );
+          updatedAt: Date.now()
+        }
+      })
+    )
   }
 
   function setWatched(seriesId: string, videoId: string, watched: boolean) {
     updateSeries((current) =>
       current.map((item) => {
-        if (item.id !== seriesId) return item;
+        if (item.id !== seriesId) return item
 
-        const already = item.watched.includes(videoId);
-        if (already === watched) return item;
+        const already = item.watched.includes(videoId)
+        if (already === watched) return item
 
         const nextWatched = watched
           ? [...item.watched, videoId]
-          : item.watched.filter((id) => id !== videoId);
+          : item.watched.filter((id) => id !== videoId)
         const coversAll =
           item.parts.length > 0 &&
-          item.parts.every((part) => nextWatched.includes(part.videoId));
+          item.parts.every((part) => nextWatched.includes(part.videoId))
 
         return {
           ...item,
@@ -222,11 +222,11 @@ export function useSeriesActions({
           // todas las partes se descarta el estado manual para que no quede una
           // serie «completada» a medias. Otro estado manual se respeta.
           status:
-            coversAll || item.status === "completed" ? undefined : item.status,
-          updatedAt: Date.now(),
-        };
-      }),
-    );
+            coversAll || item.status === 'completed' ? undefined : item.status,
+          updatedAt: Date.now()
+        }
+      })
+    )
   }
 
   function movePart(seriesId: string, fromIndex: number, toIndex: number) {
@@ -236,35 +236,35 @@ export function useSeriesActions({
           ? {
               ...item,
               parts: reorderParts(item.parts, fromIndex, toIndex),
-              updatedAt: Date.now(),
+              updatedAt: Date.now()
             }
-          : item,
-      ),
-    );
+          : item
+      )
+    )
   }
 
   function handleSave(draft: SeriesDraft, title: string, parts: Part[]) {
     const existing = draft.existingSeriesId
       ? series.find((item) => item.id === draft.existingSeriesId)
-      : undefined;
+      : undefined
 
     if (existing) {
       updateSeries((current) =>
         current.map((item) =>
           item.id === existing.id
             ? mergeSeries(item, draft, title, parts)
-            : item,
-        ),
-      );
-      setSelectedSeriesId(existing.id);
+            : item
+        )
+      )
+      setSelectedSeriesId(existing.id)
     } else {
-      const created = createSeries(draft, title, parts);
-      updateSeries((current) => [created, ...current]);
-      setSelectedSeriesId(created.id);
+      const created = createSeries(draft, title, parts)
+      updateSeries((current) => [created, ...current])
+      setSelectedSeriesId(created.id)
     }
 
-    setAddOpen(false);
-    setAddTargetId(null);
+    setAddOpen(false)
+    setAddTargetId(null)
   }
 
   function deleteSeries(id: string) {
@@ -274,37 +274,33 @@ export function useSeriesActions({
       current.map((item) =>
         item.id === id
           ? { ...item, deletedAt: Date.now(), updatedAt: Date.now() }
-          : item,
-      ),
-    );
-    setSelectedSeriesId((current) => (current === id ? null : current));
-    setPlayer((current) => (current?.seriesId === id ? null : current));
-    setAddTargetId((current) => (current === id ? null : current));
-    setAddOpen(false);
+          : item
+      )
+    )
+    setSelectedSeriesId((current) => (current === id ? null : current))
+    setPlayer((current) => (current?.seriesId === id ? null : current))
+    setAddTargetId((current) => (current === id ? null : current))
+    setAddOpen(false)
   }
 
   function handleAddParts(item: Series) {
-    setSelectedSeriesId(item.id);
-    setAddTargetId(item.id);
-    setAddOpen(true);
+    setSelectedSeriesId(item.id)
+    setAddTargetId(item.id)
+    setAddOpen(true)
   }
 
   async function handleRefreshSeries(
-    item: Series,
+    item: Series
   ): Promise<SeriesRefreshResult> {
     if (!apiKey) {
       throw new Error(
-        "Configura la clave de YouTube en Ajustes para buscar capítulos nuevos.",
-      );
+        'Configura la clave de YouTube en Ajustes para buscar capítulos nuevos.'
+      )
     }
 
-    const update = await discoverSeriesUpdates(
-      item,
-      apiKey,
-      semanticEndpoint,
-    );
+    const update = await discoverSeriesUpdates(item, apiKey, semanticEndpoint)
     const learnedFingerprint =
-      !item.semanticFingerprint && Boolean(update.semanticFingerprint);
+      !item.semanticFingerprint && Boolean(update.semanticFingerprint)
 
     if (update.added.length === 0 && !learnedFingerprint) {
       return {
@@ -312,25 +308,25 @@ export function useSeriesActions({
         candidates: update.candidates,
         parts: update.parts,
         warnings: update.warnings,
-        synced: false,
-      };
+        synced: false
+      }
     }
 
     // La búsqueda puede durar hasta un minuto: se aplica el resultado sobre la
     // copia más reciente de la serie, no sobre la que había al pulsar.
-    let nextSeries: Series[] = series;
+    let nextSeries: Series[] = series
     updateSeries((current) => {
       nextSeries = current.map((existing) => {
-        if (existing.id !== item.id || existing.deletedAt) return existing;
+        if (existing.id !== item.id || existing.deletedAt) return existing
 
         // Se conservan las partes añadidas o editadas durante la búsqueda.
-        const parts = mergeParts(existing.parts, update.parts);
+        const parts = mergeParts(existing.parts, update.parts)
 
         return {
           ...existing,
           channelId: existing.channelId ?? update.channelId,
           channelTitle:
-            existing.channelTitle === "YouTube" && update.channelTitle
+            existing.channelTitle === 'YouTube' && update.channelTitle
               ? update.channelTitle
               : existing.channelTitle,
           channelUrl: existing.channelUrl ?? update.channelUrl,
@@ -342,20 +338,20 @@ export function useSeriesActions({
               ? reconcileCompletedStatus(
                   existing.status,
                   existing.watched,
-                  parts,
+                  parts
                 )
               : existing.status,
           semanticFingerprint:
             update.semanticFingerprint ?? existing.semanticFingerprint,
-          updatedAt: Date.now(),
-        };
-      });
-      return nextSeries;
-    });
+          updatedAt: Date.now()
+        }
+      })
+      return nextSeries
+    })
 
-    let synced = false;
+    let synced = false
     if (drive.connected) {
-      synced = await drive.syncNow(nextSeries);
+      synced = await drive.syncNow(nextSeries)
     }
 
     return {
@@ -367,8 +363,8 @@ export function useSeriesActions({
         nextSeries.find((existing) => existing.id === item.id)?.parts ??
         update.parts,
       warnings: update.warnings,
-      synced,
-    };
+      synced
+    }
   }
 
   /** Guarda un candidato descartado para no volver a proponerlo. */
@@ -379,13 +375,13 @@ export function useSeriesActions({
           ? {
               ...existing,
               discardedCandidates: [
-                ...new Set([...(existing.discardedCandidates ?? []), videoId]),
+                ...new Set([...(existing.discardedCandidates ?? []), videoId])
               ],
-              updatedAt: Date.now(),
+              updatedAt: Date.now()
             }
-          : existing,
-      ),
-    );
+          : existing
+      )
+    )
   }
 
   /**
@@ -394,11 +390,11 @@ export function useSeriesActions({
    * sincroniza una sola vez al terminar.
    */
   async function handleRefreshFavorites(): Promise<{
-    updatedIds: string[];
-    candidatesById: Record<string, ChapterCandidate[]>;
-    failed: number;
-    warnings: string[];
-    syncFailed: boolean;
+    updatedIds: string[]
+    candidatesById: Record<string, ChapterCandidate[]>
+    failed: number
+    warnings: string[]
+    syncFailed: boolean
   }> {
     if (favoritesRunningRef.current) {
       return {
@@ -406,68 +402,68 @@ export function useSeriesActions({
         candidatesById: {},
         failed: 0,
         warnings: [],
-        syncFailed: false,
-      };
+        syncFailed: false
+      }
     }
 
-    favoritesRunningRef.current = true;
+    favoritesRunningRef.current = true
 
     try {
       if (!apiKey) {
         throw new Error(
-          "Configura la clave de YouTube en Ajustes para buscar capítulos nuevos.",
-        );
+          'Configura la clave de YouTube en Ajustes para buscar capítulos nuevos.'
+        )
       }
 
       const favorites = series.filter(
-        (item) => item.favorite && !item.deletedAt,
-      );
+        (item) => item.favorite && !item.deletedAt
+      )
       if (favorites.length === 0) {
         return {
           updatedIds: [],
           candidatesById: {},
           failed: 0,
           warnings: [],
-          syncFailed: false,
-        };
+          syncFailed: false
+        }
       }
 
-      let next = series;
-      const updatedById = new Map<string, Series>();
-      const updatedIds: string[] = [];
-      const candidatesById: Record<string, ChapterCandidate[]> = {};
-      const warnings = new Set<string>();
-      let failed = 0;
+      let next = series
+      const updatedById = new Map<string, Series>()
+      const updatedIds: string[] = []
+      const candidatesById: Record<string, ChapterCandidate[]> = {}
+      const warnings = new Set<string>()
+      let failed = 0
 
       for (const favorite of favorites) {
-        const current = next.find((item) => item.id === favorite.id) ?? favorite;
+        const current = next.find((item) => item.id === favorite.id) ?? favorite
 
         try {
           const update = await discoverSeriesUpdates(
             current,
             apiKey,
-            semanticEndpoint,
-          );
+            semanticEndpoint
+          )
 
-          for (const warning of update.warnings) warnings.add(warning);
+          for (const warning of update.warnings) warnings.add(warning)
 
           const hasNews =
-            update.added.length > 0 || update.candidates.length > 0;
+            update.added.length > 0 || update.candidates.length > 0
           // Aunque no haya novedades, un fingerprint semántico aprendido en
           // esta búsqueda debe guardarse para no repetir el trabajo.
           const learnedFingerprint =
-            !current.semanticFingerprint && Boolean(update.semanticFingerprint);
+            !current.semanticFingerprint && Boolean(update.semanticFingerprint)
 
           if (!hasNews && !learnedFingerprint) {
-            continue;
+            continue
           }
 
-          const parts = mergeParts(current.parts, update.parts);
+          const parts = mergeParts(current.parts, update.parts)
           const merged: Series = {
             ...current,
             channelId: current.channelId ?? update.channelId,
             channelTitle:
-              current.channelTitle === "YouTube" && update.channelTitle
+              current.channelTitle === 'YouTube' && update.channelTitle
                 ? update.channelTitle
                 : current.channelTitle,
             channelUrl: current.channelUrl ?? update.channelUrl,
@@ -477,39 +473,39 @@ export function useSeriesActions({
                 ? reconcileCompletedStatus(
                     current.status,
                     current.watched,
-                    parts,
+                    parts
                   )
                 : current.status,
             semanticFingerprint:
               update.semanticFingerprint ?? current.semanticFingerprint,
-            updatedAt: Date.now(),
-          };
+            updatedAt: Date.now()
+          }
 
-          next = next.map((item) => (item.id === current.id ? merged : item));
-          updatedById.set(current.id, merged);
+          next = next.map((item) => (item.id === current.id ? merged : item))
+          updatedById.set(current.id, merged)
 
           if (hasNews) {
-            updatedIds.push(current.id);
-            candidatesById[current.id] = update.candidates;
+            updatedIds.push(current.id)
+            candidatesById[current.id] = update.candidates
           }
         } catch {
-          failed += 1;
+          failed += 1
         }
       }
 
-      let syncFailed = false;
+      let syncFailed = false
 
       if (updatedById.size > 0) {
         // Se aplican solo las series actualizadas sobre el estado más reciente,
         // no se reemplaza toda la lista con el snapshot inicial del lote.
-        let nextSeries: Series[] = series;
+        let nextSeries: Series[] = series
         updateSeries((current) => {
-          nextSeries = current.map((item) => updatedById.get(item.id) ?? item);
-          return nextSeries;
-        });
+          nextSeries = current.map((item) => updatedById.get(item.id) ?? item)
+          return nextSeries
+        })
         // Una sola sincronización al terminar, no una por cada serie.
         if (drive.connected) {
-          syncFailed = !(await drive.syncNow(nextSeries));
+          syncFailed = !(await drive.syncNow(nextSeries))
         }
       }
 
@@ -518,39 +514,39 @@ export function useSeriesActions({
         candidatesById,
         failed,
         warnings: [...warnings],
-        syncFailed,
-      };
+        syncFailed
+      }
     } finally {
-      favoritesRunningRef.current = false;
+      favoritesRunningRef.current = false
     }
   }
 
   async function handleAddCandidate(
     item: Series,
     candidate: ChapterCandidate,
-    options: { partNumber?: number; isFinal?: boolean },
+    options: { partNumber?: number; isFinal?: boolean }
   ): Promise<{ synced: boolean }> {
     if (item.parts.some((part) => part.videoId === candidate.videoId)) {
-      return { synced: false };
+      return { synced: false }
     }
 
-    const part = candidateToPart(candidate, options);
+    const part = candidateToPart(candidate, options)
 
     // La confirmación del candidato comparte tiempo con otros cambios (vistos,
     // estado, partes añadidas…), así que se aplica sobre la copia más reciente
     // y no sobre la que había al pulsar «Añadir».
-    let nextSeries: Series[] = series;
+    let nextSeries: Series[] = series
     updateSeries((current) => {
       nextSeries = current.map((existing) => {
-        if (existing.id !== item.id || existing.deletedAt) return existing;
+        if (existing.id !== item.id || existing.deletedAt) return existing
         // Si otra ruta ya añadió el capítulo, no se duplica ni se toca la serie.
         if (
           existing.parts.some((current) => current.videoId === part.videoId)
         ) {
-          return existing;
+          return existing
         }
 
-        const nextParts = sortParts([...existing.parts, part]);
+        const nextParts = sortParts([...existing.parts, part])
 
         return {
           ...existing,
@@ -558,7 +554,7 @@ export function useSeriesActions({
           status: reconcileCompletedStatus(
             existing.status,
             existing.watched,
-            nextParts,
+            nextParts
           ),
           keywordConfidence: learnKeywordConfidence(
             existing.keywordConfidence,
@@ -566,21 +562,21 @@ export function useSeriesActions({
               candidate.title,
               ...(candidate.descriptionTitle
                 ? [candidate.descriptionTitle]
-                : []),
-            ],
+                : [])
+            ]
           ),
-          updatedAt: Date.now(),
-        };
-      });
-      return nextSeries;
-    });
+          updatedAt: Date.now()
+        }
+      })
+      return nextSeries
+    })
 
-    let synced = false;
+    let synced = false
     if (drive.connected) {
-      synced = await drive.syncNow(nextSeries);
+      synced = await drive.syncNow(nextSeries)
     }
 
-    return { synced };
+    return { synced }
   }
 
   return {
@@ -602,6 +598,6 @@ export function useSeriesActions({
     handleRefreshSeries,
     handleRefreshFavorites,
     handleAddCandidate,
-    discardCandidate,
-  };
+    discardCandidate
+  }
 }

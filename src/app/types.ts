@@ -1,6 +1,6 @@
-export type Tab = "home" | "list" | "settings";
+export type Tab = 'home' | 'list' | 'settings'
 
 export interface PlayerState {
-  seriesId: string;
-  index: number;
+  seriesId: string
+  index: number
 }

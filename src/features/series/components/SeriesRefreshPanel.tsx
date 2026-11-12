@@ -1,32 +1,32 @@
-import { useState } from "react";
+import { useState } from 'react'
 import {
   buildCandidateState,
   parseCandidateNumber,
-  validateCandidateNumber,
-} from "../../discovery/model/candidates";
+  validateCandidateNumber
+} from '../../discovery/model/candidates'
 import type {
   ChapterCandidate,
-  SeriesRefreshResult,
-} from "../../discovery/types";
-import type { Series } from "../types";
-import { CandidateCard } from "./CandidateCard";
-import * as Icon from "../../../shared/components/Icons";
+  SeriesRefreshResult
+} from '../../discovery/types'
+import type { Series } from '../types'
+import { CandidateCard } from './CandidateCard'
+import * as Icon from '../../../shared/components/Icons'
 
 interface SeriesRefreshPanelProps {
-  series: Series;
-  semanticConfigured: boolean;
+  series: Series
+  semanticConfigured: boolean
   /** Candidatos ya encontrados (p. ej. al actualizar todas las favoritas). */
-  initialCandidates?: ChapterCandidate[];
-  onRefresh: (series: Series) => Promise<SeriesRefreshResult>;
+  initialCandidates?: ChapterCandidate[]
+  onRefresh: (series: Series) => Promise<SeriesRefreshResult>
   onAddCandidate: (
     series: Series,
     candidate: ChapterCandidate,
-    options: { partNumber?: number; isFinal?: boolean },
-  ) => Promise<{ synced: boolean }>;
-  onDiscardCandidate: (series: Series, videoId: string) => void;
-  onBusyChange?: (busy: boolean) => void;
+    options: { partNumber?: number; isFinal?: boolean }
+  ) => Promise<{ synced: boolean }>
+  onDiscardCandidate: (series: Series, videoId: string) => void
+  onBusyChange?: (busy: boolean) => void
   /** Avisa de que la serie ya no tiene novedades pendientes de revisar. */
-  onNewsHandled?: (seriesId: string) => void;
+  onNewsHandled?: (seriesId: string) => void
 }
 
 export function SeriesRefreshPanel({
@@ -37,169 +37,169 @@ export function SeriesRefreshPanel({
   onAddCandidate,
   onDiscardCandidate,
   onBusyChange,
-  onNewsHandled,
+  onNewsHandled
 }: SeriesRefreshPanelProps) {
-  const [refreshing, setRefreshing] = useState(false);
+  const [refreshing, setRefreshing] = useState(false)
   const [refreshMessage, setRefreshMessage] = useState<{
-    kind: "ok" | "info" | "error";
-    text: string;
-  } | null>(null);
+    kind: 'ok' | 'info' | 'error'
+    text: string
+  } | null>(null)
   const [candidates, setCandidates] = useState<ChapterCandidate[]>(
-    () => initialCandidates ?? [],
-  );
+    () => initialCandidates ?? []
+  )
   const [candidateNumbers, setCandidateNumbers] = useState<
     Record<string, string>
-  >(() => buildCandidateState(initialCandidates ?? [], series.parts).numbers);
+  >(() => buildCandidateState(initialCandidates ?? [], series.parts).numbers)
   const [candidateFinal, setCandidateFinal] = useState<Record<string, boolean>>(
-    () => buildCandidateState(initialCandidates ?? [], series.parts).finals,
-  );
+    () => buildCandidateState(initialCandidates ?? [], series.parts).finals
+  )
   const [addingCandidateId, setAddingCandidateId] = useState<string | null>(
-    null,
-  );
+    null
+  )
   const [candidateMessage, setCandidateMessage] = useState<{
-    kind: "ok" | "error";
-    text: string;
-  } | null>(null);
+    kind: 'ok' | 'error'
+    text: string
+  } | null>(null)
 
-  function prepareCandidates(list: ChapterCandidate[], parts: Series["parts"]) {
-    const { numbers, finals } = buildCandidateState(list, parts);
-    setCandidates(list);
-    setCandidateNumbers(numbers);
-    setCandidateFinal(finals);
-    setCandidateMessage(null);
+  function prepareCandidates(list: ChapterCandidate[], parts: Series['parts']) {
+    const { numbers, finals } = buildCandidateState(list, parts)
+    setCandidates(list)
+    setCandidateNumbers(numbers)
+    setCandidateFinal(finals)
+    setCandidateMessage(null)
   }
 
   function discardCandidate(videoId: string) {
     // Se guarda en la serie para no volver a proponerlo en próximas búsquedas.
-    onDiscardCandidate(series, videoId);
+    onDiscardCandidate(series, videoId)
     const remaining = candidates.filter(
-      (candidate) => candidate.videoId !== videoId,
-    );
-    setCandidates(remaining);
+      (candidate) => candidate.videoId !== videoId
+    )
+    setCandidates(remaining)
     setCandidateNumbers((current) => {
-      const next = { ...current };
-      delete next[videoId];
-      return next;
-    });
+      const next = { ...current }
+      delete next[videoId]
+      return next
+    })
     setCandidateFinal((current) => {
-      const next = { ...current };
-      delete next[videoId];
-      return next;
-    });
+      const next = { ...current }
+      delete next[videoId]
+      return next
+    })
     // Sin candidatos pendientes, la serie ya no cuenta como «con novedades».
-    if (remaining.length === 0) onNewsHandled?.(series.id);
+    if (remaining.length === 0) onNewsHandled?.(series.id)
   }
 
   async function handleAddCandidate(candidate: ChapterCandidate) {
-    if (addingCandidateId) return;
+    if (addingCandidateId) return
 
-    const raw = candidateNumbers[candidate.videoId] ?? "";
+    const raw = candidateNumbers[candidate.videoId] ?? ''
     const numberError = validateCandidateNumber(
       raw,
       series.parts,
       candidateNumbers,
-      candidate.videoId,
-    );
+      candidate.videoId
+    )
 
     if (numberError) {
-      setCandidateMessage({ kind: "error", text: numberError });
-      return;
+      setCandidateMessage({ kind: 'error', text: numberError })
+      return
     }
 
-    const partNumber = parseCandidateNumber(raw);
-    setAddingCandidateId(candidate.videoId);
-    setCandidateMessage(null);
-    setRefreshMessage(null);
+    const partNumber = parseCandidateNumber(raw)
+    setAddingCandidateId(candidate.videoId)
+    setCandidateMessage(null)
+    setRefreshMessage(null)
 
     try {
       const result = await onAddCandidate(series, candidate, {
         partNumber,
-        isFinal: candidateFinal[candidate.videoId] ?? candidate.isFinal,
-      });
+        isFinal: candidateFinal[candidate.videoId] ?? candidate.isFinal
+      })
 
-      discardCandidate(candidate.videoId);
+      discardCandidate(candidate.videoId)
       setCandidateMessage({
-        kind: "ok",
+        kind: 'ok',
         text: result.synced
-          ? "Capítulo añadido y sincronizado. Esta coincidencia mejorará futuras sugerencias de la serie."
-          : "Capítulo añadido. Esta coincidencia mejorará futuras sugerencias de la serie y se sincronizará con Google Drive.",
-      });
+          ? 'Capítulo añadido y sincronizado. Esta coincidencia mejorará futuras sugerencias de la serie.'
+          : 'Capítulo añadido. Esta coincidencia mejorará futuras sugerencias de la serie y se sincronizará con Google Drive.'
+      })
     } catch (caught) {
       setCandidateMessage({
-        kind: "error",
+        kind: 'error',
         text:
           caught instanceof Error
             ? caught.message
-            : "No se pudo añadir el capítulo. Inténtalo de nuevo.",
-      });
+            : 'No se pudo añadir el capítulo. Inténtalo de nuevo.'
+      })
     } finally {
-      setAddingCandidateId(null);
+      setAddingCandidateId(null)
     }
   }
 
   async function handleRefresh() {
-    if (refreshing) return;
+    if (refreshing) return
 
-    setRefreshing(true);
-    onBusyChange?.(true);
-    setRefreshMessage(null);
-    setCandidateMessage(null);
+    setRefreshing(true)
+    onBusyChange?.(true)
+    setRefreshMessage(null)
+    setCandidateMessage(null)
 
     try {
-      const result = await onRefresh(series);
-      prepareCandidates(result.candidates, result.parts);
+      const result = await onRefresh(series)
+      prepareCandidates(result.candidates, result.parts)
       const warningText =
-        result.warnings.length > 0 ? ` ${result.warnings.join(" ")}` : "";
+        result.warnings.length > 0 ? ` ${result.warnings.join(' ')}` : ''
 
       if (result.added === 0 && result.candidates.length === 0) {
         setRefreshMessage({
-          kind: "info",
-          text: `No se han encontrado capítulos nuevos ni candidatos.${warningText}`,
-        });
+          kind: 'info',
+          text: `No se han encontrado capítulos nuevos ni candidatos.${warningText}`
+        })
         // La serie no tiene nada nuevo: se retira de la cola de revisión.
-        onNewsHandled?.(series.id);
-        return;
+        onNewsHandled?.(series.id)
+        return
       }
 
       if (result.added === 0) {
         const noun =
           result.candidates.length === 1
-            ? "1 posible capítulo"
-            : `${result.candidates.length} posibles capítulos`;
+            ? '1 posible capítulo'
+            : `${result.candidates.length} posibles capítulos`
         setRefreshMessage({
-          kind: "info",
-          text: `No hay coincidencias exactas. Revisa ${noun} más abajo y valídalos manualmente.${warningText}`,
-        });
-        return;
+          kind: 'info',
+          text: `No hay coincidencias exactas. Revisa ${noun} más abajo y valídalos manualmente.${warningText}`
+        })
+        return
       }
 
       const noun =
         result.added === 1
-          ? "1 capítulo nuevo"
-          : `${result.added} capítulos nuevos`;
-      const verb = result.added === 1 ? "añadido" : "añadidos";
+          ? '1 capítulo nuevo'
+          : `${result.added} capítulos nuevos`
+      const verb = result.added === 1 ? 'añadido' : 'añadidos'
       const extra =
         result.candidates.length > 0
-          ? ` Además hay ${result.candidates.length === 1 ? "1 posible capítulo" : `${result.candidates.length} posibles capítulos`} para revisar.`
-          : "";
+          ? ` Además hay ${result.candidates.length === 1 ? '1 posible capítulo' : `${result.candidates.length} posibles capítulos`} para revisar.`
+          : ''
 
       setRefreshMessage({
-        kind: "ok",
+        kind: 'ok',
         text: result.synced
           ? `${noun} ${verb} y sincronizado con Google Drive.${extra}${warningText}`
-          : `${noun} ${verb}. Se sincronizará con Google Drive en la próxima sincronización.${extra}${warningText}`,
-      });
+          : `${noun} ${verb}. Se sincronizará con Google Drive en la próxima sincronización.${extra}${warningText}`
+      })
     } catch (caught) {
       setRefreshMessage({
-        kind: "error",
+        kind: 'error',
         text:
           caught instanceof Error
             ? caught.message
-            : "No se pudo actualizar la serie. Inténtalo de nuevo.",
-      });
+            : 'No se pudo actualizar la serie. Inténtalo de nuevo.'
+      })
     } finally {
-      setRefreshing(false);
-      onBusyChange?.(false);
+      setRefreshing(false)
+      onBusyChange?.(false)
     }
   }
 
@@ -212,9 +212,9 @@ export function SeriesRefreshPanel({
         className="flex w-full items-center justify-center gap-2 rounded-2xl border border-rose-500/30 bg-rose-500/10 px-4 py-3 text-sm font-semibold text-rose-200 transition hover:border-rose-500/50 hover:bg-rose-500/15 hover:text-white active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-60"
       >
         <Icon.RefreshCw
-          className={`size-4 ${refreshing ? "animate-spin" : ""}`}
+          className={`size-4 ${refreshing ? 'animate-spin' : ''}`}
         />
-        {refreshing ? "Buscando capítulos nuevos…" : "Actualizar serie"}
+        {refreshing ? 'Buscando capítulos nuevos…' : 'Actualizar serie'}
       </button>
 
       {!semanticConfigured && (
@@ -227,11 +227,11 @@ export function SeriesRefreshPanel({
       {refreshMessage && (
         <p
           className={`rounded-2xl border px-3 py-2 text-[11px] leading-relaxed ${
-            refreshMessage.kind === "error"
-              ? "border-rose-500/20 bg-rose-500/10 text-rose-200"
-              : refreshMessage.kind === "ok"
-                ? "border-emerald-400/20 bg-emerald-400/10 text-emerald-200"
-                : "border-zinc-700 bg-zinc-950/60 text-zinc-300"
+            refreshMessage.kind === 'error'
+              ? 'border-rose-500/20 bg-rose-500/10 text-rose-200'
+              : refreshMessage.kind === 'ok'
+                ? 'border-emerald-400/20 bg-emerald-400/10 text-emerald-200'
+                : 'border-zinc-700 bg-zinc-950/60 text-zinc-300'
           }`}
         >
           {refreshMessage.text}
@@ -259,16 +259,16 @@ export function SeriesRefreshPanel({
               <CandidateCard
                 key={candidate.videoId}
                 candidate={candidate}
-                number={candidateNumbers[candidate.videoId] ?? ""}
+                number={candidateNumbers[candidate.videoId] ?? ''}
                 isFinal={Boolean(
-                  candidateFinal[candidate.videoId] ?? candidate.isFinal,
+                  candidateFinal[candidate.videoId] ?? candidate.isFinal
                 )}
                 adding={addingCandidateId === candidate.videoId}
                 busy={addingCandidateId !== null}
                 onNumberChange={(value) =>
                   setCandidateNumbers((current) => ({
                     ...current,
-                    [candidate.videoId]: value,
+                    [candidate.videoId]: value
                   }))
                 }
                 onToggleFinal={() =>
@@ -276,7 +276,7 @@ export function SeriesRefreshPanel({
                     ...current,
                     [candidate.videoId]: !(
                       current[candidate.videoId] ?? candidate.isFinal
-                    ),
+                    )
                   }))
                 }
                 onAdd={() => void handleAddCandidate(candidate)}
@@ -290,14 +290,14 @@ export function SeriesRefreshPanel({
       {candidateMessage && (
         <p
           className={`rounded-2xl border px-3 py-2 text-[11px] leading-relaxed ${
-            candidateMessage.kind === "error"
-              ? "border-rose-500/20 bg-rose-500/10 text-rose-200"
-              : "border-emerald-400/20 bg-emerald-400/10 text-emerald-200"
+            candidateMessage.kind === 'error'
+              ? 'border-rose-500/20 bg-rose-500/10 text-rose-200'
+              : 'border-emerald-400/20 bg-emerald-400/10 text-emerald-200'
           }`}
         >
           {candidateMessage.text}
         </p>
       )}
     </div>
-  );
+  )
 }

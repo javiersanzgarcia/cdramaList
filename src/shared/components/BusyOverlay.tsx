@@ -1,9 +1,9 @@
-import * as Icon from "./Icons";
+import * as Icon from './Icons'
 
 interface BusyOverlayProps {
-  open: boolean;
-  title: string;
-  message: string;
+  open: boolean
+  title: string
+  message: string
 }
 
 /**
@@ -12,7 +12,7 @@ interface BusyOverlayProps {
  * navegar o tocar cualquier control antes de que la operación termine.
  */
 export function BusyOverlay({ open, title, message }: BusyOverlayProps) {
-  if (!open) return null;
+  if (!open) return null
 
   return (
     <div
@@ -31,5 +31,5 @@ export function BusyOverlay({ open, title, message }: BusyOverlayProps) {
         </p>
       </div>
     </div>
-  );
+  )
 }

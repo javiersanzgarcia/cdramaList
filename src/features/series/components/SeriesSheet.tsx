@@ -1,61 +1,58 @@
-import { useEffect, useState } from "react";
-import { formatDuration } from "../../../shared/lib/format";
-import { partLabel } from "../model/parts";
+import { useEffect, useState } from 'react'
+import { formatDuration } from '../../../shared/lib/format'
+import { partLabel } from '../model/parts'
 import {
   isSeriesComplete,
   nextPartIndex,
   progressPercent,
   seriesStatus,
-  watchedCount,
-} from "../model/series";
-import { statusMeta, statusOrder } from "../model/status";
-import {
-  channelUrlFor,
-  youtubeThumbnail,
-} from "../../discovery/model/youtube";
+  watchedCount
+} from '../model/series'
+import { statusMeta, statusOrder } from '../model/status'
+import { channelUrlFor, youtubeThumbnail } from '../../discovery/model/youtube'
 import type {
   ChapterCandidate,
-  SeriesRefreshResult,
-} from "../../discovery/types";
-import type { Series, SeriesStatus } from "../types";
-import { useSheet } from "../../../shared/hooks/useSheet";
-import { SeriesAliasesEditor } from "./SeriesAliasesEditor";
-import { SeriesPartsList } from "./SeriesPartsList";
-import { SeriesRefreshPanel } from "./SeriesRefreshPanel";
-import { SeriesTitleEditor } from "./SeriesTitleEditor";
-import * as Icon from "../../../shared/components/Icons";
+  SeriesRefreshResult
+} from '../../discovery/types'
+import type { Series, SeriesStatus } from '../types'
+import { useSheet } from '../../../shared/hooks/useSheet'
+import { SeriesAliasesEditor } from './SeriesAliasesEditor'
+import { SeriesPartsList } from './SeriesPartsList'
+import { SeriesRefreshPanel } from './SeriesRefreshPanel'
+import { SeriesTitleEditor } from './SeriesTitleEditor'
+import * as Icon from '../../../shared/components/Icons'
 
 interface SeriesSheetProps {
-  series: Series;
-  semanticConfigured: boolean;
-  refreshing: boolean;
-  onBusyChange: (busy: boolean) => void;
-  onClose: () => void;
-  onPlay: (series: Series, index: number) => void;
-  onToggleFavorite: (id: string) => void;
-  onSetThumbnail: (id: string, thumbnail: string) => void;
-  onSetStatus: (id: string, status: SeriesStatus) => void;
-  onSetWatched: (seriesId: string, videoId: string, watched: boolean) => void;
-  onMovePart: (seriesId: string, fromIndex: number, toIndex: number) => void;
-  onAddParts: (series: Series) => void;
-  onRefresh: (series: Series) => Promise<SeriesRefreshResult>;
+  series: Series
+  semanticConfigured: boolean
+  refreshing: boolean
+  onBusyChange: (busy: boolean) => void
+  onClose: () => void
+  onPlay: (series: Series, index: number) => void
+  onToggleFavorite: (id: string) => void
+  onSetThumbnail: (id: string, thumbnail: string) => void
+  onSetStatus: (id: string, status: SeriesStatus) => void
+  onSetWatched: (seriesId: string, videoId: string, watched: boolean) => void
+  onMovePart: (seriesId: string, fromIndex: number, toIndex: number) => void
+  onAddParts: (series: Series) => void
+  onRefresh: (series: Series) => Promise<SeriesRefreshResult>
   onAddCandidate: (
     series: Series,
     candidate: ChapterCandidate,
-    options: { partNumber?: number; isFinal?: boolean },
-  ) => Promise<{ synced: boolean }>;
-  onDiscardCandidate: (series: Series, videoId: string) => void;
-  onUpdateAliases: (seriesId: string, aliases: string[]) => void;
-  onUpdateTitle: (seriesId: string, title: string) => void;
-  onFillDurations: (series: Series) => Promise<void>;
-  onDelete: (id: string) => void;
+    options: { partNumber?: number; isFinal?: boolean }
+  ) => Promise<{ synced: boolean }>
+  onDiscardCandidate: (series: Series, videoId: string) => void
+  onUpdateAliases: (seriesId: string, aliases: string[]) => void
+  onUpdateTitle: (seriesId: string, title: string) => void
+  onFillDurations: (series: Series) => Promise<void>
+  onDelete: (id: string) => void
   /** Series con novedades que quedan por revisar después de esta. */
-  reviewRemaining: number;
-  onReviewNext: () => void;
+  reviewRemaining: number
+  onReviewNext: () => void
   /** Candidatos ya encontrados para esta serie (lote de favoritas). */
-  initialCandidates: ChapterCandidate[];
+  initialCandidates: ChapterCandidate[]
   /** Avisa de que la serie ya no tiene novedades pendientes de revisar. */
-  onNewsHandled: (seriesId: string) => void;
+  onNewsHandled: (seriesId: string) => void
 }
 
 export function SeriesSheet({
@@ -81,89 +78,89 @@ export function SeriesSheet({
   reviewRemaining,
   onReviewNext,
   initialCandidates,
-  onNewsHandled,
+  onNewsHandled
 }: SeriesSheetProps) {
-  const [confirmingDelete, setConfirmingDelete] = useState(false);
-  const [coverPickerOpen, setCoverPickerOpen] = useState(false);
-  const [pendingStatus, setPendingStatus] = useState<SeriesStatus | null>(null);
+  const [confirmingDelete, setConfirmingDelete] = useState(false)
+  const [coverPickerOpen, setCoverPickerOpen] = useState(false)
+  const [pendingStatus, setPendingStatus] = useState<SeriesStatus | null>(null)
   const handleClose = () => {
-    if (!refreshing) onClose();
-  };
-  useSheet(handleClose);
+    if (!refreshing) onClose()
+  }
+  useSheet(handleClose)
 
   // Rellena las duraciones que falten (series antiguas o creadas sin cuota)
   // para poder mostrar la duración de cada parte y el total de la serie.
   useEffect(() => {
-    void onFillDurations(series);
+    void onFillDurations(series)
     // Solo al abrir la serie; el callback cambia en cada render.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [series.id]);
+  }, [series.id])
 
-  const total = series.parts.length;
-  const watched = watchedCount(series);
-  const complete = isSeriesComplete(series);
-  const status = seriesStatus(series);
-  const nextIndex = nextPartIndex(series);
-  const nextPart = series.parts[nextIndex];
-  const progress = progressPercent(series);
+  const total = series.parts.length
+  const watched = watchedCount(series)
+  const complete = isSeriesComplete(series)
+  const status = seriesStatus(series)
+  const nextIndex = nextPartIndex(series)
+  const nextPart = series.parts[nextIndex]
+  const progress = progressPercent(series)
   const channelUrl =
     series.channelUrl ??
-    (series.channelId ? channelUrlFor(series.channelId) : undefined);
+    (series.channelId ? channelUrlFor(series.channelId) : undefined)
 
   // Solo se conocen las duraciones que ha devuelto YouTube: si falta alguna,
   // el total es parcial y se indica con un «+» para no engañar.
   const totalDuration = series.parts.reduce(
     (sum, part) => sum + (part.durationSeconds ?? 0),
-    0,
-  );
+    0
+  )
   const missingDurations = series.parts.filter(
-    (part) => part.durationSeconds == null,
-  ).length;
-  const totalLabel = formatDuration(totalDuration);
+    (part) => part.durationSeconds == null
+  ).length
+  const totalLabel = formatDuration(totalDuration)
   const durationLabel = totalLabel
-    ? `${totalLabel}${missingDurations > 0 ? "+" : ""}`
-    : undefined;
+    ? `${totalLabel}${missingDurations > 0 ? '+' : ''}`
+    : undefined
   const durationCaption =
     missingDurations === 0
-      ? "Duración"
+      ? 'Duración'
       : missingDurations === series.parts.length
-        ? "Sin datos"
-        : "Duración parcial";
+        ? 'Sin datos'
+        : 'Duración parcial'
 
   // Al crear la serie la portada es la de la parte 1; desde aquí se puede
   // cambiar por la de cualquier otra parte.
   const coverOptions = series.parts.map((part, index) => ({
     videoId: part.videoId,
     label: partLabel(part, index),
-    thumbnail: part.thumbnail ?? youtubeThumbnail(part.videoId),
-  }));
+    thumbnail: part.thumbnail ?? youtubeThumbnail(part.videoId)
+  }))
 
   const continueLabel = complete
-    ? "Volver a ver desde el principio"
+    ? 'Volver a ver desde el principio'
     : watched === 0
-      ? "Empezar la serie"
+      ? 'Empezar la serie'
       : nextPart
         ? `Continuar en ${partLabel(nextPart, nextIndex)}`
-        : "Empezar la serie";
+        : 'Empezar la serie'
 
   function handleDelete() {
     if (!confirmingDelete) {
-      setConfirmingDelete(true);
-      return;
+      setConfirmingDelete(true)
+      return
     }
-    onDelete(series.id);
+    onDelete(series.id)
   }
 
   // Bajar de «Completada» reinicia el progreso: se pide confirmación para que no
   // se pierda por un toque accidental. La segunda pulsación sí lo aplica.
   function handleSetStatus(option: SeriesStatus) {
-    if (option !== "completed" && complete && pendingStatus !== option) {
-      setPendingStatus(option);
-      return;
+    if (option !== 'completed' && complete && pendingStatus !== option) {
+      setPendingStatus(option)
+      return
     }
 
-    setPendingStatus(null);
-    onSetStatus(series.id, option);
+    setPendingStatus(null)
+    onSetStatus(series.id, option)
   }
 
   return (
@@ -185,7 +182,7 @@ export function SeriesSheet({
         <div className="sticky top-0 z-10 flex items-center justify-between gap-3 border-b border-zinc-800/80 bg-zinc-900/95 px-4 py-3 backdrop-blur-xl">
           <div className="min-w-0">
             <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-rose-400">
-              {complete ? "Completada" : "Tu serie"}
+              {complete ? 'Completada' : 'Tu serie'}
             </p>
             <h2 id="series-sheet-title" className="truncate text-lg font-bold">
               {series.title}
@@ -207,10 +204,10 @@ export function SeriesSheet({
               <div className="flex items-start gap-2">
                 <Icon.Sparkles className="mt-0.5 size-4 shrink-0 text-rose-300" />
                 <p className="text-[11px] leading-relaxed text-rose-100">
-                  Esta serie tiene novedades y{" "}
+                  Esta serie tiene novedades y{' '}
                   {reviewRemaining === 1
-                    ? "queda 1 serie"
-                    : `quedan ${reviewRemaining} series`}{" "}
+                    ? 'queda 1 serie'
+                    : `quedan ${reviewRemaining} series`}{' '}
                   por revisar.
                 </p>
               </div>
@@ -231,7 +228,7 @@ export function SeriesSheet({
                 src={series.thumbnail}
                 alt=""
                 onError={(event) => {
-                  event.currentTarget.style.display = "none";
+                  event.currentTarget.style.display = 'none'
                 }}
                 className="absolute inset-0 size-full object-cover"
               />
@@ -244,18 +241,17 @@ export function SeriesSheet({
               type="button"
               onClick={() => onToggleFavorite(series.id)}
               aria-label={
-                series.favorite ? "Quitar de favoritas" : "Añadir a favoritas"
+                series.favorite ? 'Quitar de favoritas' : 'Añadir a favoritas'
               }
               aria-pressed={series.favorite}
               className={`absolute right-2.5 top-2.5 grid size-9 place-items-center rounded-full backdrop-blur transition active:scale-90 ${
                 series.favorite
-                  ? "bg-rose-500 text-white"
-                  : "bg-black/50 text-white/80 hover:text-white"
+                  ? 'bg-rose-500 text-white'
+                  : 'bg-black/50 text-white/80 hover:text-white'
               }`}
             >
               <Icon.Heart filled={series.favorite} className="size-4" />
             </button>
-
           </div>
 
           {coverOptions.length > 0 && (
@@ -267,7 +263,7 @@ export function SeriesSheet({
                 className="inline-flex items-center gap-1.5 rounded-full border border-zinc-800 bg-zinc-950/60 px-3 py-1.5 text-[11px] font-semibold text-zinc-400 transition hover:border-zinc-700 hover:text-white active:scale-95"
               >
                 <Icon.Photo className="size-3.5" />
-                {coverPickerOpen ? "Ocultar portadas" : "Cambiar portada"}
+                {coverPickerOpen ? 'Ocultar portadas' : 'Cambiar portada'}
               </button>
             </div>
           )}
@@ -279,22 +275,22 @@ export function SeriesSheet({
               </p>
               <ul className="grid max-h-56 grid-cols-3 gap-1.5 overflow-y-auto">
                 {coverOptions.map((option) => {
-                  const active = option.thumbnail === series.thumbnail;
+                  const active = option.thumbnail === series.thumbnail
 
                   return (
                     <li key={option.videoId}>
                       <button
                         type="button"
                         onClick={() => {
-                          onSetThumbnail(series.id, option.thumbnail);
-                          setCoverPickerOpen(false);
+                          onSetThumbnail(series.id, option.thumbnail)
+                          setCoverPickerOpen(false)
                         }}
                         aria-pressed={active}
                         aria-label={`Usar la portada de ${option.label}`}
                         className={`block w-full overflow-hidden rounded-xl border transition active:scale-[0.98] ${
                           active
-                            ? "border-rose-500"
-                            : "border-transparent hover:border-zinc-600"
+                            ? 'border-rose-500'
+                            : 'border-transparent hover:border-zinc-600'
                         }`}
                       >
                         <span className="relative block aspect-video bg-zinc-900">
@@ -303,7 +299,7 @@ export function SeriesSheet({
                             alt=""
                             loading="lazy"
                             onError={(event) => {
-                              event.currentTarget.style.display = "none";
+                              event.currentTarget.style.display = 'none'
                             }}
                             className="size-full object-cover"
                           />
@@ -318,7 +314,7 @@ export function SeriesSheet({
                         </span>
                       </button>
                     </li>
-                  );
+                  )
                 })}
               </ul>
             </div>
@@ -338,7 +334,7 @@ export function SeriesSheet({
             <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-zinc-800">
               <div
                 className={`h-full rounded-full transition-all ${
-                  complete ? "bg-emerald-400" : "bg-rose-500"
+                  complete ? 'bg-emerald-400' : 'bg-rose-500'
                 }`}
                 style={{ width: `${progress}%` }}
               />
@@ -370,8 +366,8 @@ export function SeriesSheet({
             </p>
             <div className="mt-2 grid grid-cols-3 gap-2">
               {statusOrder.map((option) => {
-                const active = option === status;
-                const pending = option === pendingStatus;
+                const active = option === status
+                const pending = option === pendingStatus
 
                 return (
                   <button
@@ -381,21 +377,22 @@ export function SeriesSheet({
                     aria-pressed={active}
                     className={`rounded-2xl border px-2 py-2 text-xs font-semibold transition active:scale-[0.98] ${
                       pending
-                        ? "border-amber-400/60 bg-amber-400/10 text-amber-100"
+                        ? 'border-amber-400/60 bg-amber-400/10 text-amber-100'
                         : active
                           ? `border-transparent ${statusMeta[option].badge}`
-                          : "border-zinc-800 text-zinc-400 hover:border-zinc-700 hover:text-white"
+                          : 'border-zinc-800 text-zinc-400 hover:border-zinc-700 hover:text-white'
                     }`}
                   >
                     {statusMeta[option].label}
                   </button>
-                );
+                )
               })}
             </div>
             {pendingStatus && complete && (
               <p className="mt-2 rounded-2xl border border-amber-400/20 bg-amber-400/5 px-3 py-2 text-[11px] leading-relaxed text-amber-200/80">
-                Marcar como «{statusMeta[pendingStatus].label}» borra el progreso
-                de las {total} partes vistas. Pulsa otra vez para confirmar.
+                Marcar como «{statusMeta[pendingStatus].label}» borra el
+                progreso de las {total} partes vistas. Pulsa otra vez para
+                confirmar.
               </p>
             )}
           </div>
@@ -411,7 +408,7 @@ export function SeriesSheet({
             </div>
             <div className="rounded-2xl bg-zinc-950/60 p-3 ring-1 ring-zinc-800">
               <p className="text-lg font-bold text-zinc-100">
-                {durationLabel ?? "—"}
+                {durationLabel ?? '—'}
               </p>
               <p className="mt-0.5 text-[11px] text-zinc-500">
                 {durationCaption}
@@ -466,18 +463,18 @@ export function SeriesSheet({
               onClick={handleDelete}
               className={`flex w-full items-center justify-center gap-2 rounded-2xl border px-4 py-3 text-sm font-semibold transition active:scale-[0.99] ${
                 confirmingDelete
-                  ? "border-rose-500 bg-rose-500 text-white hover:bg-rose-400"
-                  : "border-zinc-800 text-zinc-400 hover:border-rose-500/40 hover:text-rose-300"
+                  ? 'border-rose-500 bg-rose-500 text-white hover:bg-rose-400'
+                  : 'border-zinc-800 text-zinc-400 hover:border-rose-500/40 hover:text-rose-300'
               }`}
             >
               <Icon.Trash className="size-4" />
               {confirmingDelete
-                ? "Pulsa otra vez para borrar la serie"
-                : "Borrar serie"}
+                ? 'Pulsa otra vez para borrar la serie'
+                : 'Borrar serie'}
             </button>
           </div>
         </div>
       </div>
     </div>
-  );
+  )
 }

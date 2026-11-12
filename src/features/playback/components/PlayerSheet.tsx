@@ -1,25 +1,25 @@
-import { useEffect, useRef, useState } from "react";
-import { formatDuration } from "../../../shared/lib/format";
-import { partLabel } from "../../series/model/parts";
-import { progressPercent, watchedCount } from "../../series/model/series";
-import { fetchVideoMeta } from "../../discovery/model/youtubeApi";
-import type { Series } from "../../series/types";
-import { useSheet } from "../../../shared/hooks/useSheet";
-import * as Icon from "../../../shared/components/Icons";
-import { YouTubePlayer } from "./YouTubePlayer";
+import { useEffect, useRef, useState } from 'react'
+import { formatDuration } from '../../../shared/lib/format'
+import { partLabel } from '../../series/model/parts'
+import { progressPercent, watchedCount } from '../../series/model/series'
+import { fetchVideoMeta } from '../../discovery/model/youtubeApi'
+import type { Series } from '../../series/types'
+import { useSheet } from '../../../shared/hooks/useSheet'
+import * as Icon from '../../../shared/components/Icons'
+import { YouTubePlayer } from './YouTubePlayer'
 
 interface PlayerSheetProps {
-  series: Series;
-  startIndex: number;
-  apiKey: string;
-  onClose: () => void;
-  onSetWatched: (seriesId: string, videoId: string, watched: boolean) => void;
+  series: Series
+  startIndex: number
+  apiKey: string
+  onClose: () => void
+  onSetWatched: (seriesId: string, videoId: string, watched: boolean) => void
   onUpdatePartMeta: (
     seriesId: string,
     videoId: string,
-    patch: { description?: string; durationSeconds?: number },
-  ) => void;
-  onFillDurations: (series: Series) => Promise<void>;
+    patch: { description?: string; durationSeconds?: number }
+  ) => void
+  onFillDurations: (series: Series) => Promise<void>
 }
 
 export function PlayerSheet({
@@ -29,131 +29,131 @@ export function PlayerSheet({
   onClose,
   onSetWatched,
   onUpdatePartMeta,
-  onFillDurations,
+  onFillDurations
 }: PlayerSheetProps) {
-  const [index, setIndex] = useState(startIndex);
-  const [playerError, setPlayerError] = useState(false);
-  const [description, setDescription] = useState("");
-  const [descriptionLoading, setDescriptionLoading] = useState(false);
-  const [descriptionExpanded, setDescriptionExpanded] = useState(false);
-  const [descriptionCanExpand, setDescriptionCanExpand] = useState(false);
+  const [index, setIndex] = useState(startIndex)
+  const [playerError, setPlayerError] = useState(false)
+  const [description, setDescription] = useState('')
+  const [descriptionLoading, setDescriptionLoading] = useState(false)
+  const [descriptionExpanded, setDescriptionExpanded] = useState(false)
+  const [descriptionCanExpand, setDescriptionCanExpand] = useState(false)
   const [fetchedDuration, setFetchedDuration] = useState<{
-    videoId: string;
-    seconds: number;
-  } | null>(null);
-  const descriptionRef = useRef<HTMLParagraphElement>(null);
+    videoId: string
+    seconds: number
+  } | null>(null)
+  const descriptionRef = useRef<HTMLParagraphElement>(null)
 
-  useSheet(onClose);
+  useSheet(onClose)
 
   // Completa las duraciones que falten para mostrarlas también en la lista de
   // partes de la serie.
   useEffect(() => {
-    void onFillDurations(series);
+    void onFillDurations(series)
     // Solo al abrir el reproductor; el callback cambia en cada render.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [series.id]);
+  }, [series.id])
 
-  const total = series.parts.length;
-  const safeIndex = Math.min(Math.max(index, 0), Math.max(total - 1, 0));
-  const part = series.parts[safeIndex];
+  const total = series.parts.length
+  const safeIndex = Math.min(Math.max(index, 0), Math.max(total - 1, 0))
+  const part = series.parts[safeIndex]
 
   useEffect(() => {
-    if (!part) return;
+    if (!part) return
 
-    let cancelled = false;
-    setDescriptionExpanded(false);
-    setDescriptionCanExpand(false);
+    let cancelled = false
+    setDescriptionExpanded(false)
+    setDescriptionCanExpand(false)
 
-    const needsDescription = !part.description;
-    const needsDuration = part.durationSeconds == null;
+    const needsDescription = !part.description
+    const needsDuration = part.durationSeconds == null
 
     if (!needsDescription && !needsDuration) {
-      setDescription(part.description ?? "");
-      setDescriptionLoading(false);
-      return;
+      setDescription(part.description ?? '')
+      setDescriptionLoading(false)
+      return
     }
 
     if (!apiKey) {
-      setDescription(part.description ?? "");
-      setDescriptionLoading(false);
-      return;
+      setDescription(part.description ?? '')
+      setDescriptionLoading(false)
+      return
     }
 
-    setDescription(part.description ?? "");
-    setDescriptionLoading(needsDescription);
+    setDescription(part.description ?? '')
+    setDescriptionLoading(needsDescription)
 
     fetchVideoMeta(part.videoId, apiKey)
       .then((meta) => {
-        if (cancelled) return;
+        if (cancelled) return
 
-        const text = meta.description?.trim();
-        if (text && !part.description) setDescription(text);
+        const text = meta.description?.trim()
+        if (text && !part.description) setDescription(text)
         if (meta.durationSeconds) {
           setFetchedDuration({
             videoId: part.videoId,
-            seconds: meta.durationSeconds,
-          });
+            seconds: meta.durationSeconds
+          })
         }
 
-        const patch: { description?: string; durationSeconds?: number } = {};
-        if (text && !part.description) patch.description = text;
+        const patch: { description?: string; durationSeconds?: number } = {}
+        if (text && !part.description) patch.description = text
         if (meta.durationSeconds && part.durationSeconds == null) {
-          patch.durationSeconds = meta.durationSeconds;
+          patch.durationSeconds = meta.durationSeconds
         }
         if (Object.keys(patch).length > 0) {
-          onUpdatePartMeta(series.id, part.videoId, patch);
+          onUpdatePartMeta(series.id, part.videoId, patch)
         }
       })
       .catch(() => {
         // Sin metadatos disponibles: el reproductor sigue funcionando.
       })
       .finally(() => {
-        if (!cancelled) setDescriptionLoading(false);
-      });
+        if (!cancelled) setDescriptionLoading(false)
+      })
 
     return () => {
-      cancelled = true;
-    };
+      cancelled = true
+    }
     // El callback cambia en cada render, pero solo depende de la serie y el vídeo.
     // La descripción y la duración no entran en las dependencias: al persistirlas
     // se actualiza la serie y no queremos reiniciar el estado de «Ver más».
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [part?.videoId, apiKey, series.id]);
+  }, [part?.videoId, apiKey, series.id])
 
   useEffect(() => {
-    if (descriptionExpanded || descriptionLoading) return;
+    if (descriptionExpanded || descriptionLoading) return
 
-    const element = descriptionRef.current;
-    if (!element) return;
-    setDescriptionCanExpand(element.scrollHeight > element.clientHeight + 1);
-  }, [description, descriptionLoading, descriptionExpanded]);
+    const element = descriptionRef.current
+    if (!element) return
+    setDescriptionCanExpand(element.scrollHeight > element.clientHeight + 1)
+  }, [description, descriptionLoading, descriptionExpanded])
 
-  if (!part) return null;
+  if (!part) return null
 
-  const watched = series.watched.includes(part.videoId);
-  const watchedTotal = watchedCount(series);
-  const complete = total > 0 && watchedTotal >= total;
+  const watched = series.watched.includes(part.videoId)
+  const watchedTotal = watchedCount(series)
+  const complete = total > 0 && watchedTotal >= total
   const duration = formatDuration(
     part.durationSeconds ??
       (fetchedDuration?.videoId === part.videoId
         ? fetchedDuration.seconds
-        : undefined),
-  );
-  const hasPrevious = safeIndex > 0;
-  const hasNext = safeIndex < total - 1;
-  const watchUrl = `https://www.youtube.com/watch?v=${part.videoId}`;
+        : undefined)
+  )
+  const hasPrevious = safeIndex > 0
+  const hasNext = safeIndex < total - 1
+  const watchUrl = `https://www.youtube.com/watch?v=${part.videoId}`
 
   function goTo(nextIndex: number) {
-    if (nextIndex < 0 || nextIndex >= total) return;
-    setPlayerError(false);
-    setIndex(nextIndex);
+    if (nextIndex < 0 || nextIndex >= total) return
+    setPlayerError(false)
+    setIndex(nextIndex)
   }
 
   function handleEnded() {
-    onSetWatched(series.id, part.videoId, true);
+    onSetWatched(series.id, part.videoId, true)
     if (hasNext) {
-      setPlayerError(false);
-      setIndex(safeIndex + 1);
+      setPlayerError(false)
+      setIndex(safeIndex + 1)
     }
   }
 
@@ -207,7 +207,7 @@ export function PlayerSheet({
               <Icon.Info className="mt-0.5 size-4 shrink-0" />
               <span>
                 Este vídeo no se puede reproducir aquí (puede tener
-                restricciones).{" "}
+                restricciones).{' '}
                 <a
                   href={watchUrl}
                   target="_blank"
@@ -247,12 +247,12 @@ export function PlayerSheet({
               aria-pressed={watched}
               className={`flex shrink-0 items-center gap-1.5 rounded-full border px-3 py-2 text-[11px] font-semibold transition active:scale-95 ${
                 watched
-                  ? "border-emerald-400/30 bg-emerald-400/10 text-emerald-300"
-                  : "border-zinc-800 bg-zinc-900 text-zinc-400 hover:text-zinc-200"
+                  ? 'border-emerald-400/30 bg-emerald-400/10 text-emerald-300'
+                  : 'border-zinc-800 bg-zinc-900 text-zinc-400 hover:text-zinc-200'
               }`}
             >
               <Icon.Check className="size-3.5" />
-              {watched ? "Vista" : "Marcar"}
+              {watched ? 'Vista' : 'Marcar'}
             </button>
           </div>
 
@@ -273,7 +273,7 @@ export function PlayerSheet({
                   <p
                     ref={descriptionRef}
                     className={`mt-1.5 whitespace-pre-line text-xs leading-relaxed text-zinc-400 ${
-                      descriptionExpanded ? "" : "line-clamp-4"
+                      descriptionExpanded ? '' : 'line-clamp-4'
                     }`}
                   >
                     {description}
@@ -287,7 +287,7 @@ export function PlayerSheet({
                       aria-expanded={descriptionExpanded}
                       className="mt-1.5 text-[11px] font-semibold text-rose-300 transition hover:text-rose-200 active:scale-95"
                     >
-                      {descriptionExpanded ? "Ver menos" : "Ver más"}
+                      {descriptionExpanded ? 'Ver menos' : 'Ver más'}
                     </button>
                   )}
                 </>
@@ -299,7 +299,7 @@ export function PlayerSheet({
             <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-zinc-800">
               <div
                 className={`h-full rounded-full transition-all ${
-                  complete ? "bg-emerald-400" : "bg-rose-500"
+                  complete ? 'bg-emerald-400' : 'bg-rose-500'
                 }`}
                 style={{ width: `${progressPercent(series)}%` }}
               />
@@ -334,14 +334,14 @@ export function PlayerSheet({
             <button
               type="button"
               onClick={() => {
-                onSetWatched(series.id, part.videoId, true);
-                if (hasNext) goTo(safeIndex + 1);
+                onSetWatched(series.id, part.videoId, true)
+                if (hasNext) goTo(safeIndex + 1)
               }}
               disabled={!hasNext}
               className="flex w-full items-center justify-center gap-2 rounded-2xl bg-rose-500 px-4 py-3 text-sm font-semibold text-white shadow-lg shadow-rose-500/25 transition hover:bg-rose-400 active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-30"
             >
               <Icon.Check className="size-4" />
-              {hasNext ? "Vista y siguiente" : "Última parte"}
+              {hasNext ? 'Vista y siguiente' : 'Última parte'}
             </button>
           </div>
         </div>
@@ -358,20 +358,20 @@ export function PlayerSheet({
 
           <ul className="mt-2 space-y-1">
             {series.parts.map((item, itemIndex) => {
-              const isWatched = series.watched.includes(item.videoId);
-              const isCurrent = itemIndex === safeIndex;
-              const itemDuration = formatDuration(item.durationSeconds);
+              const isWatched = series.watched.includes(item.videoId)
+              const isCurrent = itemIndex === safeIndex
+              const itemDuration = formatDuration(item.durationSeconds)
 
               return (
                 <li key={item.videoId}>
                   <button
                     type="button"
                     onClick={() => goTo(itemIndex)}
-                    aria-current={isCurrent ? "true" : undefined}
+                    aria-current={isCurrent ? 'true' : undefined}
                     className={`flex w-full items-center gap-2.5 rounded-2xl border p-2 text-left transition active:scale-[0.995] ${
                       isCurrent
-                        ? "border-rose-500/40 bg-rose-500/10"
-                        : "border-transparent hover:bg-zinc-900/70"
+                        ? 'border-rose-500/40 bg-rose-500/10'
+                        : 'border-transparent hover:bg-zinc-900/70'
                     }`}
                   >
                     <span className="relative aspect-video w-20 shrink-0 overflow-hidden rounded-lg bg-zinc-900">
@@ -381,7 +381,7 @@ export function PlayerSheet({
                           alt=""
                           loading="lazy"
                           onError={(event) => {
-                            event.currentTarget.style.display = "none";
+                            event.currentTarget.style.display = 'none'
                           }}
                           className="size-full object-cover"
                         />
@@ -410,8 +410,8 @@ export function PlayerSheet({
                     <span
                       className={`grid size-6 shrink-0 place-items-center rounded-full ${
                         isWatched
-                          ? "bg-emerald-400/15 text-emerald-300"
-                          : "bg-zinc-800/70 text-zinc-600"
+                          ? 'bg-emerald-400/15 text-emerald-300'
+                          : 'bg-zinc-800/70 text-zinc-600'
                       }`}
                       aria-hidden="true"
                     >
@@ -419,11 +419,11 @@ export function PlayerSheet({
                     </span>
                   </button>
                 </li>
-              );
+              )
             })}
           </ul>
         </section>
       </div>
     </div>
-  );
+  )
 }

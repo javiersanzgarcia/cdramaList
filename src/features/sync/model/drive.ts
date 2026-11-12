@@ -1,209 +1,205 @@
-import type { Series } from "../../series/types";
-import { isSeries, normalizeSeries } from "../../series/model/series";
+import type { Series } from '../../series/types'
+import { isSeries, normalizeSeries } from '../../series/model/series'
 
-const DRIVE_API = "https://www.googleapis.com/drive/v3";
-const UPLOAD_API = "https://www.googleapis.com/upload/drive/v3";
-const FILE_NAME = "cdramalist.json";
+const DRIVE_API = 'https://www.googleapis.com/drive/v3'
+const UPLOAD_API = 'https://www.googleapis.com/upload/drive/v3'
+const FILE_NAME = 'cdramalist.json'
 
 export type DriveErrorCode =
-  | "auth"
-  | "permission"
-  | "network"
-  | "format"
-  | "notfound";
+  'auth' | 'permission' | 'network' | 'format' | 'notfound'
 
 export class DriveError extends Error {
-  code?: DriveErrorCode;
+  code?: DriveErrorCode
 
   constructor(message: string, code?: DriveErrorCode) {
-    super(message);
-    this.name = "DriveError";
-    this.code = code;
+    super(message)
+    this.name = 'DriveError'
+    this.code = code
   }
 }
 
 export interface DriveSnapshot {
-  fileId: string;
-  series: Series[];
-  exportedAt?: string;
+  fileId: string
+  series: Series[]
+  exportedAt?: string
 }
 
 interface DriveFile {
-  id: string;
-  name?: string;
-  modifiedTime?: string;
+  id: string
+  name?: string
+  modifiedTime?: string
 }
 
 async function driveError(response: Response): Promise<DriveError> {
-  let message = `Google Drive respondió con el código ${response.status}.`;
+  let message = `Google Drive respondió con el código ${response.status}.`
 
   try {
     const body = (await response.json()) as {
-      error?: { message?: string };
-    };
-    if (body.error?.message) message = body.error.message;
+      error?: { message?: string }
+    }
+    if (body.error?.message) message = body.error.message
   } catch {
     // La respuesta no era JSON; usamos el mensaje genérico.
   }
 
   if (response.status === 401) {
     return new DriveError(
-      "La sesión de Google ha caducado. Vuelve a conectar con Google Drive.",
-      "auth",
-    );
+      'La sesión de Google ha caducado. Vuelve a conectar con Google Drive.',
+      'auth'
+    )
   }
 
   if (response.status === 403) {
     return new DriveError(
-      "Google Drive no ha autorizado el acceso. Comprueba que la API de Drive está activada y que concediste el permiso drive.appdata.",
-      "permission",
-    );
+      'Google Drive no ha autorizado el acceso. Comprueba que la API de Drive está activada y que concediste el permiso drive.appdata.',
+      'permission'
+    )
   }
 
   if (response.status === 404) {
     return new DriveError(
-      "No se encontró el archivo de sincronización en Google Drive.",
-      "notfound",
-    );
+      'No se encontró el archivo de sincronización en Google Drive.',
+      'notfound'
+    )
   }
 
-  return new DriveError(message);
+  return new DriveError(message)
 }
 
 async function driveFetch(
   url: string,
   token: string,
-  init?: RequestInit,
+  init?: RequestInit
 ): Promise<Response> {
-  let response: Response;
+  let response: Response
 
   try {
     response = await fetch(url, {
       ...init,
-      cache: "no-store",
+      cache: 'no-store',
       headers: {
         Authorization: `Bearer ${token}`,
-        ...(init?.headers ?? {}),
-      },
-    });
+        ...(init?.headers ?? {})
+      }
+    })
   } catch {
     throw new DriveError(
-      "No se pudo conectar con Google Drive. Revisa tu conexión.",
-      "network",
-    );
+      'No se pudo conectar con Google Drive. Revisa tu conexión.',
+      'network'
+    )
   }
 
-  if (!response.ok) throw await driveError(response);
-  return response;
+  if (!response.ok) throw await driveError(response)
+  return response
 }
 
 async function findDriveFile(token: string): Promise<DriveFile | null> {
   const params = new URLSearchParams({
-    spaces: "appDataFolder",
-    fields: "files(id,name,modifiedTime)",
-    pageSize: "100",
-    q: `name = '${FILE_NAME}' and trashed = false`,
-  });
+    spaces: 'appDataFolder',
+    fields: 'files(id,name,modifiedTime)',
+    pageSize: '100',
+    q: `name = '${FILE_NAME}' and trashed = false`
+  })
 
   const response = await driveFetch(
     `${DRIVE_API}/files?${params.toString()}`,
-    token,
-  );
-  const data = (await response.json()) as { files?: DriveFile[] };
+    token
+  )
+  const data = (await response.json()) as { files?: DriveFile[] }
 
   // Si quedan archivos duplicados, se usa el más reciente por `modifiedTime`.
-  const files = (data.files ?? []).filter((file) => file.name === FILE_NAME);
+  const files = (data.files ?? []).filter((file) => file.name === FILE_NAME)
   files.sort((left, right) =>
-    (right.modifiedTime ?? "").localeCompare(left.modifiedTime ?? ""),
-  );
+    (right.modifiedTime ?? '').localeCompare(left.modifiedTime ?? '')
+  )
 
-  return files[0] ?? null;
+  return files[0] ?? null
 }
 
 export function buildSnapshot(series: Series[]) {
   return {
-    app: "cdramalist",
+    app: 'cdramalist',
     version: 2,
     exportedAt: new Date().toISOString(),
-    series,
-  };
+    series
+  }
 }
 
-const SNAPSHOT_APP = "cdramalist";
+const SNAPSHOT_APP = 'cdramalist'
 
 export function parseSnapshot(
-  value: unknown,
+  value: unknown
 ): { series: Series[]; exportedAt?: string } | null {
   // Se exige el identificador de la app para no aceptar cualquier JSON que
   // contenga una lista «series» (archivos ajenos o corruptos).
-  if (!value || typeof value !== "object" || Array.isArray(value)) return null;
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return null
 
-  const record = value as Record<string, unknown>;
-  if (record.app !== SNAPSHOT_APP || !Array.isArray(record.series)) return null;
+  const record = value as Record<string, unknown>
+  if (record.app !== SNAPSHOT_APP || !Array.isArray(record.series)) return null
 
   return {
     series: record.series.filter(isSeries).map(normalizeSeries),
     exportedAt:
-      typeof record.exportedAt === "string" ? record.exportedAt : undefined,
-  };
+      typeof record.exportedAt === 'string' ? record.exportedAt : undefined
+  }
 }
 
 export async function pullFromDrive(
-  token: string,
+  token: string
 ): Promise<DriveSnapshot | null> {
-  const file = await findDriveFile(token);
-  if (!file) return null;
+  const file = await findDriveFile(token)
+  if (!file) return null
 
-  let response: Response;
+  let response: Response
 
   try {
     response = await driveFetch(
       `${DRIVE_API}/files/${file.id}?alt=media`,
-      token,
-    );
+      token
+    )
   } catch (error) {
-    if (error instanceof DriveError && error.code === "notfound") return null;
-    throw error;
+    if (error instanceof DriveError && error.code === 'notfound') return null
+    throw error
   }
 
-  let raw: unknown;
+  let raw: unknown
 
   try {
-    raw = await response.json();
+    raw = await response.json()
   } catch {
     throw new DriveError(
-      "El archivo de Google Drive no contiene JSON válido.",
-      "format",
-    );
+      'El archivo de Google Drive no contiene JSON válido.',
+      'format'
+    )
   }
 
-  const parsed = parseSnapshot(raw);
+  const parsed = parseSnapshot(raw)
 
   if (!parsed) {
     throw new DriveError(
-      "El archivo de Google Drive no tiene el formato de CdramaList.",
-      "format",
-    );
+      'El archivo de Google Drive no tiene el formato de CdramaList.',
+      'format'
+    )
   }
 
   return {
     fileId: file.id,
     series: parsed.series,
-    exportedAt: parsed.exportedAt,
-  };
+    exportedAt: parsed.exportedAt
+  }
 }
 
 export async function pushToDrive(
   token: string,
   series: Series[],
   fileId?: string | null,
-  retried = false,
+  retried = false
 ): Promise<string> {
-  let id = fileId ?? null;
+  let id = fileId ?? null
 
   if (!id) {
-    const existing = await findDriveFile(token);
-    id = existing?.id ?? null;
+    const existing = await findDriveFile(token)
+    id = existing?.id ?? null
   }
 
   if (!id) {
@@ -211,39 +207,39 @@ export async function pushToDrive(
       `${DRIVE_API}/files?fields=id`,
       token,
       {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name: FILE_NAME, parents: ["appDataFolder"] }),
-      },
-    );
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: FILE_NAME, parents: ['appDataFolder'] })
+      }
+    )
 
-    const created = (await createResponse.json()) as { id?: string };
+    const created = (await createResponse.json()) as { id?: string }
 
     if (!created.id) {
       throw new DriveError(
-        "Google Drive no devolvió el identificador del archivo.",
-        "format",
-      );
+        'Google Drive no devolvió el identificador del archivo.',
+        'format'
+      )
     }
 
-    id = created.id;
+    id = created.id
   }
 
   try {
     await driveFetch(`${UPLOAD_API}/files/${id}?uploadType=media`, token, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(buildSnapshot(series)),
-    });
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(buildSnapshot(series))
+    })
   } catch (error) {
     // El archivo pudo borrarse entre la lectura y la escritura: lo recreamos.
-    if (error instanceof DriveError && error.code === "notfound" && !retried) {
-      return pushToDrive(token, series, null, true);
+    if (error instanceof DriveError && error.code === 'notfound' && !retried) {
+      return pushToDrive(token, series, null, true)
     }
-    throw error;
+    throw error
   }
 
-  return id;
+  return id
 }
 
 function canonicalSeries(series: Series) {
@@ -271,10 +267,10 @@ function canonicalSeries(series: Series) {
         durationSeconds: part.durationSeconds ?? null,
         publishedAt: part.publishedAt ?? null,
         thumbnail: part.thumbnail ?? null,
-        addedAt: part.addedAt,
+        addedAt: part.addedAt
       }))
-      .sort((a, b) => a.videoId.localeCompare(b.videoId)),
-  };
+      .sort((a, b) => a.videoId.localeCompare(b.videoId))
+  }
 }
 
 /**
@@ -285,6 +281,6 @@ export function seriesSignature(series: Series[]): string {
   return JSON.stringify(
     series
       .map(canonicalSeries)
-      .sort((left, right) => left.id.localeCompare(right.id)),
-  );
+      .sort((left, right) => left.id.localeCompare(right.id))
+  )
 }

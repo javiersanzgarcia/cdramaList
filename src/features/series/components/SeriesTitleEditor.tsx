@@ -1,51 +1,51 @@
-import { useState } from "react";
-import type { FormEvent } from "react";
-import type { Series } from "../types";
-import * as Icon from "../../../shared/components/Icons";
+import { useState } from 'react'
+import type { FormEvent } from 'react'
+import type { Series } from '../types'
+import * as Icon from '../../../shared/components/Icons'
 
 interface SeriesTitleEditorProps {
-  series: Series;
-  onUpdateTitle: (seriesId: string, title: string) => void;
+  series: Series
+  onUpdateTitle: (seriesId: string, title: string) => void
 }
 
 function normalizeTitle(value: string): string {
-  return value.trim().replace(/\s+/g, " ");
+  return value.trim().replace(/\s+/g, ' ')
 }
 
 export function SeriesTitleEditor({
   series,
-  onUpdateTitle,
+  onUpdateTitle
 }: SeriesTitleEditorProps) {
-  const [titleDraft, setTitleDraft] = useState(series.title);
-  const [previousTitle, setPreviousTitle] = useState(series.title);
-  const [message, setMessage] = useState<string | null>(null);
+  const [titleDraft, setTitleDraft] = useState(series.title)
+  const [previousTitle, setPreviousTitle] = useState(series.title)
+  const [message, setMessage] = useState<string | null>(null)
 
   // Si el título cambia desde fuera (por ejemplo, al sincronizar con Drive),
   // actualiza el campo sin pisar lo que el usuario está escribiendo.
   if (series.title !== previousTitle) {
-    setPreviousTitle(series.title);
+    setPreviousTitle(series.title)
     if (normalizeTitle(titleDraft) !== series.title) {
-      setTitleDraft(series.title);
+      setTitleDraft(series.title)
     }
   }
 
-  const normalized = normalizeTitle(titleDraft);
-  const changed = normalized.length >= 2 && normalized !== series.title;
+  const normalized = normalizeTitle(titleDraft)
+  const changed = normalized.length >= 2 && normalized !== series.title
 
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
+    event.preventDefault()
 
     if (normalized.length < 2) {
-      setMessage("El título debe tener al menos 2 caracteres.");
-      return;
+      setMessage('El título debe tener al menos 2 caracteres.')
+      return
     }
 
-    if (!changed) return;
+    if (!changed) return
 
-    onUpdateTitle(series.id, normalized);
+    onUpdateTitle(series.id, normalized)
     setMessage(
-      "Título actualizado. Los títulos de YouTube de sus vídeos se guardarán como alias.",
-    );
+      'Título actualizado. Los títulos de YouTube de sus vídeos se guardarán como alias.'
+    )
   }
 
   return (
@@ -68,8 +68,8 @@ export function SeriesTitleEditor({
           name="series-title"
           value={titleDraft}
           onChange={(event) => {
-            setTitleDraft(event.target.value);
-            setMessage(null);
+            setTitleDraft(event.target.value)
+            setMessage(null)
           }}
           aria-label="Título de la serie"
           autoComplete="off"
@@ -90,5 +90,5 @@ export function SeriesTitleEditor({
         <p className="mt-1.5 text-[11px] text-amber-200/80">{message}</p>
       )}
     </div>
-  );
+  )
 }

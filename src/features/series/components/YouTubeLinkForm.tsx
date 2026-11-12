@@ -1,13 +1,13 @@
-import type { FormEventHandler } from "react";
-import * as Icon from "../../../shared/components/Icons";
+import type { FormEventHandler } from 'react'
+import * as Icon from '../../../shared/components/Icons'
 
 interface YouTubeLinkFormProps {
-  apiKeyAvailable: boolean;
-  url: string;
-  onUrlChange: (value: string) => void;
-  onPaste: () => void;
-  onSubmit: FormEventHandler<HTMLFormElement>;
-  onOpenSettings: () => void;
+  apiKeyAvailable: boolean
+  url: string
+  onUrlChange: (value: string) => void
+  onPaste: () => void
+  onSubmit: FormEventHandler<HTMLFormElement>
+  onOpenSettings: () => void
 }
 
 export function YouTubeLinkForm({
@@ -16,7 +16,7 @@ export function YouTubeLinkForm({
   onUrlChange,
   onPaste,
   onSubmit,
-  onOpenSettings,
+  onOpenSettings
 }: YouTubeLinkFormProps) {
   return (
     <form onSubmit={onSubmit}>
@@ -79,5 +79,5 @@ export function YouTubeLinkForm({
         Buscar partes
       </button>
     </form>
-  );
+  )
 }

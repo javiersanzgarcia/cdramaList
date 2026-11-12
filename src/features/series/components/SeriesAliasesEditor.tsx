@@ -1,55 +1,55 @@
-import { useState } from "react";
-import type { FormEvent } from "react";
-import { MAX_SERIES_ALIASES, normalizeAliases } from "../model/series";
-import type { Series } from "../types";
-import * as Icon from "../../../shared/components/Icons";
+import { useState } from 'react'
+import type { FormEvent } from 'react'
+import { MAX_SERIES_ALIASES, normalizeAliases } from '../model/series'
+import type { Series } from '../types'
+import * as Icon from '../../../shared/components/Icons'
 
 interface SeriesAliasesEditorProps {
-  series: Series;
-  onUpdateAliases: (seriesId: string, aliases: string[]) => void;
+  series: Series
+  onUpdateAliases: (seriesId: string, aliases: string[]) => void
 }
 
 export function SeriesAliasesEditor({
   series,
-  onUpdateAliases,
+  onUpdateAliases
 }: SeriesAliasesEditorProps) {
-  const [aliasDraft, setAliasDraft] = useState("");
-  const [aliasMessage, setAliasMessage] = useState<string | null>(null);
-  const aliases = series.aliases ?? [];
+  const [aliasDraft, setAliasDraft] = useState('')
+  const [aliasMessage, setAliasMessage] = useState<string | null>(null)
+  const aliases = series.aliases ?? []
 
   function handleAddAlias(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
+    event.preventDefault()
 
-    const alias = aliasDraft.trim().replace(/\s+/g, " ");
-    if (alias.length < 2) return;
+    const alias = aliasDraft.trim().replace(/\s+/g, ' ')
+    if (alias.length < 2) return
 
-    const key = alias.toLowerCase();
+    const key = alias.toLowerCase()
     if (key === series.title.trim().toLowerCase()) {
-      setAliasMessage("El alias no puede ser igual al título principal.");
-      return;
+      setAliasMessage('El alias no puede ser igual al título principal.')
+      return
     }
 
     if (aliases.some((item) => item.toLowerCase() === key)) {
-      setAliasMessage("Ese alias ya está añadido.");
-      return;
+      setAliasMessage('Ese alias ya está añadido.')
+      return
     }
 
     if (aliases.length >= MAX_SERIES_ALIASES) {
-      setAliasMessage(`Puedes añadir hasta ${MAX_SERIES_ALIASES} alias.`);
-      return;
+      setAliasMessage(`Puedes añadir hasta ${MAX_SERIES_ALIASES} alias.`)
+      return
     }
 
-    onUpdateAliases(series.id, normalizeAliases([...aliases, alias]));
-    setAliasDraft("");
-    setAliasMessage(null);
+    onUpdateAliases(series.id, normalizeAliases([...aliases, alias]))
+    setAliasDraft('')
+    setAliasMessage(null)
   }
 
   function removeAlias(alias: string) {
     onUpdateAliases(
       series.id,
-      aliases.filter((item) => item !== alias),
-    );
-    setAliasMessage(null);
+      aliases.filter((item) => item !== alias)
+    )
+    setAliasMessage(null)
   }
 
   return (
@@ -95,8 +95,8 @@ export function SeriesAliasesEditor({
           name="series-alias"
           value={aliasDraft}
           onChange={(event) => {
-            setAliasDraft(event.target.value);
-            setAliasMessage(null);
+            setAliasDraft(event.target.value)
+            setAliasMessage(null)
           }}
           placeholder="Ej. Black Rain Apocalypse"
           aria-label="Nuevo alias"
@@ -118,5 +118,5 @@ export function SeriesAliasesEditor({
         <p className="mt-1.5 text-[11px] text-amber-200/80">{aliasMessage}</p>
       )}
     </div>
-  );
+  )
 }
