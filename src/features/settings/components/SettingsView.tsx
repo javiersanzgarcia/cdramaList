@@ -175,6 +175,7 @@ export function SettingsView({
                 <Icon.Key className="pointer-events-none absolute left-3.5 top-1/2 size-4 -translate-y-1/2 text-zinc-500" />
                 <input
                   id="youtube-api-key"
+                  name="youtube-api-key"
                   type={showKey ? "text" : "password"}
                   value={draftKey}
                   onChange={(event) => setDraftKey(event.target.value)}
@@ -265,6 +266,8 @@ export function SettingsView({
               <Icon.Upload className="size-4" />
               Importar
               <input
+                id="import-series-file"
+                name="import-series-file"
                 type="file"
                 accept="application/json,.json"
                 className="sr-only"

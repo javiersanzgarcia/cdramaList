@@ -91,6 +91,8 @@ export function SeriesAliasesEditor({
 
       <form onSubmit={handleAddAlias} className="mt-2 flex gap-2">
         <input
+          id="series-alias-input"
+          name="series-alias"
           value={aliasDraft}
           onChange={(event) => {
             setAliasDraft(event.target.value);
@@ -98,6 +100,7 @@ export function SeriesAliasesEditor({
           }}
           placeholder="Ej. Black Rain Apocalypse"
           aria-label="Nuevo alias"
+          autoComplete="off"
           maxLength={120}
           className="min-w-0 flex-1 rounded-xl border border-zinc-800 bg-zinc-900 px-3 py-2 text-xs text-zinc-100 outline-none transition placeholder:text-zinc-600 focus:border-rose-500/60 focus:ring-2 focus:ring-rose-500/20"
         />

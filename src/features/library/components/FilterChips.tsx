@@ -18,6 +18,8 @@ export function FilterChips({ value, onChange }: FilterChipsProps) {
   return (
     <div className="relative mt-3">
       <select
+        id="series-filter"
+        name="series-filter"
         value={value}
         onChange={(event) => onChange(event.target.value as Filter)}
         aria-label="Filtrar series"

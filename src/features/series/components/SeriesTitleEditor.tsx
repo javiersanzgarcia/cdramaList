@@ -64,12 +64,15 @@ export function SeriesTitleEditor({
 
       <form onSubmit={handleSubmit} className="mt-2 flex gap-2">
         <input
+          id="series-title-input"
+          name="series-title"
           value={titleDraft}
           onChange={(event) => {
             setTitleDraft(event.target.value);
             setMessage(null);
           }}
           aria-label="Título de la serie"
+          autoComplete="off"
           maxLength={120}
           className="min-w-0 flex-1 rounded-xl border border-zinc-800 bg-zinc-900 px-3 py-2 text-xs text-zinc-100 outline-none transition placeholder:text-zinc-600 focus:border-rose-500/60 focus:ring-2 focus:ring-rose-500/20"
         />

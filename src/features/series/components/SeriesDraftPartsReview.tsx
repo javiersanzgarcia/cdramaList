@@ -72,6 +72,8 @@ export function SeriesDraftPartsReview({
                   }`}
                 >
                   <input
+                    id={`draft-part-${part.videoId}`}
+                    name="draft-parts"
                     type="checkbox"
                     checked={checked}
                     onChange={() => onTogglePart(part.videoId)}

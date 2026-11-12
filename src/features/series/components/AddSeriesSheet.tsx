@@ -344,8 +344,10 @@ export function AddSeriesSheet({
               </label>
               <input
                 id="series-title"
+                name="series-title"
                 value={title}
                 onChange={(event) => setTitle(event.target.value)}
+                autoComplete="off"
                 className="mt-1.5 w-full rounded-2xl border border-zinc-800 bg-zinc-950/70 px-3.5 py-3 text-sm font-medium text-zinc-100 outline-none transition focus:border-rose-500/60 focus:ring-2 focus:ring-rose-500/20"
               />
               <p className="mt-1.5 text-[11px] leading-relaxed text-zinc-500">

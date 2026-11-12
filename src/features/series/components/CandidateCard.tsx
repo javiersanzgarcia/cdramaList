@@ -74,6 +74,8 @@ export function CandidateCard({
             <label className="flex items-center gap-1 text-[10px] font-medium text-zinc-500">
               Nº
               <input
+                id={`candidate-number-${candidate.videoId}`}
+                name="candidate-number"
                 type="number"
                 inputMode="numeric"
                 min={1}
