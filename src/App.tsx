@@ -407,6 +407,7 @@ export default function App() {
 
       {selectedSeries && !player && (
         <SeriesSheet
+          key={selectedSeries.id}
           series={selectedSeries}
           semanticConfigured={ENV_SEMANTIC_API_URL.length > 0}
           refreshing={refreshing}

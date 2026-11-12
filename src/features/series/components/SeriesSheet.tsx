@@ -226,18 +226,21 @@ export function SeriesSheet({
               <Icon.Heart filled={series.favorite} className="size-4" />
             </button>
 
-            {coverOptions.length > 0 && (
+          </div>
+
+          {coverOptions.length > 0 && (
+            <div className="mt-2 flex justify-end">
               <button
                 type="button"
                 onClick={() => setCoverPickerOpen((open) => !open)}
                 aria-expanded={coverPickerOpen}
-                className="absolute bottom-2.5 right-2.5 flex items-center gap-1.5 rounded-full bg-black/55 px-2.5 py-1 text-[10px] font-semibold text-white backdrop-blur transition hover:bg-black/75 active:scale-95"
+                className="inline-flex items-center gap-1.5 rounded-full border border-zinc-800 bg-zinc-950/60 px-3 py-1.5 text-[11px] font-semibold text-zinc-400 transition hover:border-zinc-700 hover:text-white active:scale-95"
               >
                 <Icon.Photo className="size-3.5" />
-                Cambiar portada
+                {coverPickerOpen ? "Ocultar portadas" : "Cambiar portada"}
               </button>
-            )}
-          </div>
+            </div>
+          )}
 
           {coverPickerOpen && (
             <div className="mt-3 rounded-2xl border border-zinc-800 bg-zinc-950/60 p-2">
@@ -376,7 +379,6 @@ export function SeriesSheet({
           </div>
 
           <SeriesTitleEditor
-            key={series.id}
             series={series}
             onUpdateTitle={onUpdateTitle}
           />
@@ -395,7 +397,6 @@ export function SeriesSheet({
           />
 
           <SeriesRefreshPanel
-            key={series.id}
             series={series}
             semanticConfigured={semanticConfigured}
             initialCandidates={initialCandidates}
