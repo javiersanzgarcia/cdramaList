@@ -12,11 +12,33 @@ PWA para reunir las partes de una historia de YouTube, guardar el progreso y ver
 - **Aprende de tus confirmaciones.** Al añadir una sugerencia, sus palabras clave ganan confianza para esa serie; las coincidencias relacionadas se priorizan en próximas búsquedas. La señal se guarda con la serie, se sincroniza con Drive y tiene límites para evitar que crezca sin control.
 - **Importa listas de reproducción completas.** Si el canal agrupa las partes en una playlist, se importan todas en orden.
 - **Guarda tu progreso.** Marca partes como vistas, continúa donde lo dejaste y consulta el porcentaje de cada serie.
+- **Estados claros por serie.** Cada serie es **Pendiente**, está **En curso** o **Completada**, según su progreso o tu elección manual en la ficha. Puedes filtrar por estado; marcar una serie como completada da por vistas todas sus partes.
+- **Favoritas.** Marca series como favoritas para tenerlas a mano y actualízalas todas de una vez buscando capítulos nuevos.
+- **Duración por parte y total.** La ficha muestra la duración de cada parte y la suma de la serie; si falta el metadato de algún vídeo, el total se marca como parcial.
 - **Reorganiza los capítulos.** Usa las flechas de la ficha para cambiar el orden de reproducción; el orden manual se conserva al recargar y sincronizar.
+- **Portada personalizable.** Cambia la portada de la serie por la de cualquiera de sus partes.
 - **Reproductor integrado.** Las partes se reproducen dentro de la app y avanzan solas al terminar el vídeo.
 - **Sincronización con Google Drive.** Inicia sesión con Google y guarda tus series en un archivo privado de tu Drive (`appDataFolder`). Funciona entre móvil y ordenador sin servidor propio.
 - **Todo sigue siendo local por defecto.** Sin cuenta de Google, las series y la clave de API se guardan en `localStorage`.
 - **Estado persistente con Zustand.** Series, preferencias de Drive, clave de YouTube y caché de sinónimos se guardan en un store Zustand con persistencia. Los datos de instalaciones anteriores se migran automáticamente.
+
+## Estados de las series
+
+Desde la ficha de una serie puedes fijar su estado a mano: **Pendientes**, **En curso** o **Completadas**. El estado que elijas manda sobre el automático mientras no contradiga al progreso:
+
+- **Completada ⇒ todas las partes vistas.** Marcar una serie como completada marca todas sus partes como vistas, y cualquier serie con todas las partes vistas se muestra siempre como completada. Así el porcentaje y el estado nunca se contradicen.
+- **Dejar de estar completada borra el progreso.** Si marcas como «En curso» o «Pendiente» una serie que estaba al 100 %, se reinicia su progreso para que pueda volver a verse desde el principio.
+- **Reproducir no cambia lo que hayas elegido.** Ver una parte no pisa un estado manual: una serie marcada como «Pendiente» sigue en «Pendientes» hasta que la completes o cambies el estado tú.
+- **«Continuar viendo»** muestra las series en curso con alguna parte pendiente, y el filtro de cada lista se basa tanto en el estado elegido como en el progreso.
+
+## Favoritas y novedades
+
+Marca series como favoritas (el corazón de la tarjeta o de la ficha) y filtra por **Favoritas**. Con el filtro de favoritas activo aparece el botón **Actualizar todas las favoritas**, que busca capítulos nuevos en todas ellas de una vez:
+
+- Mientras trabaja, la app avisa de que no cierres ni cambies de pantalla, porque el lote puede tardar.
+- Las series con novedades se abren **en cola**: revisas la primera y pasas a la siguiente con **Revisar siguiente serie**.
+- Si cierras la ficha, la cola **no se pierde**: un botón flotante **Revisar novedades (N)** te deja retomarla sin repetir la búsqueda.
+- Al terminar se muestran los avisos de la búsqueda y, si la sincronización con Drive falla, también se indica.
 
 ## Clave de YouTube (opcional pero recomendada)
 
@@ -72,7 +94,7 @@ Los títulos enviados al Worker salen del dispositivo. La cuota gratuita de Work
 
 ## Buscar capítulos nuevos
 
-Al **añadir una serie** desde un vídeo y al pulsar **Actualizar serie** se usa la misma búsqueda ampliada:
+Al **añadir una serie** desde un vídeo, al pulsar **Actualizar serie** y al pulsar **Actualizar todas las favoritas** se usa la misma búsqueda ampliada:
 
 - Revisa las subidas recientes del canal de la serie.
 - Lee las descripciones de las partes conocidas para extraer el título real del drama (por ejemplo, `【Títulos】 Apocalipsis de la Lluvia Negra`), porque muchos canales usan el título del vídeo solo como resumen.
@@ -128,6 +150,7 @@ El Client ID se lee solo de `VITE_GOOGLE_CLIENT_ID` (en local desde `.env`, en P
 - Si no hay conexión, los cambios siguen guardándose en el dispositivo y se suben cuando vuelvas a sincronizar.
 - Borrar una serie o pulsar **Borrar series y progreso** con la sincronización automática activa también borra esos datos en Drive.
 - **Sincronizar y combinar** usa la unión de series y progreso. No resucita una serie borrada si el borrado ya se ha subido, pero si se combina con una copia antigua de Drive puede reaparecer.
+- Al borrar una serie se guarda una **lápida** para propagar el borrado a los demás dispositivos. Pasados **30 días** esa lápida se purga sola, de modo que la lista y el archivo de Drive no crecen sin control ni acumulan duplicados al volver a añadir la misma serie.
 
 > **Privacidad:** el permiso `drive.appdata` solo da acceso a la carpeta privada de CdramaList. La app no puede leer ni modificar el resto de archivos de tu Google Drive. Si quieres revocar el acceso, hazlo desde [la configuración de tu cuenta de Google](https://myaccount.google.com/permissions).
 
