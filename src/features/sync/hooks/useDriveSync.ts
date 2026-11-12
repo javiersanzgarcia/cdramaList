@@ -84,6 +84,9 @@ export function useDriveSync({
   );
 
   const seriesRef = useRef(series);
+  // Última copia sincronizada: sirve de base para combinar cambios de varios
+  // dispositivos sin que un campo pise los cambios del otro.
+  const lastSyncedSeriesRef = useRef<Series[] | null>(null);
   const tokenRef = useRef<AccessToken | null>(null);
   const fileIdRef = useRef<string | null>(state.fileId ?? null);
   const connectedRef = useRef(false);
@@ -177,7 +180,11 @@ export function useDriveSync({
         const remote = await pullFromDrive(token);
         const local = seriesOverride ?? seriesRef.current;
         const merged = remote
-          ? mergeSeriesCollections(local, remote.series)
+          ? mergeSeriesCollections(
+              local,
+              remote.series,
+              lastSyncedSeriesRef.current ?? undefined,
+            )
           : local;
 
         let fileId = remote?.fileId ?? null;
@@ -190,6 +197,7 @@ export function useDriveSync({
         }
 
         fileIdRef.current = fileId;
+        lastSyncedSeriesRef.current = merged;
         setLastSyncedSignature(seriesSignature(merged));
         setSeries(merged);
         saveState({
@@ -304,6 +312,7 @@ export function useDriveSync({
       const fileId = await pushToDrive(token, current, fileIdRef.current);
 
       fileIdRef.current = fileId;
+      lastSyncedSeriesRef.current = current;
       setLastSyncedSignature(seriesSignature(current));
       saveState({ fileId, lastSyncedAt: Date.now(), enabled: true });
       setStatus("synced");
@@ -355,6 +364,7 @@ export function useDriveSync({
       }
 
       fileIdRef.current = remote.fileId;
+      lastSyncedSeriesRef.current = remote.series;
       setSeries(remote.series);
       setLastSyncedSignature(seriesSignature(remote.series));
       saveState({
@@ -375,29 +385,19 @@ export function useDriveSync({
     }
   }, [connect, getToken, handleDriveError, saveState, setSeries]);
 
-  const pushCurrent = useCallback(async () => {
+  const pullAndPush = useCallback(async () => {
     if (!connectedRef.current || runningRef.current) return;
-
-    runningRef.current = true;
-    setBusy(true);
-    setStatus("syncing");
 
     try {
       const token = await getToken("none");
-      const current = seriesRef.current;
-      const fileId = await pushToDrive(token, current, fileIdRef.current);
-
-      fileIdRef.current = fileId;
-      setLastSyncedSignature(seriesSignature(current));
-      saveState({ fileId, lastSyncedAt: Date.now(), enabled: true });
-      setStatus("synced");
+      // A diferencia de una subida directa, esto lee Drive y combina los
+      // cambios remotos antes de escribir, para no pisar lo que haya subido
+      // otro dispositivo mientras este estaba desconectado.
+      await syncWithToken(token, true);
     } catch (cause) {
       handleDriveError(cause);
-    } finally {
-      runningRef.current = false;
-      setBusy(false);
     }
-  }, [getToken, handleDriveError, saveState]);
+  }, [getToken, handleDriveError, syncWithToken]);
 
   const disconnect = useCallback(() => {
     const confirmed = window.confirm(
@@ -411,6 +411,7 @@ export function useDriveSync({
     tokenRef.current = null;
     clearStoredDriveToken();
     fileIdRef.current = null;
+    lastSyncedSeriesRef.current = null;
     connectedRef.current = false;
     setConnected(false);
     setLastSyncedSignature(null);
@@ -458,13 +459,14 @@ export function useDriveSync({
   }, [clientId, state.enabled, getToken, syncWithToken]);
 
   // Subida automática con debounce cuando cambian los datos y hay sesión activa.
+  // Antes de subir se hace pull/merge para no perder cambios de otros equipos.
   useEffect(() => {
     if (!connected || !state.auto || busy) return;
     if (lastSyncedSignature === null) return;
     if (signature === lastSyncedSignature) return;
 
     const timer = window.setTimeout(() => {
-      void pushCurrent();
+      void pullAndPush();
     }, 2_000);
 
     return () => window.clearTimeout(timer);
@@ -474,7 +476,7 @@ export function useDriveSync({
     busy,
     lastSyncedSignature,
     signature,
-    pushCurrent,
+    pullAndPush,
   ]);
 
   return {

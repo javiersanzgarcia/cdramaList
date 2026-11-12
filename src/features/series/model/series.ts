@@ -580,7 +580,48 @@ export function normalizeSeries(value: Series): Series {
   };
 }
 
-export function combineSeries(current: Series, incoming: Series): Series {
+function sameStringSet(
+  current: string[] | undefined,
+  incoming: string[] | undefined,
+): boolean {
+  const left = new Set(current ?? []);
+  const right = new Set(incoming ?? []);
+  if (left.size !== right.size) return false;
+  for (const value of left) {
+    if (!right.has(value)) return false;
+  }
+  return true;
+}
+
+/**
+ * Combina un campo usando la última copia sincronizada como base. Si solo una
+ * de las copias lo cambió, gana esa; si ambas lo cambiaron, gana la más
+ * reciente. Sin base (primera sincronización o importación) se usa LWW.
+ */
+function mergeField<T>(
+  base: Series | undefined,
+  current: Series,
+  incoming: Series,
+  newer: Series,
+  pick: (series: Series) => T,
+  equals: (a: T, b: T) => boolean = Object.is,
+): T {
+  if (!base) return pick(newer);
+
+  const currentValue = pick(current);
+  const incomingValue = pick(incoming);
+  const baseValue = pick(base);
+
+  if (equals(currentValue, baseValue)) return incomingValue;
+  if (equals(incomingValue, baseValue)) return currentValue;
+  return pick(newer);
+}
+
+export function combineSeries(
+  current: Series,
+  incoming: Series,
+  base?: Series,
+): Series {
   // En caso de empate gana la copia local: así un cambio hecho en este
   // dispositivo (por ejemplo el estado) no lo borra la copia de Drive, que
   // puede tener el mismo `updatedAt` sin reflejar ese cambio.
@@ -591,7 +632,52 @@ export function combineSeries(current: Series, incoming: Series): Series {
     incoming.lastOpenedAt ?? 0,
   );
   const parts = mergeParts(current.parts, incoming.parts);
-  const watched = [...new Set(newer.watched)];
+  // Con la base se evita que un cambio en un campo (por ejemplo, marcar una
+  // favorita) haga ganar toda la copia y pierda los capítulos vistos que el
+  // otro dispositivo había subido.
+  const watched = [
+    ...new Set(
+      mergeField(
+        base,
+        current,
+        incoming,
+        newer,
+        (item) => item.watched,
+        sameStringSet,
+      ),
+    ),
+  ];
+  const aliases = normalizeAliases(
+    mergeField(
+      base,
+      current,
+      incoming,
+      newer,
+      (item) => item.aliases ?? [],
+      sameStringSet,
+    ),
+  );
+  const title = mergeField(
+    base,
+    current,
+    incoming,
+    newer,
+    (item) => item.title,
+  );
+  const favorite = mergeField(
+    base,
+    current,
+    incoming,
+    newer,
+    (item) => item.favorite,
+  );
+  const mergedStatus = mergeField(
+    base,
+    current,
+    incoming,
+    newer,
+    (item) => item.status,
+  );
   // Solo se reconcilia el estado si la unión aporta capítulos que la copia más
   // reciente no tenía; si no, un «completada» manual con progreso parcial se
   // mantiene tal cual.
@@ -602,14 +688,10 @@ export function combineSeries(current: Series, incoming: Series): Series {
     ...older,
     ...newer,
     id: current.id,
+    title,
     createdAt: Math.min(current.createdAt, incoming.createdAt),
-    // Gana la copia más reciente para poder quitar de favoritos entre
-    // dispositivos (con un OR nunca se podría desmarcar).
-    favorite: newer.favorite,
-    // Igual que `favorite`, los alias y los capítulos vistos son de la copia
-    // más reciente: con una unión, borrar un alias o desmarcar un capítulo en
-    // un dispositivo no se propagaría al resto.
-    aliases: normalizeAliases(newer.aliases ?? []),
+    favorite,
+    aliases,
     keywordConfidence: combineKeywordConfidence(
       current.keywordConfidence,
       incoming.keywordConfidence,
@@ -623,8 +705,8 @@ export function combineSeries(current: Series, incoming: Series): Series {
     parts,
     watched,
     status: gainedParts
-      ? reconcileCompletedStatus(newer.status, watched, parts)
-      : newer.status,
+      ? reconcileCompletedStatus(mergedStatus, watched, parts)
+      : mergedStatus,
     discardedCandidates: [
       ...new Set([
         ...(current.discardedCandidates ?? []),
@@ -651,14 +733,18 @@ function earliest(
 export function mergeSeriesCollections(
   local: Series[],
   remote: Series[],
+  base?: Series[],
 ): Series[] {
   const byId = new Map(local.map((item) => [item.id, item]));
+  const baseById = new Map((base ?? []).map((item) => [item.id, item]));
 
   for (const incoming of remote) {
     const previous = byId.get(incoming.id);
     byId.set(
       incoming.id,
-      previous ? combineSeries(previous, incoming) : incoming,
+      previous
+        ? combineSeries(previous, incoming, baseById.get(incoming.id))
+        : incoming,
     );
   }
 
