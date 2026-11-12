@@ -12,6 +12,7 @@ import {
   learnKeywordConfidence,
   mergeAliasesWithParts,
   mergeSeries,
+  reconcileCompletedStatus,
   watchedCount,
 } from "./model/series";
 import type { PartMetaPatch } from "./model/series";
@@ -296,6 +297,11 @@ export function useSeriesActions({
           : item.channelTitle,
       channelUrl: item.channelUrl ?? update.channelUrl,
       parts: update.parts,
+      // Si se han añadido capítulos, una serie completada vuelve a «en curso».
+      status:
+        update.added.length > 0
+          ? reconcileCompletedStatus(item.status, item.watched, update.parts)
+          : item.status,
       semanticFingerprint:
         update.semanticFingerprint ?? item.semanticFingerprint,
       updatedAt: Date.now(),
@@ -390,6 +396,14 @@ export function useSeriesActions({
               : current.channelTitle,
           channelUrl: current.channelUrl ?? update.channelUrl,
           parts: update.parts,
+          status:
+            update.added.length > 0
+              ? reconcileCompletedStatus(
+                  current.status,
+                  current.watched,
+                  update.parts,
+                )
+              : current.status,
           semanticFingerprint:
             update.semanticFingerprint ?? current.semanticFingerprint,
           updatedAt: Date.now(),
@@ -431,9 +445,11 @@ export function useSeriesActions({
     }
 
     const part = candidateToPart(candidate, options);
+    const nextParts = sortParts([...item.parts, part]);
     const next: Series = {
       ...item,
-      parts: sortParts([...item.parts, part]),
+      parts: nextParts,
+      status: reconcileCompletedStatus(item.status, item.watched, nextParts),
       keywordConfidence: learnKeywordConfidence(item.keywordConfidence, [
         candidate.title,
         ...(candidate.descriptionTitle ? [candidate.descriptionTitle] : []),

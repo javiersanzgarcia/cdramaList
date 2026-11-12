@@ -299,6 +299,9 @@ export function mergeSeries(
 ): Series {
   const mergedParts = mergeParts(existing.parts, parts);
   const existingPartIds = new Set(existing.parts.map((part) => part.videoId));
+  const gainedParts = mergedParts.some(
+    (part) => !existingPartIds.has(part.videoId),
+  );
   const finalTitle = title.trim() || existing.title;
 
   return {
@@ -315,12 +318,32 @@ export function mergeSeries(
     thumbnail:
       existing.thumbnail ?? draft.thumbnail ?? mergedParts[0]?.thumbnail,
     parts: mergedParts,
+    status: gainedParts
+      ? reconcileCompletedStatus(existing.status, existing.watched, mergedParts)
+      : existing.status,
     keywordConfidence: learnKeywordConfidence(
       existing.keywordConfidence,
       acceptedCandidateTitles(draft, parts, existingPartIds),
     ),
     updatedAt: Date.now(),
   };
+}
+
+/**
+ * Una serie marcada como completada que recibe capítulos sin ver deja de
+ * estarlo y pasa a «en curso», para que vuelva a aparecer en «Continuar
+ * viendo» en lugar de quedarse completada con partes pendientes.
+ */
+export function reconcileCompletedStatus(
+  status: SeriesStatus | undefined,
+  watched: string[],
+  parts: Part[],
+): SeriesStatus | undefined {
+  if (status !== "completed") return status;
+
+  const watchedIds = new Set(watched);
+  const hasUnwatched = parts.some((part) => !watchedIds.has(part.videoId));
+  return hasUnwatched ? "watching" : status;
 }
 
 export const MAX_SERIES_ALIASES = 12;
@@ -567,6 +590,13 @@ export function combineSeries(current: Series, incoming: Series): Series {
     current.lastOpenedAt ?? 0,
     incoming.lastOpenedAt ?? 0,
   );
+  const parts = mergeParts(current.parts, incoming.parts);
+  const watched = [...new Set(newer.watched)];
+  // Solo se reconcilia el estado si la unión aporta capítulos que la copia más
+  // reciente no tenía; si no, un «completada» manual con progreso parcial se
+  // mantiene tal cual.
+  const newerPartIds = new Set(newer.parts.map((part) => part.videoId));
+  const gainedParts = parts.some((part) => !newerPartIds.has(part.videoId));
 
   return {
     ...older,
@@ -590,8 +620,11 @@ export function combineSeries(current: Series, incoming: Series): Series {
     channelId: newer.channelId ?? older.channelId,
     channelUrl: newer.channelUrl ?? older.channelUrl,
     thumbnail: newer.thumbnail ?? older.thumbnail,
-    parts: mergeParts(current.parts, incoming.parts),
-    watched: [...new Set(newer.watched)],
+    parts,
+    watched,
+    status: gainedParts
+      ? reconcileCompletedStatus(newer.status, watched, parts)
+      : newer.status,
     discardedCandidates: [
       ...new Set([
         ...(current.discardedCandidates ?? []),
