@@ -54,6 +54,8 @@ interface SeriesSheetProps {
   onReviewNext: () => void;
   /** Candidatos ya encontrados para esta serie (lote de favoritas). */
   initialCandidates: ChapterCandidate[];
+  /** Avisa de que la serie ya no tiene novedades pendientes de revisar. */
+  onNewsHandled: (seriesId: string) => void;
 }
 
 export function SeriesSheet({
@@ -79,6 +81,7 @@ export function SeriesSheet({
   reviewRemaining,
   onReviewNext,
   initialCandidates,
+  onNewsHandled,
 }: SeriesSheetProps) {
   const [confirmingDelete, setConfirmingDelete] = useState(false);
   const [coverPickerOpen, setCoverPickerOpen] = useState(false);
@@ -423,6 +426,7 @@ export function SeriesSheet({
             onAddCandidate={onAddCandidate}
             onDiscardCandidate={onDiscardCandidate}
             onBusyChange={onBusyChange}
+            onNewsHandled={onNewsHandled}
           />
 
           <div className="mt-2 space-y-2">

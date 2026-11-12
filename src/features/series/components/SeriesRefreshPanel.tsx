@@ -25,6 +25,8 @@ interface SeriesRefreshPanelProps {
   ) => Promise<{ synced: boolean }>;
   onDiscardCandidate: (series: Series, videoId: string) => void;
   onBusyChange?: (busy: boolean) => void;
+  /** Avisa de que la serie ya no tiene novedades pendientes de revisar. */
+  onNewsHandled?: (seriesId: string) => void;
 }
 
 export function SeriesRefreshPanel({
@@ -35,6 +37,7 @@ export function SeriesRefreshPanel({
   onAddCandidate,
   onDiscardCandidate,
   onBusyChange,
+  onNewsHandled,
 }: SeriesRefreshPanelProps) {
   const [refreshing, setRefreshing] = useState(false);
   const [refreshMessage, setRefreshMessage] = useState<{
@@ -69,9 +72,10 @@ export function SeriesRefreshPanel({
   function discardCandidate(videoId: string) {
     // Se guarda en la serie para no volver a proponerlo en próximas búsquedas.
     onDiscardCandidate(series, videoId);
-    setCandidates((current) =>
-      current.filter((candidate) => candidate.videoId !== videoId),
+    const remaining = candidates.filter(
+      (candidate) => candidate.videoId !== videoId,
     );
+    setCandidates(remaining);
     setCandidateNumbers((current) => {
       const next = { ...current };
       delete next[videoId];
@@ -82,6 +86,8 @@ export function SeriesRefreshPanel({
       delete next[videoId];
       return next;
     });
+    // Sin candidatos pendientes, la serie ya no cuenta como «con novedades».
+    if (remaining.length === 0) onNewsHandled?.(series.id);
   }
 
   async function handleAddCandidate(candidate: ChapterCandidate) {
@@ -150,6 +156,8 @@ export function SeriesRefreshPanel({
           kind: "info",
           text: `No se han encontrado capítulos nuevos ni candidatos.${warningText}`,
         });
+        // La serie no tiene nada nuevo: se retira de la cola de revisión.
+        onNewsHandled?.(series.id);
         return;
       }
 

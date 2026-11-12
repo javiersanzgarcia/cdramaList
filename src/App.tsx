@@ -242,6 +242,19 @@ export default function App() {
     if (rest.length > 0) setSelectedSeriesId(rest[0]);
   }
 
+  // Una serie sale de la cola cuando ya no le quedan novedades pendientes: la
+  // actualización no encontró cambios o se revisaron todos sus candidatos. Así
+  // el botón flotante deja de contarla sin necesidad de recargar la página.
+  function handleNewsHandled(id: string) {
+    setReviewCandidates((current) => {
+      if (!(id in current)) return current;
+      const next = { ...current };
+      delete next[id];
+      return next;
+    });
+    setReviewQueue((current) => current.filter((item) => item !== id));
+  }
+
   function handleDeleteSeries(id: string) {
     const wasReviewHead = reviewQueue[0] === id;
     const rest = reviewQueue.filter((item) => item !== id);
@@ -476,6 +489,7 @@ export default function App() {
           reviewRemaining={reviewHead ? reviewQueue.length - 1 : 0}
           onReviewNext={reviewNext}
           initialCandidates={reviewCandidates[selectedSeries.id] ?? []}
+          onNewsHandled={handleNewsHandled}
         />
       )}
 
