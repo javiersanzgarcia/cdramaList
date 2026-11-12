@@ -4,6 +4,16 @@ PWA para reunir las partes de una historia de YouTube, guardar el progreso y ver
 
 **Demo:** <https://javiersanzgarcia.github.io/cdramaList/>
 
+## Novedades de la 1.0
+
+Primera versión estable. Lo más destacado:
+
+- **Estados coherentes.** El estado manual manda salvo cuando contradice al progreso, y bajar de «Completada» pide confirmación antes de reiniciar el progreso. Ver [Estados de las series](#estados-de-las-series).
+- **Cola de novedades.** «Actualizar todas las favoritas» abre las series con novedades en cola, con **Revisar siguiente serie** y un botón flotante **Revisar novedades (N)** que sobrevive al cerrar la ficha y se recalcula solo, sin recargar la página. Ver [Favoritas y novedades](#favoritas-y-novedades).
+- **Duración por parte y total**, con el total marcado como parcial si falta el metadato de algún vídeo.
+- **Portada personalizable** por la de cualquiera de las partes de la serie.
+- **Sincronización fiable con Drive.** Mezcla a tres bandas campo a campo, lápidas de borrado con purga a los 30 días y aviso si la subida falla.
+
 ## Qué hace
 
 - **Encuentra las partes automáticamente.** Pega un enlace de vídeo y la app busca en el canal los vídeos de la misma historia. Reconoce formatos como `Parte 2`, `P2`, `EP2`, `Episode 2`, `E02`, `Vol. 2`, `Pt. 2`, `Part Two`, `第二集`, `第2集`, `2화`, `2/5`, `(2)` y `#2`.
@@ -27,7 +37,7 @@ PWA para reunir las partes de una historia de YouTube, guardar el progreso y ver
 Desde la ficha de una serie puedes fijar su estado a mano: **Pendientes**, **En curso** o **Completadas**. El estado que elijas manda sobre el automático mientras no contradiga al progreso:
 
 - **Completada ⇒ todas las partes vistas.** Marcar una serie como completada marca todas sus partes como vistas, y cualquier serie con todas las partes vistas se muestra siempre como completada. Así el porcentaje y el estado nunca se contradicen.
-- **Dejar de estar completada borra el progreso.** Si marcas como «En curso» o «Pendiente» una serie que estaba al 100 %, se reinicia su progreso para que pueda volver a verse desde el principio.
+- **Dejar de estar completada borra el progreso.** Si marcas como «En curso» o «Pendiente» una serie que estaba al 100 %, se reinicia su progreso para que pueda volver a verse desde el principio. La app pide confirmación antes de borrarlo.
 - **Reproducir no cambia lo que hayas elegido.** Ver una parte no pisa un estado manual: una serie marcada como «Pendiente» sigue en «Pendientes» hasta que la completes o cambies el estado tú.
 - **«Continuar viendo»** muestra las series en curso con alguna parte pendiente, y el filtro de cada lista se basa tanto en el estado elegido como en el progreso.
 

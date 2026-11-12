@@ -85,6 +85,7 @@ export function SeriesSheet({
 }: SeriesSheetProps) {
   const [confirmingDelete, setConfirmingDelete] = useState(false);
   const [coverPickerOpen, setCoverPickerOpen] = useState(false);
+  const [pendingStatus, setPendingStatus] = useState<SeriesStatus | null>(null);
   const handleClose = () => {
     if (!refreshing) onClose();
   };
@@ -151,6 +152,18 @@ export function SeriesSheet({
       return;
     }
     onDelete(series.id);
+  }
+
+  // Bajar de «Completada» reinicia el progreso: se pide confirmación para que no
+  // se pierda por un toque accidental. La segunda pulsación sí lo aplica.
+  function handleSetStatus(option: SeriesStatus) {
+    if (option !== "completed" && complete && pendingStatus !== option) {
+      setPendingStatus(option);
+      return;
+    }
+
+    setPendingStatus(null);
+    onSetStatus(series.id, option);
   }
 
   return (
@@ -358,17 +371,20 @@ export function SeriesSheet({
             <div className="mt-2 grid grid-cols-3 gap-2">
               {statusOrder.map((option) => {
                 const active = option === status;
+                const pending = option === pendingStatus;
 
                 return (
                   <button
                     key={option}
                     type="button"
-                    onClick={() => onSetStatus(series.id, option)}
+                    onClick={() => handleSetStatus(option)}
                     aria-pressed={active}
                     className={`rounded-2xl border px-2 py-2 text-xs font-semibold transition active:scale-[0.98] ${
-                      active
-                        ? `border-transparent ${statusMeta[option].badge}`
-                        : "border-zinc-800 text-zinc-400 hover:border-zinc-700 hover:text-white"
+                      pending
+                        ? "border-amber-400/60 bg-amber-400/10 text-amber-100"
+                        : active
+                          ? `border-transparent ${statusMeta[option].badge}`
+                          : "border-zinc-800 text-zinc-400 hover:border-zinc-700 hover:text-white"
                     }`}
                   >
                     {statusMeta[option].label}
@@ -376,6 +392,12 @@ export function SeriesSheet({
                 );
               })}
             </div>
+            {pendingStatus && complete && (
+              <p className="mt-2 rounded-2xl border border-amber-400/20 bg-amber-400/5 px-3 py-2 text-[11px] leading-relaxed text-amber-200/80">
+                Marcar como «{statusMeta[pendingStatus].label}» borra el progreso
+                de las {total} partes vistas. Pulsa otra vez para confirmar.
+              </p>
+            )}
           </div>
 
           <div className="mt-3 grid grid-cols-3 gap-2">
