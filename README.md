@@ -4,6 +4,10 @@ PWA para reunir las partes de una historia de YouTube, guardar el progreso y ver
 
 **Demo:** <https://javiersanzgarcia.github.io/cdramaList/>
 
+## Novedades de la 1.1
+
+- **Quitar partes de una serie.** Cada parte de la ficha tiene una papelera para sacarla de la serie sin borrar la serie entera. Pide confirmación con una segunda pulsación y limpia también su marca de vista.
+
 ## Novedades de la 1.0
 
 Primera versión estable. Lo más destacado:
@@ -25,7 +29,7 @@ Primera versión estable. Lo más destacado:
 - **Estados claros por serie.** Cada serie es **Pendiente**, está **En curso** o **Completada**, según su progreso o tu elección manual en la ficha. Puedes filtrar por estado; marcar una serie como completada da por vistas todas sus partes.
 - **Favoritas.** Marca series como favoritas para tenerlas a mano y actualízalas todas de una vez buscando capítulos nuevos.
 - **Duración por parte y total.** La ficha muestra la duración de cada parte y la suma de la serie; si falta el metadato de algún vídeo, el total se marca como parcial.
-- **Reorganiza los capítulos.** Usa las flechas de la ficha para cambiar el orden de reproducción; el orden manual se conserva al recargar y sincronizar.
+- **Reorganiza los capítulos.** Usa las flechas de la ficha para cambiar el orden de reproducción; el orden manual se conserva al recargar y sincronizar. También puedes quitar una parte concreta de la serie con la papelera de su fila.
 - **Portada personalizable.** Cambia la portada de la serie por la de cualquiera de sus partes.
 - **Reproductor integrado.** Las partes se reproducen dentro de la app y avanzan solas al terminar el vídeo.
 - **Sincronización con Google Drive.** Inicia sesión con Google y guarda tus series en un archivo privado de tu Drive (`appDataFolder`). Funciona entre móvil y ordenador sin servidor propio.

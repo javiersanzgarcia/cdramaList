@@ -34,6 +34,7 @@ interface SeriesSheetProps {
   onSetStatus: (id: string, status: SeriesStatus) => void
   onSetWatched: (seriesId: string, videoId: string, watched: boolean) => void
   onMovePart: (seriesId: string, fromIndex: number, toIndex: number) => void
+  onRemovePart: (seriesId: string, videoId: string) => void
   onAddParts: (series: Series) => void
   onRefresh: (series: Series) => Promise<SeriesRefreshResult>
   onAddCandidate: (
@@ -67,6 +68,7 @@ export function SeriesSheet({
   onSetStatus,
   onSetWatched,
   onMovePart,
+  onRemovePart,
   onAddParts,
   onRefresh,
   onAddCandidate,
@@ -433,6 +435,7 @@ export function SeriesSheet({
             onPlay={onPlay}
             onSetWatched={onSetWatched}
             onMovePart={onMovePart}
+            onRemovePart={onRemovePart}
             onAddParts={onAddParts}
           />
 

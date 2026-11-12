@@ -91,6 +91,7 @@ export default function App() {
     fillMissingDurations,
     setWatched,
     movePart,
+    removePart,
     handleSave,
     deleteSeries,
     handleAddParts,
@@ -479,6 +480,7 @@ export default function App() {
           onSetStatus={setSeriesStatus}
           onSetWatched={setWatched}
           onMovePart={movePart}
+          onRemovePart={removePart}
           onAddParts={handleAddParts}
           onRefresh={handleRefreshSeries}
           onAddCandidate={handleAddCandidate}

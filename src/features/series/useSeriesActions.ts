@@ -243,6 +243,29 @@ export function useSeriesActions({
     )
   }
 
+  function removePart(seriesId: string, videoId: string) {
+    updateSeries((current) =>
+      current.map((item) => {
+        if (item.id !== seriesId) return item
+        if (!item.parts.some((part) => part.videoId === videoId)) return item
+
+        const parts = item.parts.filter((part) => part.videoId !== videoId)
+        const watched = item.watched.filter((id) => id !== videoId)
+
+        return {
+          ...item,
+          parts,
+          // La parte quitada deja de contar como vista aunque lo estuviera.
+          watched,
+          // Al cambiar las partes, un «completada» manual puede haber dejado de
+          // cubrir la serie; el automático se recalcula solo con seriesStatus.
+          status: reconcileCompletedStatus(item.status, watched, parts),
+          updatedAt: Date.now()
+        }
+      })
+    )
+  }
+
   function handleSave(draft: SeriesDraft, title: string, parts: Part[]) {
     const existing = draft.existingSeriesId
       ? series.find((item) => item.id === draft.existingSeriesId)
@@ -592,6 +615,7 @@ export function useSeriesActions({
     fillMissingDurations,
     setWatched,
     movePart,
+    removePart,
     handleSave,
     deleteSeries,
     handleAddParts,
