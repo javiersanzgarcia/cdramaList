@@ -361,6 +361,7 @@ export function useSeriesActions({
     }
 
     let next = series;
+    const updatedById = new Map<string, Series>();
     const updatedIds: string[] = [];
     const candidatesById: Record<string, ChapterCandidate[]> = {};
     let failed = 0;
@@ -395,6 +396,7 @@ export function useSeriesActions({
         };
 
         next = next.map((item) => (item.id === current.id ? merged : item));
+        updatedById.set(current.id, merged);
         updatedIds.push(current.id);
         candidatesById[current.id] = update.candidates;
       } catch {
@@ -402,11 +404,17 @@ export function useSeriesActions({
       }
     }
 
-    if (updatedIds.length > 0) {
-      updateSeries(() => next);
+    if (updatedById.size > 0) {
+      // Se aplican solo las series actualizadas sobre el estado más reciente,
+      // no se reemplaza toda la lista con el snapshot inicial del lote.
+      let nextSeries: Series[] = series;
+      updateSeries((current) => {
+        nextSeries = current.map((item) => updatedById.get(item.id) ?? item);
+        return nextSeries;
+      });
       // Una sola sincronización al terminar, no una por cada serie.
       if (drive.connected) {
-        await drive.syncNow(next);
+        await drive.syncNow(nextSeries);
       }
     }
 

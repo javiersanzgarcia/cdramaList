@@ -62,6 +62,11 @@ export default function App() {
   const [addOpen, setAddOpen] = useState(false);
   const [addTargetId, setAddTargetId] = useState<string | null>(null);
   const [refreshing, setRefreshing] = useState(false);
+  // Distingue si el bloqueo de pantalla viene de actualizar una serie o del
+  // lote de favoritas, para mostrar el mensaje adecuado.
+  const [busyOperation, setBusyOperation] = useState<"series" | "favorites">(
+    "series",
+  );
   // Series con novedades pendientes de revisar tras actualizar las favoritas.
   const [reviewQueue, setReviewQueue] = useState<string[]>([]);
   const [reviewCandidates, setReviewCandidates] = useState<
@@ -193,14 +198,24 @@ export default function App() {
   }
 
   async function refreshFavorites() {
-    const result = await handleRefreshFavorites();
-    if (result.updatedIds.length > 0) {
-      // Se autoabre la primera serie con novedades y el resto espera en la cola.
-      setReviewCandidates(result.candidatesById);
-      setReviewQueue(result.updatedIds);
-      setSelectedSeriesId(result.updatedIds[0]);
+    // Igual que al actualizar una serie, se bloquea toda la interfaz mientras
+    // dura el lote: así no se pueden hacer cambios que luego se perderían al
+    // guardar el resultado ni borrar series que el snapshot resucitaría.
+    setBusyOperation("favorites");
+    setRefreshing(true);
+
+    try {
+      const result = await handleRefreshFavorites();
+      if (result.updatedIds.length > 0) {
+        // Se autoabre la primera serie con novedades y el resto espera en la cola.
+        setReviewCandidates(result.candidatesById);
+        setReviewQueue(result.updatedIds);
+        setSelectedSeriesId(result.updatedIds[0]);
+      }
+      return { updated: result.updatedIds.length, failed: result.failed };
+    } finally {
+      setRefreshing(false);
     }
-    return { updated: result.updatedIds.length, failed: result.failed };
   }
 
   function reviewNext() {
@@ -394,7 +409,10 @@ export default function App() {
           series={selectedSeries}
           semanticConfigured={ENV_SEMANTIC_API_URL.length > 0}
           refreshing={refreshing}
-          onBusyChange={setRefreshing}
+          onBusyChange={(busy) => {
+            setBusyOperation("series");
+            setRefreshing(busy);
+          }}
           onClose={closeSeries}
           onPlay={playSeries}
           onToggleFavorite={toggleFavorite}
@@ -449,8 +467,16 @@ export default function App() {
 
       <BusyOverlay
         open={refreshing}
-        title="Actualizando serie…"
-        message="No cierres la app ni cambies de pantalla. Estamos buscando capítulos y guardando los cambios; puede tardar hasta un minuto."
+        title={
+          busyOperation === "favorites"
+            ? "Actualizando favoritas…"
+            : "Actualizando serie…"
+        }
+        message={
+          busyOperation === "favorites"
+            ? "No cierres la app ni cambies de pantalla. Estamos buscando capítulos nuevos en todas tus favoritas; puede tardar varios minutos."
+            : "No cierres la app ni cambies de pantalla. Estamos buscando capítulos y guardando los cambios; puede tardar hasta un minuto."
+        }
       />
     </div>
   );
