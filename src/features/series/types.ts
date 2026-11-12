@@ -48,7 +48,11 @@ export interface Series {
    * (o «planned» si la serie no tiene actividad).
    */
   status?: SeriesStatus
-  /** Candidatos descartados a mano: no se vuelven a sugerir en las búsquedas. */
+  /**
+   * Vídeos descartados a mano: no se vuelven a sugerir en las búsquedas y
+   * tampoco se re-añaden a las partes. Actúa como lápida de una parte quitada,
+   * para que el merge de la sincronización no la reintroduzca desde otra copia.
+   */
   discardedCandidates?: string[]
   createdAt: number
   updatedAt: number

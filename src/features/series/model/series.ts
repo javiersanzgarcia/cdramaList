@@ -230,6 +230,24 @@ export function mergeParts(existing: Part[], incoming: Part[]): Part[] {
   return sortParts([...byId.values()])
 }
 
+/**
+ * Lápida de parte. Quita de la lista los vídeos descartados a mano (por ejemplo,
+ * al eliminar una parte de la serie). Sin este filtro, cualquier merge —el de la
+ * sincronización con Drive o el de una búsqueda de capítulos— volvería a añadir
+ * la parte desde la copia que todavía la tiene, igual que una serie borrada sin
+ * `deletedAt` reaparecería.
+ */
+export function filterDiscardedParts(
+  parts: Part[],
+  discarded: string[] | undefined
+): Part[] {
+  if (!discarded || discarded.length === 0) return parts
+
+  const blocked = new Set(discarded)
+  const kept = parts.filter((part) => !blocked.has(part.videoId))
+  return kept.length === parts.length ? parts : kept
+}
+
 export interface PartMetaPatch {
   description?: string
   durationSeconds?: number
@@ -311,7 +329,10 @@ export function mergeSeries(
   title: string,
   parts: Part[]
 ): Series {
-  const mergedParts = mergeParts(existing.parts, parts)
+  const mergedParts = filterDiscardedParts(
+    mergeParts(existing.parts, parts),
+    existing.discardedCandidates
+  )
   const existingPartIds = new Set(existing.parts.map((part) => part.videoId))
   const gainedParts = mergedParts.some(
     (part) => !existingPartIds.has(part.videoId)
@@ -667,7 +688,18 @@ export function combineSeries(
     current.lastOpenedAt ?? 0,
     incoming.lastOpenedAt ?? 0
   )
-  const parts = mergeParts(current.parts, incoming.parts)
+  const discardedCandidates = [
+    ...new Set([
+      ...(current.discardedCandidates ?? []),
+      ...(incoming.discardedCandidates ?? [])
+    ])
+  ]
+  const parts = filterDiscardedParts(
+    // Un vídeo quitado a mano no vuelve desde la copia que aún lo tiene: la
+    // lista de descartados es la lápida de la parte.
+    mergeParts(current.parts, incoming.parts),
+    discardedCandidates
+  )
   // Con la base se evita que un cambio en un campo (por ejemplo, marcar una
   // favorita) haga ganar toda la copia y pierda los capítulos vistos que el
   // otro dispositivo había subido.
@@ -726,12 +758,7 @@ export function combineSeries(
     // Se descarta un «completada» que ya no cubra todas las partes, para no
     // propagar una copia antigua con estado «completada» y progreso parcial.
     status: reconcileCompletedStatus(mergedStatus, watched, parts),
-    discardedCandidates: [
-      ...new Set([
-        ...(current.discardedCandidates ?? []),
-        ...(incoming.discardedCandidates ?? [])
-      ])
-    ],
+    discardedCandidates,
     updatedAt: Math.max(current.updatedAt, incoming.updatedAt),
     lastOpenedAt: lastOpenedAt > 0 ? lastOpenedAt : undefined,
     // El borrado es pegajoso: si una de las dos copias tiene lápida, la serie

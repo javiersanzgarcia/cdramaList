@@ -9,6 +9,7 @@ import {
   applyPartDurations,
   applyPartMeta,
   createSeries,
+  filterDiscardedParts,
   learnKeywordConfidence,
   mergeAliasesWithParts,
   mergeParts,
@@ -257,6 +258,12 @@ export function useSeriesActions({
           parts,
           // La parte quitada deja de contar como vista aunque lo estuviera.
           watched,
+          // Lápida de la parte: además de no volver a proponerse en las
+          // búsquedas, impide que el merge de la sincronización la re-añada
+          // desde otra copia que todavía la tenga.
+          discardedCandidates: [
+            ...new Set([...(item.discardedCandidates ?? []), videoId])
+          ],
           // Al cambiar las partes, un «completada» manual puede haber dejado de
           // cubrir la serie; el automático se recalcula solo con seriesStatus.
           status: reconcileCompletedStatus(item.status, watched, parts),
@@ -342,8 +349,12 @@ export function useSeriesActions({
       nextSeries = current.map((existing) => {
         if (existing.id !== item.id || existing.deletedAt) return existing
 
-        // Se conservan las partes añadidas o editadas durante la búsqueda.
-        const parts = mergeParts(existing.parts, update.parts)
+        // Se conservan las partes añadidas o editadas durante la búsqueda, pero
+        // no se reintroduce un vídeo quitado a mano de la serie.
+        const parts = filterDiscardedParts(
+          mergeParts(existing.parts, update.parts),
+          existing.discardedCandidates
+        )
 
         return {
           ...existing,
@@ -481,7 +492,12 @@ export function useSeriesActions({
             continue
           }
 
-          const parts = mergeParts(current.parts, update.parts)
+          // Igual que en la búsqueda individual: no se reintroduce un vídeo
+          // quitado a mano de la serie.
+          const parts = filterDiscardedParts(
+            mergeParts(current.parts, update.parts),
+            current.discardedCandidates
+          )
           const merged: Series = {
             ...current,
             channelId: current.channelId ?? update.channelId,

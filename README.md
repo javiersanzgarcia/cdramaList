@@ -6,7 +6,7 @@ PWA para reunir las partes de una historia de YouTube, guardar el progreso y ver
 
 ## Novedades de la 1.1
 
-- **Quitar partes de una serie.** Cada parte de la ficha tiene una papelera para sacarla de la serie sin borrar la serie entera. Pide confirmación con una segunda pulsación y limpia también su marca de vista.
+- **Quitar partes de una serie.** Cada parte de la ficha tiene una papelera para sacarla de la serie sin borrar la serie entera. Pide confirmación con una segunda pulsación y limpia también su marca de vista. La parte queda marcada como descartada (lápida), así que no reaparece en las búsquedas ni la reintroduce la sincronización desde otra copia.
 
 ## Novedades de la 1.0
 
