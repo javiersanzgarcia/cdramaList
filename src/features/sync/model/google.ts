@@ -137,7 +137,10 @@ export function loadStoredDriveToken(): AccessToken | null {
 
 export function storeDriveToken(token: AccessToken) {
   try {
-    window.sessionStorage.setItem(DRIVE_TOKEN_STORAGE_KEY, JSON.stringify(token))
+    window.sessionStorage.setItem(
+      DRIVE_TOKEN_STORAGE_KEY,
+      JSON.stringify(token)
+    )
   } catch {
     // Sin acceso a sessionStorage: el token queda solo en memoria.
   }
@@ -172,7 +175,7 @@ export async function requestDriveToken(
 
     const client = oauth2.initTokenClient({
       client_id: clientId,
-      scope: DRIVE_SCOPES,
+      scope: GOOGLE_DRIVE_SCOPES,
       callback: (response) => {
         if (settled) return
         settled = true

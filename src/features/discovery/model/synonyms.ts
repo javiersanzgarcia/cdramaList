@@ -3,14 +3,14 @@ import { isStopword } from '../../series/model/titleMatching'
 import { useAppStore } from '../../../store/appStore'
 import type { SynonymCacheEntry } from '../types'
 import {
-  SYNONYM_SYNONYM_CACHE_TTL,
+  SYNONYM_CACHE_TTL,
   SYNONYM_MAX_PER_SENSE,
   SYNONYM_MAX_PER_WORD,
-  SYNONYM_SYNONYM_MAX_QUERY_LENGTH,
-  SYNONYM_SYNONYM_MAX_QUERY_VARIANTS,
-  SYNONYM_SYNONYM_MAX_WORDS,
-  SYNONYM_SYNONYM_NOT_FOUND_TTL,
-  SYNONYM_SYNONYM_REQUEST_TIMEOUT_MS_MS
+  SYNONYM_MAX_QUERY_LENGTH,
+  SYNONYM_MAX_QUERY_VARIANTS,
+  SYNONYM_MAX_WORDS,
+  SYNONYM_NOT_FOUND_TTL,
+  SYNONYM_REQUEST_TIMEOUT_MS
 } from './constants'
 
 const BLOCKED_LABEL =
@@ -73,7 +73,10 @@ export function normalizeWord(value: string): string {
  * palabras vacías ni números. Se priorizan las más largas (suelen ser las más
  * específicas del título).
  */
-export function pickSynonymWords(value: string, limit = SYNONYM_MAX_WORDS): string[] {
+export function pickSynonymWords(
+  value: string,
+  limit = SYNONYM_MAX_WORDS
+): string[] {
   const cleaned = value
     .replace(/https?:\/\/\S+/gi, ' ')
     .replace(/#[\p{L}\p{N}_]+/gu, ' ')
@@ -347,7 +350,11 @@ export function expandQueryWithSynonyms(
   // Solo variantes que cambian una palabra. Añadir demasiados OR hace que
   // YouTube pierda resultados, así que nos quedamos con las dos mejores
   // variantes (la original y una más).
-  for (let round = 0; variants.length < SYNONYM_MAX_QUERY_VARIANTS - 1; round += 1) {
+  for (
+    let round = 0;
+    variants.length < SYNONYM_MAX_QUERY_VARIANTS - 1;
+    round += 1
+  ) {
     let added = false
 
     for (const index of order) {
