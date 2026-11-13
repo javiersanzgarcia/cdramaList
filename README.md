@@ -214,7 +214,7 @@ src/
 
 ### Colores
 
-Todos los colores viven en `src/styles/colors.css` como tokens semánticos de Tailwind v4 (`canvas`, `surface`, `ink`, `brand`, `success`, `warning`…). Los componentes usan utilidades derivadas (`bg-canvas`, `text-ink-muted`, `border-line`, `bg-brand/10`), así que cambiar un valor en ese archivo actualiza toda la interfaz. Evita clases de paleta directas (`bg-zinc-900`, `text-rose-500`) en componentes nuevos.
+Todos los colores viven en `src/styles/colors.css`, que tiene dos capas: `--palette-*` declara cada tono base una sola vez y los tokens semánticos `--color-*` (`canvas`, `surface`, `ink`, `brand`, `success`, `warning`…) lo referencian con `var()`. Los componentes usan utilidades derivadas (`bg-canvas`, `text-ink-muted`, `border-line`, `bg-brand/10`), así que cambiar un tono base actualiza todos los tokens que lo comparten. Evita clases de paleta directas (`bg-zinc-900`, `text-rose-500`) y usar los `--palette-*` en componentes.
 
 ## Datos guardados
 
