@@ -11,6 +11,7 @@ import { BusyOverlay } from './shared/components/BusyOverlay'
 import * as Icon from './shared/components/Icons'
 import { TopBar } from './shared/components/TopBar'
 import { useDriveSync } from './features/sync/hooks/useDriveSync'
+import { buildSnapshot } from './features/sync/model/drive'
 import { useInstallPrompt } from './app/hooks/useInstallPrompt'
 import {
   filterSeries,
@@ -21,10 +22,12 @@ import {
   watchedCount
 } from './features/series/model/series'
 import { useAppStore } from './store/appStore'
+import { LEGACY_CLEANUP_KEYS } from './store/constants'
 import { useSeriesActions } from './features/series/useSeriesActions'
 import type { Filter } from './features/series/types'
 import type { ChapterCandidate } from './features/discovery/types'
 import type { PlayerState, Tab } from './app/types'
+import { APP_NAME, BUSY_HISTORY_KEY } from './shared/lib/constants'
 
 const ENV_CLIENT_ID = (import.meta.env.VITE_GOOGLE_CLIENT_ID ?? '').trim()
 const ENV_YOUTUBE_API_KEY = (import.meta.env.VITE_YOUTUBE_API_KEY ?? '').trim()
@@ -125,7 +128,7 @@ export default function App() {
 
     const guardState = {
       ...(window.history.state ?? {}),
-      cdramalistBusy: true
+      [BUSY_HISTORY_KEY]: true
     }
     window.history.pushState(guardState, '')
 
@@ -133,7 +136,7 @@ export default function App() {
       // Al pulsar «atrás» la entrada de guardia sigue en el historial de avance,
       // así que se recupera con `forward()` en vez de crear una nueva: si se
       // hiciera `pushState` en cada pulsación quedarían entradas fantasma.
-      if (window.history.state?.cdramalistBusy) return
+      if (window.history.state?.[BUSY_HISTORY_KEY]) return
       window.history.forward()
     }
 
@@ -148,7 +151,7 @@ export default function App() {
       window.removeEventListener('popstate', handlePopState)
       window.removeEventListener('beforeunload', handleBeforeUnload)
       // Retira la entrada de guardia sin salir de la app.
-      if (window.history.state?.cdramalistBusy) {
+      if (window.history.state?.[BUSY_HISTORY_KEY]) {
         window.history.back()
       }
     }
@@ -158,9 +161,7 @@ export default function App() {
   // ahora se configura solo con VITE_GOOGLE_CLIENT_ID.
   useEffect(() => {
     try {
-      window.localStorage.removeItem('cdramalist:syncConfig')
-      window.localStorage.removeItem('cdramalist:syncDirty')
-      window.localStorage.removeItem('cdramalist:googleClientId')
+      for (const key of LEGACY_CLEANUP_KEYS) window.localStorage.removeItem(key)
     } catch {
       // Sin acceso a localStorage: no hay nada que limpiar.
     }
@@ -294,14 +295,9 @@ export default function App() {
   }
 
   function handleExport() {
-    const payload = {
-      app: 'cdramalist',
-      version: 2,
-      exportedAt: new Date().toISOString(),
-      // Se exporta también lo borrado (con lápida) para que al importar en otro
-      // dispositivo no reaparezca.
-      series: allSeries
-    }
+    // Se exporta también lo borrado (con lápida) para que al importar en otro
+    // dispositivo no reaparezca.
+    const payload = buildSnapshot(allSeries)
 
     const blob = new Blob([JSON.stringify(payload, null, 2)], {
       type: 'application/json'
@@ -309,7 +305,7 @@ export default function App() {
     const url = URL.createObjectURL(blob)
     const anchor = document.createElement('a')
     anchor.href = url
-    anchor.download = `cdramalist-${new Date().toISOString().slice(0, 10)}.json`
+    anchor.download = `${APP_NAME}-${new Date().toISOString().slice(0, 10)}.json`
     document.body.appendChild(anchor)
     anchor.click()
     anchor.remove()

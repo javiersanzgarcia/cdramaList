@@ -3,6 +3,8 @@ import { isStopword } from '../../series/model/titleMatching'
 import { useAppStore } from '../../../store/appStore'
 import type { SynonymCacheEntry } from '../types'
 import {
+  RAE_API_BASE,
+  SYNONYM_BLOCK_DURATION_MS,
   SYNONYM_CACHE_TTL,
   SYNONYM_MAX_PER_SENSE,
   SYNONYM_MAX_PER_WORD,
@@ -211,7 +213,7 @@ async function requestSynonyms(
 
   try {
     const response = await fetch(
-      `https://rae-api.com/api/words/${encodeURIComponent(word)}`,
+      `${RAE_API_BASE}/${encodeURIComponent(word)}`,
       {
         signal: controller.signal,
         headers: { Accept: 'application/json' }
@@ -219,7 +221,7 @@ async function requestSynonyms(
     )
 
     if (response.status === 429) {
-      blockedUntil = Date.now() + 60_000
+      blockedUntil = Date.now() + SYNONYM_BLOCK_DURATION_MS
       return null
     }
 
@@ -283,7 +285,7 @@ export async function fetchSynonyms(
     missing.length > 0 &&
     fetched.every(({ entry }) => entry === null)
   ) {
-    blockedUntil = Date.now() + 60_000
+    blockedUntil = Date.now() + SYNONYM_BLOCK_DURATION_MS
   }
 
   let changed = false

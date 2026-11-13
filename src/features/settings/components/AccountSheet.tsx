@@ -1,5 +1,5 @@
 import { useSheet } from '../../../shared/hooks/useSheet'
-import type { DriveSync } from '../../sync/hooks/useDriveSync'
+import type { DriveSync } from '../../sync/types'
 import { formatDateTime } from '../../../shared/lib/format'
 import type { GoogleUser } from '../../sync/types'
 import * as Icon from '../../../shared/components/Icons'

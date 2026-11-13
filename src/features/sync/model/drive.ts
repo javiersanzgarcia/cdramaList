@@ -1,10 +1,13 @@
 import type { Series } from '../../series/types'
+import type { DriveErrorCode, DriveSnapshot, SnapshotPayload } from '../types'
 import { isSeries, normalizeSeries } from '../../series/model/series'
 import { APP_NAME, DRIVE_SNAPSHOT_FILE } from '../../../shared/lib/constants'
-import { DRIVE_API_BASE, DRIVE_UPLOAD_API_BASE } from './constants'
-
-export type DriveErrorCode =
-  'auth' | 'permission' | 'network' | 'format' | 'notfound'
+import {
+  DRIVE_API_BASE,
+  DRIVE_FILE_PAGE_SIZE,
+  DRIVE_SNAPSHOT_VERSION,
+  DRIVE_UPLOAD_API_BASE
+} from './constants'
 
 export class DriveError extends Error {
   code?: DriveErrorCode
@@ -14,12 +17,6 @@ export class DriveError extends Error {
     this.name = 'DriveError'
     this.code = code
   }
-}
-
-export interface DriveSnapshot {
-  fileId: string
-  series: Series[]
-  exportedAt?: string
 }
 
 interface DriveFile {
@@ -95,7 +92,7 @@ async function findDriveFile(token: string): Promise<DriveFile | null> {
   const params = new URLSearchParams({
     spaces: 'appDataFolder',
     fields: 'files(id,name,modifiedTime)',
-    pageSize: '100',
+    pageSize: String(DRIVE_FILE_PAGE_SIZE),
     q: `name = '${DRIVE_SNAPSHOT_FILE}' and trashed = false`
   })
 
@@ -116,10 +113,10 @@ async function findDriveFile(token: string): Promise<DriveFile | null> {
   return files[0] ?? null
 }
 
-export function buildSnapshot(series: Series[]) {
+export function buildSnapshot(series: Series[]): SnapshotPayload {
   return {
-    app: 'cdramalist',
-    version: 2,
+    app: APP_NAME,
+    version: DRIVE_SNAPSHOT_VERSION,
     exportedAt: new Date().toISOString(),
     series
   }

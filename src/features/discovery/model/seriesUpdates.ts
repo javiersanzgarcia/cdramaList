@@ -1,5 +1,5 @@
-import type { ChapterCandidate } from '../types'
-import type { Part, SemanticFingerprint, Series } from '../../series/types'
+import type { RankedCandidate, SeriesUpdate, VideoMeta } from '../types'
+import type { Part, Series } from '../../series/types'
 import {
   detectPart,
   extractDescriptionTitle,
@@ -27,7 +27,6 @@ import {
   searchYouTubeVideos
 } from './youtubeApi'
 import { fetchChannelUploads } from './youtubePlaylists'
-import type { VideoMeta } from './youtubeApi'
 import {
   candidateScore,
   combineSearchTerms,
@@ -36,25 +35,25 @@ import {
   toPart,
   uniqueTitles
 } from './seriesCandidateRanking'
-import type { RankedCandidate } from './seriesCandidateRanking'
 import {
   MAX_CANDIDATES,
   MAX_FINGERPRINT_CANDIDATES,
   MAX_GLOBAL_SEARCHES,
   MAX_RECENT_CHANNEL_CANDIDATES,
-  MAX_SEMANTIC_CANDIDATES
+  MAX_SEMANTIC_CANDIDATES,
+  SERIES_UPDATE_DESCRIPTION_MATCH_BONUS,
+  SERIES_UPDATE_DESCRIPTION_OVERLAP,
+  SERIES_UPDATE_DESCRIPTION_RELEVANT_BONUS,
+  SERIES_UPDATE_FINGERPRINT_TITLE_PARTS,
+  SERIES_UPDATE_LEARNING_BONUS_MIN,
+  SERIES_UPDATE_MAX_ERROR_LENGTH,
+  SERIES_UPDATE_SEMANTIC_MIN_SCORE,
+  SERIES_UPDATE_SEMANTIC_MIN_SIMILARITY,
+  SERIES_UPDATE_SEMANTIC_SCORE_WEIGHT,
+  SERIES_UPDATE_TITLE_OVERLAP,
+  SERIES_UPDATE_TITLE_OVERLAP_SAME_CHANNEL,
+  SERIES_UPDATE_TITLE_SHARED_SAME_CHANNEL
 } from './constants'
-
-export interface SeriesUpdate {
-  parts: Part[]
-  added: Part[]
-  candidates: ChapterCandidate[]
-  channelId?: string
-  channelTitle?: string
-  channelUrl?: string
-  semanticFingerprint?: SemanticFingerprint
-  warnings: string[]
-}
 
 /** Busca capítulos de la serie en las subidas del canal y en todo YouTube. */
 export async function discoverSeriesUpdates(
@@ -295,14 +294,18 @@ export async function discoverSeriesUpdates(
     const descriptionRelevant = Boolean(
       descriptionTitle &&
       (descriptionMatch ||
-        (descriptionShared >= minShared && descriptionOverlap >= 0.65) ||
-        (learningBonus >= 4 && descriptionShared >= 1))
+        (descriptionShared >= minShared &&
+          descriptionOverlap >= SERIES_UPDATE_DESCRIPTION_OVERLAP) ||
+        (learningBonus >= SERIES_UPDATE_LEARNING_BONUS_MIN &&
+          descriptionShared >= 1))
     )
     const titleRelevant =
       (titleShared >= minShared &&
-        (titleOverlap >= 0.45 ||
-          (titleOverlap >= 0.3 && (sameChannel || titleShared >= 4)))) ||
-      (learningBonus >= 4 && titleShared >= 1)
+        (titleOverlap >= SERIES_UPDATE_TITLE_OVERLAP ||
+          (titleOverlap >= SERIES_UPDATE_TITLE_OVERLAP_SAME_CHANNEL &&
+            (sameChannel ||
+              titleShared >= SERIES_UPDATE_TITLE_SHARED_SAME_CHANNEL)))) ||
+      (learningBonus >= SERIES_UPDATE_LEARNING_BONUS_MIN && titleShared >= 1)
     const matchedBy: 'title' | 'description' =
       descriptionRelevant &&
       (descriptionMatch || descriptionOverlap >= titleOverlap)
@@ -317,8 +320,10 @@ export async function discoverSeriesUpdates(
       sameChannel,
       learningBonus
     )
-    if (descriptionMatch) score = Math.min(100, score + 12)
-    else if (descriptionRelevant) score = Math.min(100, score + 6)
+    if (descriptionMatch)
+      score = Math.min(100, score + SERIES_UPDATE_DESCRIPTION_MATCH_BONUS)
+    else if (descriptionRelevant)
+      score = Math.min(100, score + SERIES_UPDATE_DESCRIPTION_RELEVANT_BONUS)
 
     const candidate: RankedCandidate = {
       video,
@@ -375,7 +380,9 @@ export async function discoverSeriesUpdates(
                 series.title,
                 ...manualAliases,
                 ...descriptionTitles,
-                ...series.parts.slice(0, 10).map((part) => part.title)
+                ...series.parts
+                  .slice(0, SERIES_UPDATE_FINGERPRINT_TITLE_PARTS)
+                  .map((part) => part.title)
               ].join('\n')
             }
           ]
@@ -405,16 +412,20 @@ export async function discoverSeriesUpdates(
               semanticFingerprint,
               fingerprints.get(candidate.video.videoId)
             )
-            if (similarity < 0.3) continue
+            if (similarity < SERIES_UPDATE_SEMANTIC_MIN_SIMILARITY) continue
 
             const existingIndex = rankedById.get(candidate.video.videoId)
             const baseScore =
               existingIndex == null
-                ? Math.max(candidate.score, 30)
+                ? Math.max(candidate.score, SERIES_UPDATE_SEMANTIC_MIN_SCORE)
                 : candidate.score
             const enhanced = {
               ...candidate,
-              score: Math.min(100, baseScore + Math.round(similarity * 35))
+              score: Math.min(
+                100,
+                baseScore +
+                  Math.round(similarity * SERIES_UPDATE_SEMANTIC_SCORE_WEIGHT)
+              )
             }
             if (existingIndex == null) {
               rankedById.set(candidate.video.videoId, ranked.length)
@@ -429,7 +440,7 @@ export async function discoverSeriesUpdates(
           cause instanceof Error
             ? cause.message
             : 'Error desconocido al consultar el servicio semántico.'
-        const safeDetail = detail.slice(0, 240)
+        const safeDetail = detail.slice(0, SERIES_UPDATE_MAX_ERROR_LENGTH)
         warnings.push(
           `No se pudo analizar la similitud semántica (${safeDetail}); se usarán las coincidencias habituales.`
         )

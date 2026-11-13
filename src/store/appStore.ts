@@ -1,4 +1,3 @@
-import type { Dispatch, SetStateAction } from 'react'
 import { create } from 'zustand'
 import {
   createJSONStorage,
@@ -13,33 +12,10 @@ import {
 } from '../features/series/model/series'
 import type { SynonymCacheEntry } from '../features/discovery/types'
 import type { Series } from '../features/series/types'
-import type { DrivePersistenceState, GoogleUser } from '../features/sync/types'
+import type { DrivePersistenceState } from '../features/sync/types'
 import { STORE_KEY } from '../shared/lib/constants'
-
-const STORE_VERSION = 1
-const LEGACY_KEYS = [
-  'cdramalist:series',
-  'cdramalist:apiKey',
-  'cdramalist:googleUser',
-  'cdramalist:drive',
-  'cdramalist:synonyms:v1'
-]
-
-interface PersistedAppState {
-  series: Series[]
-  apiKeyOverride: string
-  googleUser: GoogleUser | null
-  drive: DrivePersistenceState
-  synonymCache: Record<string, SynonymCacheEntry>
-}
-
-interface AppStore extends PersistedAppState {
-  setSeries: Dispatch<SetStateAction<Series[]>>
-  setApiKeyOverride: (value: string) => void
-  setGoogleUser: (value: GoogleUser | null) => void
-  setDrive: Dispatch<SetStateAction<DrivePersistenceState>>
-  setSynonymCache: (value: Record<string, SynonymCacheEntry>) => void
-}
+import { LEGACY_STORAGE, LEGACY_STORAGE_KEYS, STORE_VERSION } from './constants'
+import type { AppStore, PersistedAppState } from './types'
 
 const DEFAULT_DRIVE_STATE: DrivePersistenceState = {
   enabled: false,
@@ -108,7 +84,7 @@ function readLegacyValue(key: string): unknown {
 }
 
 function migrateLegacyStorage(): PersistedAppState | undefined {
-  const hasLegacyData = LEGACY_KEYS.some((key) => {
+  const hasLegacyData = LEGACY_STORAGE_KEYS.some((key) => {
     try {
       return window.localStorage.getItem(key) !== null
     } catch {
@@ -117,15 +93,13 @@ function migrateLegacyStorage(): PersistedAppState | undefined {
   })
   if (!hasLegacyData) return undefined
 
-  const apiKey = readLegacyValue('cdramalist:apiKey')
+  const apiKey = readLegacyValue(LEGACY_STORAGE.apiKey)
   return {
-    series: sanitizeSeries(readLegacyValue('cdramalist:series')),
+    series: sanitizeSeries(readLegacyValue(LEGACY_STORAGE.series)),
     apiKeyOverride: typeof apiKey === 'string' ? apiKey : '',
-    googleUser: sanitizeGoogleUser(readLegacyValue('cdramalist:googleUser')),
-    drive: sanitizeDriveState(readLegacyValue('cdramalist:drive')),
-    synonymCache: sanitizeSynonymCache(
-      readLegacyValue('cdramalist:synonyms:v1')
-    )
+    googleUser: sanitizeGoogleUser(readLegacyValue(LEGACY_STORAGE.googleUser)),
+    drive: sanitizeDriveState(readLegacyValue(LEGACY_STORAGE.drive)),
+    synonymCache: sanitizeSynonymCache(readLegacyValue(LEGACY_STORAGE.synonyms))
   }
 }
 
@@ -143,7 +117,7 @@ const storage: StateStorage = {
         version: STORE_VERSION
       })
       window.localStorage.setItem(name, migrated)
-      for (const key of LEGACY_KEYS) window.localStorage.removeItem(key)
+      for (const key of LEGACY_STORAGE_KEYS) window.localStorage.removeItem(key)
       return migrated
     } catch {
       return null

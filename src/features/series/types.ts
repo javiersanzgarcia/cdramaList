@@ -1,4 +1,7 @@
 import type { ChapterCandidate } from '../discovery/types'
+import type { Dispatch, SetStateAction } from 'react'
+import type { PlayerState } from '../../app/types'
+import type { DriveSync } from '../sync/types'
 
 export type SeriesStatus = 'watching' | 'planned' | 'completed'
 
@@ -16,6 +19,19 @@ export interface Part {
   publishedAt?: string
   thumbnail?: string
   addedAt: number
+}
+
+/** Información de parte detectada en el título de un vídeo. */
+export interface PartInfo {
+  partNumber?: number
+  totalParts?: number
+  isFinal: boolean
+}
+
+/** Metadatos de vídeo que se pueden aplicar a una parte. */
+export interface PartMetaPatch {
+  description?: string
+  durationSeconds?: number
 }
 
 export interface SemanticFingerprint {
@@ -82,4 +98,26 @@ export interface SeriesDraft {
   existingSeriesId?: string
   warnings: string[]
   selectedIds: string[]
+}
+
+/** Opciones con las que se construye el hook de acciones de series. */
+export interface UseSeriesActionsOptions {
+  series: Series[]
+  setSeries: Dispatch<SetStateAction<Series[]>>
+  apiKey: string
+  semanticEndpoint: string
+  drive: Pick<DriveSync, 'connected' | 'syncNow'>
+  setSelectedSeriesId: Dispatch<SetStateAction<string | null>>
+  setPlayer: Dispatch<SetStateAction<PlayerState | null>>
+  setAddTargetId: Dispatch<SetStateAction<string | null>>
+  setAddOpen: Dispatch<SetStateAction<boolean>>
+}
+
+/** Resumen de una actualización masiva de favoritas. */
+export interface RefreshFavoritesResult {
+  updatedIds: string[]
+  candidatesById: Record<string, ChapterCandidate[]>
+  failed: number
+  warnings: string[]
+  syncFailed: boolean
 }

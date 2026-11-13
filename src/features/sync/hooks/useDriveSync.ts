@@ -1,20 +1,11 @@
-import {
-  useCallback,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-  type Dispatch,
-  type SetStateAction
-} from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import {
   clearStoredDriveToken,
   fetchGoogleUserInfo,
   loadStoredDriveToken,
   requestDriveToken,
   revokeGoogleToken,
-  storeDriveToken,
-  type AccessToken
+  storeDriveToken
 } from '../model/google'
 import {
   DriveError,
@@ -24,12 +15,16 @@ import {
 } from '../model/drive'
 import { mergeSeriesCollections } from '../../series/model/series'
 import { AUTO_SYNC_DEBOUNCE_MS } from '../model/constants'
-import type { DrivePersistenceState, GoogleUser, SyncMessage } from '../types'
+import type {
+  AccessToken,
+  DrivePersistenceState,
+  DriveSync,
+  DriveSyncStatus,
+  SyncMessage,
+  UseDriveSyncOptions
+} from '../types'
 import type { Series } from '../../series/types'
 import { useAppStore } from '../../../store/appStore'
-
-export type DriveSyncStatus =
-  'disconnected' | 'connecting' | 'syncing' | 'synced' | 'error'
 
 type DriveState = DrivePersistenceState
 
@@ -37,31 +32,6 @@ function errorMessage(cause: unknown): string {
   return cause instanceof Error
     ? cause.message
     : 'No se pudo completar la sincronización con Google Drive.'
-}
-
-export interface DriveSync {
-  configured: boolean
-  connected: boolean
-  auto: boolean
-  dirty: boolean
-  busy: boolean
-  status: DriveSyncStatus
-  email: string | null
-  lastSyncedAt: number | null
-  message: SyncMessage | null
-  connect: () => Promise<boolean>
-  disconnect: () => void
-  syncNow: (seriesOverride?: Series[]) => Promise<boolean>
-  upload: () => Promise<void>
-  download: () => Promise<void>
-  setAuto: (auto: boolean) => void
-}
-
-interface UseDriveSyncOptions {
-  clientId: string
-  series: Series[]
-  setSeries: Dispatch<SetStateAction<Series[]>>
-  onUser: (user: GoogleUser | null) => void
 }
 
 export function useDriveSync({

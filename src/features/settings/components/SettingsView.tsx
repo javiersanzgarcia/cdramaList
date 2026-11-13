@@ -133,7 +133,9 @@ export function SettingsView({
             </div>
             <div>
               <p className="font-semibold">CdramaList</p>
-              <p className="text-xs text-zinc-500">Versión 1.2.0 · PWA</p>
+              <p className="text-xs text-zinc-500">
+                Versión {__APP_VERSION__} · PWA
+              </p>
             </div>
           </div>
           <p className="mt-3 text-sm leading-relaxed text-zinc-400">

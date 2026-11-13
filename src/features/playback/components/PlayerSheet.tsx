@@ -3,9 +3,10 @@ import { formatDuration } from '../../../shared/lib/format'
 import { partLabel } from '../../series/model/parts'
 import { progressPercent, watchedCount } from '../../series/model/series'
 import { fetchVideoMeta } from '../../discovery/model/youtubeApi'
-import type { Series } from '../../series/types'
+import type { PartMetaPatch, Series } from '../../series/types'
 import { useSheet } from '../../../shared/hooks/useSheet'
 import * as Icon from '../../../shared/components/Icons'
+import { YOUTUBE_WATCH_URL } from '../constants'
 import { YouTubePlayer } from './YouTubePlayer'
 
 interface PlayerSheetProps {
@@ -17,7 +18,7 @@ interface PlayerSheetProps {
   onUpdatePartMeta: (
     seriesId: string,
     videoId: string,
-    patch: { description?: string; durationSeconds?: number }
+    patch: PartMetaPatch
   ) => void
   onFillDurations: (series: Series) => Promise<void>
 }
@@ -95,7 +96,7 @@ export function PlayerSheet({
           })
         }
 
-        const patch: { description?: string; durationSeconds?: number } = {}
+        const patch: PartMetaPatch = {}
         if (text && !part.description) patch.description = text
         if (meta.durationSeconds && part.durationSeconds == null) {
           patch.durationSeconds = meta.durationSeconds
@@ -141,7 +142,7 @@ export function PlayerSheet({
   )
   const hasPrevious = safeIndex > 0
   const hasNext = safeIndex < total - 1
-  const watchUrl = `https://www.youtube.com/watch?v=${part.videoId}`
+  const watchUrl = `${YOUTUBE_WATCH_URL}${part.videoId}`
 
   function goTo(nextIndex: number) {
     if (nextIndex < 0 || nextIndex >= total) return

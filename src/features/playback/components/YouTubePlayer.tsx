@@ -1,4 +1,10 @@
 import { useEffect, useRef, useState } from 'react'
+import {
+  YOUTUBE_EMBED_BASE,
+  YOUTUBE_IFRAME_API_SRC,
+  YOUTUBE_PLAYER_ENDED_STATE,
+  YOUTUBE_PLAYER_TIMEOUT_MS
+} from '../constants'
 
 interface YTPlayer {
   loadVideoById: (options: { videoId: string; startSeconds?: number }) => void
@@ -29,8 +35,7 @@ declare global {
   }
 }
 
-const ENDED = 0
-const API_TIMEOUT = 12_000
+const ENDED = YOUTUBE_PLAYER_ENDED_STATE
 
 let apiPromise: Promise<YTNamespace> | null = null
 
@@ -41,7 +46,7 @@ function loadYouTubeApi(): Promise<YTNamespace> {
   apiPromise = new Promise<YTNamespace>((resolve, reject) => {
     const timeout = window.setTimeout(() => {
       reject(new Error('YouTube no ha respondido a tiempo.'))
-    }, API_TIMEOUT)
+    }, YOUTUBE_PLAYER_TIMEOUT_MS)
 
     const previous = window.onYouTubeIframeAPIReady
     window.onYouTubeIframeAPIReady = () => {
@@ -53,7 +58,7 @@ function loadYouTubeApi(): Promise<YTNamespace> {
 
     if (!document.querySelector('script[data-youtube-iframe-api]')) {
       const script = document.createElement('script')
-      script.src = 'https://www.youtube.com/iframe_api'
+      script.src = YOUTUBE_IFRAME_API_SRC
       script.async = true
       script.dataset.youtubeIframeApi = 'true'
       script.addEventListener('error', () => {
@@ -172,7 +177,7 @@ export function YouTubePlayer({
       {mode === 'fallback' && (
         <iframe
           key={videoId}
-          src={`https://www.youtube-nocookie.com/embed/${videoId}?autoplay=1&playsinline=1&rel=0`}
+          src={`${YOUTUBE_EMBED_BASE}/${videoId}?autoplay=1&playsinline=1&rel=0`}
           title="Reproductor de YouTube"
           allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
           allowFullScreen

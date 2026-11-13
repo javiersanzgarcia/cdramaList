@@ -1,5 +1,12 @@
 import { normalizeText, stripPartMarkers } from './parts'
 import { STOPWORDS } from './stopwords'
+import {
+  KEYWORD_BONUS_MULTIPLIER,
+  KEYWORD_BONUS_PER_WORD,
+  MAX_KEYWORD_BONUS,
+  MAX_TITLE_QUERY_LENGTH,
+  MAX_TITLE_QUERY_WORDS
+} from './constants'
 
 export function buildSearchQuery(title: string): string {
   const base = stripPartMarkers(title)
@@ -16,9 +23,9 @@ export function buildSearchQuery(title: string): string {
   const meaningful = words.filter((word) => !STOPWORDS.has(normalizeText(word)))
 
   return (meaningful.length > 0 ? meaningful : words)
-    .slice(0, 10)
+    .slice(0, MAX_TITLE_QUERY_WORDS)
     .join(' ')
-    .slice(0, 100)
+    .slice(0, MAX_TITLE_QUERY_LENGTH)
 }
 
 /**
@@ -38,7 +45,7 @@ export function buildGlobalSearchQuery(title: string): string {
     .replace(/\s+/g, ' ')
     .trim()
 
-  return (cleaned || meaningful).slice(0, 100)
+  return (cleaned || meaningful).slice(0, MAX_TITLE_QUERY_LENGTH)
 }
 
 export function isStopword(value: string): boolean {
@@ -90,10 +97,10 @@ export function keywordConfidenceBonus(
 
   for (const keyword of keywords) {
     const score = Object.hasOwn(confidence, keyword) ? confidence[keyword] : 0
-    total += Math.min(3, Math.max(0, score))
+    total += Math.min(KEYWORD_BONUS_PER_WORD, Math.max(0, score))
   }
 
-  return Math.min(12, total * 2)
+  return Math.min(MAX_KEYWORD_BONUS, total * KEYWORD_BONUS_MULTIPLIER)
 }
 
 export function tokenCount(value: string): number {

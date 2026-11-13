@@ -1,13 +1,30 @@
-import type { Filter, Part, Series, SeriesDraft, SeriesStatus } from '../types'
+import type {
+  Filter,
+  Part,
+  PartMetaPatch,
+  Series,
+  SeriesDraft,
+  SeriesStatus
+} from '../types'
 import { normalizeSemanticFingerprint } from '../../discovery/model/semanticAi'
+import {
+  YOUTUBE_CHANNEL_FALLBACK,
+  YOUTUBE_VIDEO_FALLBACK_TITLE
+} from '../../discovery/model/constants'
 import { sortParts, stripPartMarkers } from './parts'
 import { extractKeywords, titleSimilarity } from './titleMatching'
 import { statusOrder } from './status'
 import {
   DELETED_SERIES_TTL,
+  MAX_ALIAS_LENGTH,
   MAX_KEYWORD_CONFIDENCE,
   MAX_KEYWORD_CONFIDENCE_ENTRIES,
-  MAX_SERIES_ALIASES
+  MAX_PART_DESCRIPTION_LENGTH,
+  MAX_SERIES_ALIASES,
+  MIN_ALIAS_LENGTH,
+  MIN_SERIES_TITLE_LENGTH,
+  SERIES_MATCH_MIN_SIMILARITY,
+  SERIES_MATCH_SAME_CHANNEL_SIMILARITY
 } from './constants'
 
 export function watchedCount(series: Series): number {
@@ -137,7 +154,7 @@ export function findExistingSeries(
   const matches = series
     .filter((item) => {
       const similarity = titleSimilarity(item.title, draft.title)
-      if (similarity < 0.6) return false
+      if (similarity < SERIES_MATCH_MIN_SIMILARITY) return false
 
       if (draft.channelId && item.channelId) {
         return draft.channelId === item.channelId
@@ -147,10 +164,12 @@ export function findExistingSeries(
         !draft.channelTitle ||
         !item.channelTitle ||
         draft.channelTitle === item.channelTitle ||
-        draft.channelTitle === 'YouTube' ||
-        item.channelTitle === 'YouTube'
+        draft.channelTitle === YOUTUBE_CHANNEL_FALLBACK ||
+        item.channelTitle === YOUTUBE_CHANNEL_FALLBACK
 
-      return sameChannelName && similarity >= 0.75
+      return (
+        sameChannelName && similarity >= SERIES_MATCH_SAME_CHANNEL_SIMILARITY
+      )
     })
     .sort(
       (a, b) =>
@@ -270,7 +289,8 @@ function combineRemovedParts(
 
   for (const [videoId, removedAt] of Object.entries(incoming ?? {})) {
     const previous = merged[videoId]
-    merged[videoId] = previous == null ? removedAt : Math.max(previous, removedAt)
+    merged[videoId] =
+      previous == null ? removedAt : Math.max(previous, removedAt)
   }
 
   return Object.keys(merged).length > 0 ? merged : undefined
@@ -307,16 +327,6 @@ function keepPendingRemovals(
     if (removedAt != null && part.addedAt > removedAt) lifted.push(part.videoId)
   }
   return clearRemovedParts(removed, lifted)
-}
-
-export interface PartMetaPatch {
-  description?: string
-  durationSeconds?: number
-}
-
-export interface PartDurationMeta {
-  description?: string
-  durationSeconds?: number
 }
 
 /** Aplica metadatos de un vídeo (descripción y duración) a una parte. */
@@ -359,7 +369,7 @@ export function applyPartMeta(
 /** Rellena las duraciones que falten a partir de los metadatos de YouTube. */
 export function applyPartDurations(
   series: Series,
-  metas: Map<string, PartDurationMeta>
+  metas: Map<string, PartMetaPatch>
 ): Series {
   let changed = false
   const parts = series.parts.map((part) => {
@@ -415,7 +425,7 @@ export function mergeSeries(
     // «YouTube» es el valor por defecto cuando no se conoce el canal; si ahora
     // llega el canal real, se actualiza (igual que hace handleRefreshSeries).
     channelTitle:
-      existing.channelTitle === 'YouTube' && draft.channelTitle
+      existing.channelTitle === YOUTUBE_CHANNEL_FALLBACK && draft.channelTitle
         ? draft.channelTitle
         : existing.channelTitle,
     channelUrl: existing.channelUrl ?? draft.channelUrl,
@@ -521,8 +531,8 @@ export function normalizeAliases(value: unknown): string[] {
   for (const entry of value) {
     if (typeof entry !== 'string') continue
 
-    const alias = entry.trim().replace(/\s+/g, ' ').slice(0, 120)
-    if (alias.length < 2) continue
+    const alias = entry.trim().replace(/\s+/g, ' ').slice(0, MAX_ALIAS_LENGTH)
+    if (alias.length < MIN_ALIAS_LENGTH) continue
 
     const key = alias.toLowerCase()
     if (seen.has(key)) continue
@@ -554,7 +564,8 @@ export function normalizeDiscardedCandidates(value: unknown): string[] {
 export function normalizeRemovedParts(
   value: unknown
 ): Record<string, number> | undefined {
-  if (!value || typeof value !== 'object' || Array.isArray(value)) return undefined
+  if (!value || typeof value !== 'object' || Array.isArray(value))
+    return undefined
 
   const entries = Object.entries(value as Record<string, unknown>).filter(
     (entry): entry is [string, number] =>
@@ -580,7 +591,7 @@ export function youtubeTitleAliases(parts: Part[]): string[] {
       )
       .replace(/[\s\-–—|:]+$/gu, '')
       .trim()
-    if (title.length < 2) continue
+    if (title.length < MIN_SERIES_TITLE_LENGTH) continue
 
     const key = title.toLowerCase()
     if (seen.has(key)) continue
@@ -639,7 +650,7 @@ export function normalizeSeries(value: Series): Series {
       value.semanticFingerprint
     ),
     channelId: value.channelId,
-    channelTitle: value.channelTitle || 'YouTube',
+    channelTitle: value.channelTitle || YOUTUBE_CHANNEL_FALLBACK,
     channelUrl: value.channelUrl,
     thumbnail: value.thumbnail,
     parts: value.parts
@@ -652,10 +663,10 @@ export function normalizeSeries(value: Series): Series {
         title:
           typeof part.title === 'string' && part.title.length > 0
             ? part.title
-            : 'Vídeo de YouTube',
+            : YOUTUBE_VIDEO_FALLBACK_TITLE,
         description:
           typeof part.description === 'string'
-            ? part.description.slice(0, 5000)
+            ? part.description.slice(0, MAX_PART_DESCRIPTION_LENGTH)
             : undefined,
         partNumber:
           typeof part.partNumber === 'number' ? part.partNumber : undefined,

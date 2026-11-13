@@ -1,10 +1,5 @@
-import type { ChapterCandidate } from '../types'
+import type { CandidateState, ChapterCandidate } from '../types'
 import type { Part } from '../../series/types'
-
-export interface CandidateState {
-  numbers: Record<string, string>
-  finals: Record<string, boolean>
-}
 
 /**
  * Asigna un número por defecto a cada candidato: usa el detectado si está

@@ -1,14 +1,17 @@
 import type { SemanticFingerprint } from '../../series/types'
+import type { FingerprintInput } from '../types'
 import {
   SEMANTIC_MAX_ENTRIES_PER_REQUEST,
+  SEMANTIC_MAX_ERROR_LENGTH,
+  SEMANTIC_MAX_TAGS,
+  SEMANTIC_MAX_TAG_LENGTH,
   SEMANTIC_MAX_TEXT_LENGTH,
-  SEMANTIC_REQUEST_TIMEOUT_MS
+  SEMANTIC_MIN_SHARED_TAGS,
+  SEMANTIC_MIN_TAG_LENGTH,
+  SEMANTIC_REQUEST_TIMEOUT_MS,
+  SEMANTIC_RETRY_DEFAULT_DELAY_MS,
+  SEMANTIC_RETRY_MAX_DELAY_MS
 } from './constants'
-
-export interface FingerprintInput {
-  id: string
-  text: string
-}
 
 interface SemanticResponse {
   items?: unknown
@@ -37,11 +40,11 @@ function normalizeTags(value: unknown): string[] {
             .toLowerCase()
             .replace(/[^a-z0-9]+/g, '_')
             .replace(/^_+|_+$/g, '')
-            .slice(0, 40)
+            .slice(0, SEMANTIC_MAX_TAG_LENGTH)
         )
-        .filter((tag) => tag.length >= 2)
+        .filter((tag) => tag.length >= SEMANTIC_MIN_TAG_LENGTH)
     )
-  ].slice(0, 12)
+  ].slice(0, SEMANTIC_MAX_TAGS)
 }
 
 export function normalizeSemanticFingerprint(
@@ -67,13 +70,13 @@ export function normalizeSemanticFingerprint(
 function retryDelay(response: Response): number {
   const retryAfter = Number(response.headers.get('Retry-After'))
   return Number.isFinite(retryAfter) && retryAfter >= 0
-    ? Math.min(retryAfter * 1000, 5000)
-    : 1000
+    ? Math.min(retryAfter * 1000, SEMANTIC_RETRY_MAX_DELAY_MS)
+    : SEMANTIC_RETRY_DEFAULT_DELAY_MS
 }
 
 function errorMessage(body: SemanticResponse, status: number): string {
   if (typeof body.error === 'string' && body.error.trim()) {
-    return body.error.trim().slice(0, 240)
+    return body.error.trim().slice(0, SEMANTIC_MAX_ERROR_LENGTH)
   }
   return `El servicio semántico respondió con código ${status}.`
 }
@@ -107,7 +110,9 @@ async function requestFingerprints(
   } catch (cause) {
     if (timedOut) {
       throw new Error(
-        'El servicio semántico agotó el tiempo máximo de respuesta de 60 segundos.'
+        `El servicio semántico agotó el tiempo máximo de respuesta de ${
+          SEMANTIC_REQUEST_TIMEOUT_MS / 1000
+        } segundos.`
       )
     }
     throw cause
@@ -186,7 +191,9 @@ async function requestFingerprintChunk(
     }
     if (Date.now() >= deadline) {
       throw new Error(
-        'El servicio semántico agotó el tiempo máximo de respuesta de 60 segundos.'
+        `El servicio semántico agotó el tiempo máximo de respuesta de ${
+          SEMANTIC_REQUEST_TIMEOUT_MS / 1000
+        } segundos.`
       )
     }
     result = await request()
@@ -240,5 +247,5 @@ export function semanticSimilarity(
     }
   }
 
-  return shared >= 2 && union > 0 ? shared / union : 0
+  return shared >= SEMANTIC_MIN_SHARED_TAGS && union > 0 ? shared / union : 0
 }

@@ -1,22 +1,19 @@
-import type { ChapterCandidate } from '../types'
-import type { Part } from '../../series/types'
-import { detectPart } from '../../series/model/parts'
+import type { ChapterCandidate, VideoMeta } from '../types'
+import type { Part, PartInfo } from '../../series/types'
 import {
   normalizedBaseTitle,
   tokenCount
 } from '../../series/model/titleMatching'
 import { channelUrlFor, youtubeThumbnail } from './youtubeApi'
-import type { VideoMeta } from './youtubeApi'
-import { MAX_SEARCH_QUERY_LENGTH, MAX_SEARCH_TERMS } from './constants'
-
-export interface RankedCandidate {
-  video: VideoMeta
-  info: ReturnType<typeof detectPart>
-  source: 'channel' | 'search'
-  score: number
-  descriptionTitle?: string
-  matchedBy: 'title' | 'description'
-}
+import {
+  CANDIDATE_SCORE_FINAL,
+  CANDIDATE_SCORE_OVERLAP_WEIGHT,
+  CANDIDATE_SCORE_PART_NUMBER,
+  CANDIDATE_SCORE_SAME_CHANNEL,
+  CANDIDATE_SCORE_SHARED_WEIGHT,
+  MAX_SEARCH_QUERY_LENGTH,
+  MAX_SEARCH_TERMS
+} from './constants'
 
 export function uniqueTitles(values: Array<string | undefined>): string[] {
   const titles: string[] = []
@@ -81,7 +78,7 @@ export function pickDescriptionReference(values: string[]): string | undefined {
 }
 
 export function candidateScore(
-  info: ReturnType<typeof detectPart>,
+  info: PartInfo,
   overlap: number,
   shared: number,
   referenceTokenCount: number,
@@ -91,18 +88,18 @@ export function candidateScore(
   const sharedRatio = referenceTokenCount > 0 ? shared / referenceTokenCount : 0
 
   return Math.round(
-    Math.min(overlap, 1) * 55 +
-      Math.min(sharedRatio, 1) * 20 +
-      (info.partNumber != null ? 12 : 0) +
-      (info.isFinal ? 5 : 0) +
-      (sameChannel ? 8 : 0) +
+    Math.min(overlap, 1) * CANDIDATE_SCORE_OVERLAP_WEIGHT +
+      Math.min(sharedRatio, 1) * CANDIDATE_SCORE_SHARED_WEIGHT +
+      (info.partNumber != null ? CANDIDATE_SCORE_PART_NUMBER : 0) +
+      (info.isFinal ? CANDIDATE_SCORE_FINAL : 0) +
+      (sameChannel ? CANDIDATE_SCORE_SAME_CHANNEL : 0) +
       confidenceBonus
   )
 }
 
 export function toCandidate(
   video: VideoMeta,
-  info: ReturnType<typeof detectPart>,
+  info: PartInfo,
   source: 'channel' | 'search',
   score: number,
   descriptionTitle: string | undefined,
@@ -130,10 +127,7 @@ export function toCandidate(
   }
 }
 
-export function toPart(
-  video: VideoMeta,
-  info: ReturnType<typeof detectPart>
-): Part {
+export function toPart(video: VideoMeta, info: PartInfo): Part {
   return {
     videoId: video.videoId,
     title: video.title,

@@ -1,14 +1,23 @@
 import { parseIsoDuration } from '../../../shared/lib/format'
+import type { ParsedYouTubeUrl, Thumbnails, VideoMeta } from '../types'
+import {
+  YOUTUBE_API_BASE,
+  YOUTUBE_CHANNEL_BASE,
+  YOUTUBE_CHANNEL_FALLBACK,
+  YOUTUBE_HOSTS,
+  YOUTUBE_MAX_VIDEOS_PER_REQUEST,
+  YOUTUBE_OEMBED_URL,
+  YOUTUBE_PROXIES,
+  YOUTUBE_PROXY_TIMEOUT_MS,
+  YOUTUBE_REQUEST_TIMEOUT_MS,
+  YOUTUBE_SEARCH_LANGUAGE,
+  YOUTUBE_SEARCH_MAX_RESULTS,
+  YOUTUBE_THUMBNAIL_BASE,
+  YOUTUBE_VIDEO_FALLBACK_TITLE,
+  YOUTUBE_WATCH_URL
+} from './constants'
 
-const API_BASE = 'https://www.googleapis.com/youtube/v3'
-
-export interface Thumbnails {
-  default?: { url: string }
-  medium?: { url: string }
-  high?: { url: string }
-  standard?: { url: string }
-  maxres?: { url: string }
-}
+export type { ParsedYouTubeUrl, Thumbnails, VideoMeta } from '../types'
 
 interface VideoSnippet {
   title: string
@@ -38,24 +47,6 @@ interface GoogleErrorBody {
   }
 }
 
-export interface VideoMeta {
-  videoId: string
-  title: string
-  channelId?: string
-  channelTitle: string
-  channelUrl?: string
-  publishedAt?: string
-  description?: string
-  tags?: string[]
-  thumbnail?: string
-  durationSeconds?: number
-}
-
-export interface ParsedYouTubeUrl {
-  videoId?: string
-  playlistId?: string
-}
-
 export class YouTubeError extends Error {
   reason?: string
 
@@ -70,11 +61,11 @@ const VIDEO_ID = /^[\w-]{11}$/
 const PLAYLIST_ID = /^[\w-]{10,}$/
 
 export function youtubeThumbnail(videoId: string): string {
-  return `https://i.ytimg.com/vi/${videoId}/hqdefault.jpg`
+  return `${YOUTUBE_THUMBNAIL_BASE}/${videoId}/hqdefault.jpg`
 }
 
 export function channelUrlFor(channelId: string): string {
-  return `https://www.youtube.com/channel/${channelId}`
+  return `${YOUTUBE_CHANNEL_BASE}/${channelId}`
 }
 
 export function pickThumbnail(thumbnails?: Thumbnails): string | undefined {
@@ -110,7 +101,7 @@ export async function fetchJson<T>(
   params: Record<string, string>,
   apiKey: string
 ): Promise<T> {
-  const url = new URL(`${API_BASE}/${endpoint}`)
+  const url = new URL(`${YOUTUBE_API_BASE}/${endpoint}`)
 
   for (const [key, value] of Object.entries(params)) {
     url.searchParams.set(key, value)
@@ -119,7 +110,10 @@ export async function fetchJson<T>(
 
   let response: Response
   const controller = new AbortController()
-  const timeout = setTimeout(() => controller.abort(), 20_000)
+  const timeout = setTimeout(
+    () => controller.abort(),
+    YOUTUBE_REQUEST_TIMEOUT_MS
+  )
   try {
     response = await fetch(url.toString(), { signal: controller.signal })
   } catch {
@@ -188,14 +182,7 @@ export function parseYouTubeUrl(input: string): ParsedYouTubeUrl | null {
   }
 
   const host = url.hostname.replace(/^www\./, '').replace(/^m\./, '')
-  if (
-    ![
-      'youtube.com',
-      'youtu.be',
-      'music.youtube.com',
-      'youtube-nocookie.com'
-    ].includes(host)
-  ) {
+  if (!YOUTUBE_HOSTS.includes(host as (typeof YOUTUBE_HOSTS)[number])) {
     return null
   }
 
@@ -250,8 +237,12 @@ export async function fetchVideosByIds(
   if (unique.length === 0) return result
 
   const chunks: string[][] = []
-  for (let index = 0; index < unique.length; index += 50) {
-    chunks.push(unique.slice(index, index + 50))
+  for (
+    let index = 0;
+    index < unique.length;
+    index += YOUTUBE_MAX_VIDEOS_PER_REQUEST
+  ) {
+    chunks.push(unique.slice(index, index + YOUTUBE_MAX_VIDEOS_PER_REQUEST))
   }
 
   const pages = await Promise.all(
@@ -261,7 +252,7 @@ export async function fetchVideosByIds(
         {
           part: 'snippet,contentDetails',
           id: chunk.join(','),
-          maxResults: '50'
+          maxResults: String(YOUTUBE_MAX_VIDEOS_PER_REQUEST)
         },
         apiKey
       )
@@ -285,7 +276,7 @@ export async function fetchVideosByIds(
 export async function searchYouTubeVideos(
   query: string,
   apiKey: string,
-  maxResults = 50
+  maxResults = YOUTUBE_SEARCH_MAX_RESULTS
 ): Promise<VideoMeta[]> {
   const term = query.trim()
   if (!term) return []
@@ -296,9 +287,11 @@ export async function searchYouTubeVideos(
       part: 'snippet',
       q: term,
       type: 'video',
-      maxResults: String(Math.min(Math.max(maxResults, 1), 50)),
+      maxResults: String(
+        Math.min(Math.max(maxResults, 1), YOUTUBE_MAX_VIDEOS_PER_REQUEST)
+      ),
       order: 'relevance',
-      relevanceLanguage: 'es'
+      relevanceLanguage: YOUTUBE_SEARCH_LANGUAGE
     },
     apiKey
   )
@@ -335,18 +328,20 @@ export async function searchYouTubeVideos(
 export async function fetchVideoMetaWithoutKey(
   videoId: string
 ): Promise<VideoMeta> {
-  const endpoint = `https://www.youtube.com/oembed?url=${encodeURIComponent(
-    `https://www.youtube.com/watch?v=${videoId}`
+  const endpoint = `${YOUTUBE_OEMBED_URL}?url=${encodeURIComponent(
+    `${YOUTUBE_WATCH_URL}${videoId}`
   )}&format=json`
 
-  const proxies = [
-    `https://api.allorigins.win/raw?url=${encodeURIComponent(endpoint)}`,
-    `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(endpoint)}`
-  ]
+  const proxies = YOUTUBE_PROXIES.map(
+    (proxy) => `${proxy}${encodeURIComponent(endpoint)}`
+  )
 
   for (const proxy of proxies) {
     const controller = new AbortController()
-    const timeout = window.setTimeout(() => controller.abort(), 8_000)
+    const timeout = window.setTimeout(
+      () => controller.abort(),
+      YOUTUBE_PROXY_TIMEOUT_MS
+    )
 
     try {
       const response = await fetch(proxy, { signal: controller.signal })
@@ -361,8 +356,8 @@ export async function fetchVideoMetaWithoutKey(
 
       return {
         videoId,
-        title: data.title || 'Vídeo de YouTube',
-        channelTitle: data.author_name || 'YouTube',
+        title: data.title || YOUTUBE_VIDEO_FALLBACK_TITLE,
+        channelTitle: data.author_name || YOUTUBE_CHANNEL_FALLBACK,
         channelUrl: data.author_url,
         thumbnail: data.thumbnail_url || youtubeThumbnail(videoId)
       }
@@ -375,8 +370,8 @@ export async function fetchVideoMetaWithoutKey(
 
   return {
     videoId,
-    title: 'Vídeo de YouTube',
-    channelTitle: 'YouTube',
+    title: YOUTUBE_VIDEO_FALLBACK_TITLE,
+    channelTitle: YOUTUBE_CHANNEL_FALLBACK,
     thumbnail: youtubeThumbnail(videoId)
   }
 }

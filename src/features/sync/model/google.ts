@@ -1,9 +1,12 @@
-import type { GoogleUser } from '../types'
+import type { AccessToken, GoogleUser } from '../types'
 import { DRIVE_TOKEN_STORAGE_KEY } from '../../../shared/lib/constants'
 import {
   GOOGLE_DRIVE_SCOPES,
   GOOGLE_SCRIPT_SRC,
-  GOOGLE_SCRIPT_TIMEOUT_MS
+  GOOGLE_SCRIPT_TIMEOUT_MS,
+  GOOGLE_TOKEN_DEFAULT_LIFETIME_S,
+  GOOGLE_TOKEN_EXPIRY_MARGIN_S,
+  GOOGLE_USERINFO_URL
 } from './constants'
 
 interface GoogleTokenResponse {
@@ -99,11 +102,6 @@ export function loadGoogleIdentity(): Promise<GoogleNamespace> {
   return scriptPromise
 }
 
-export interface AccessToken {
-  token: string
-  expiresAt: number
-}
-
 /**
  * Guarda el token de Drive solo durante la sesión del navegador. Así una
  * recarga conserva la sincronización sin dejar el token en disco de forma
@@ -193,8 +191,11 @@ export async function requestDriveToken(
 
         const expiresIn = Number(response.expires_in)
         const lifetime = Number.isFinite(expiresIn)
-          ? Math.max(expiresIn - 60, 60)
-          : 3_000
+          ? Math.max(
+              expiresIn - GOOGLE_TOKEN_EXPIRY_MARGIN_S,
+              GOOGLE_TOKEN_EXPIRY_MARGIN_S
+            )
+          : GOOGLE_TOKEN_DEFAULT_LIFETIME_S
 
         resolve({
           token: response.access_token,
@@ -221,7 +222,7 @@ export async function fetchGoogleUserInfo(token: string): Promise<GoogleUser> {
   let response: Response
 
   try {
-    response = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
+    response = await fetch(GOOGLE_USERINFO_URL, {
       headers: { Authorization: `Bearer ${token}` },
       cache: 'no-store'
     })

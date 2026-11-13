@@ -1,4 +1,5 @@
 import type { Part } from '../../series/types'
+import type { PlaylistData } from '../types'
 import { detectPart } from '../../series/model/parts'
 import {
   YouTubeError,
@@ -9,18 +10,12 @@ import {
   youtubeThumbnail
 } from './youtubeApi'
 import type { Thumbnails, VideoMeta } from './youtubeApi'
-
-export const MAX_PLAYLIST_ITEMS = 200
-
-export interface PlaylistData {
-  playlistId: string
-  title: string
-  channelId: string
-  channelTitle: string
-  thumbnail?: string
-  parts: Part[]
-  truncated: boolean
-}
+import {
+  MAX_PLAYLIST_ITEMS,
+  YOUTUBE_DELETED_VIDEO_TITLE,
+  YOUTUBE_PLAYLIST_PAGE_SIZE,
+  YOUTUBE_PRIVATE_VIDEO_TITLE
+} from './constants'
 
 interface PlaylistItem {
   id: string
@@ -82,7 +77,7 @@ export async function fetchPlaylist(
     const params: Record<string, string> = {
       part: 'snippet,contentDetails',
       playlistId,
-      maxResults: '50'
+      maxResults: String(YOUTUBE_PLAYLIST_PAGE_SIZE)
     }
     if (pageToken) params.pageToken = pageToken
 
@@ -117,7 +112,11 @@ export async function fetchPlaylist(
       item.contentDetails?.videoId ?? item.snippet.resourceId?.videoId
     const title = item.snippet.title
 
-    if (!videoId || title === 'Deleted video' || title === 'Private video')
+    if (
+      !videoId ||
+      title === YOUTUBE_DELETED_VIDEO_TITLE ||
+      title === YOUTUBE_PRIVATE_VIDEO_TITLE
+    )
       continue
 
     const info = detectPart(title)
@@ -169,7 +168,7 @@ export async function fetchChannelUploads(
     const params: Record<string, string> = {
       part: 'snippet,contentDetails',
       playlistId: uploads,
-      maxResults: '50'
+      maxResults: String(YOUTUBE_PLAYLIST_PAGE_SIZE)
     }
     if (pageToken) params.pageToken = pageToken
 
@@ -203,7 +202,11 @@ export async function fetchChannelUploads(
       item.contentDetails?.videoId ?? item.snippet.resourceId?.videoId
     const title = item.snippet.title
 
-    if (!videoId || title === 'Deleted video' || title === 'Private video')
+    if (
+      !videoId ||
+      title === YOUTUBE_DELETED_VIDEO_TITLE ||
+      title === YOUTUBE_PRIVATE_VIDEO_TITLE
+    )
       continue
 
     const ownerId =

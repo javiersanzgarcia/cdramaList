@@ -1,4 +1,5 @@
-import type { Part } from '../types'
+import type { Part, PartInfo } from '../types'
+import { MAX_ALIAS_LENGTH, MIN_SERIES_TITLE_LENGTH } from './constants'
 
 const PART_KEYWORD =
   /\b(?:parte|part|episodio|episode|temporada|season|volume|vol|temp|cap[ií]tulo|chapter|cap|ep|pt|p|e)\s*[#.:-]?\s*(\d{1,3})(?!\d)(?:\s*(?:de|\/)\s*(\d{1,3}))?/i
@@ -43,12 +44,6 @@ const FRACTION = /\b(\d{1,3})\s*\/\s*(\d{1,3})\b/
 const OF = /\b(\d{1,3})\s*(?:de|of)\s*(\d{1,3})\b/i
 const PAREN = /\(\s*(\d{1,3})\s*\)/
 const HASH = /#\s*(\d{1,3})\b/
-
-export interface PartInfo {
-  partNumber?: number
-  totalParts?: number
-  isFinal: boolean
-}
 
 function parseChineseNumber(value: string): number {
   if (/^\d+$/.test(value)) return Number(value)
@@ -210,12 +205,12 @@ function normalizeDescriptionTitle(value: string): string | undefined {
     .replace(/\s+/g, ' ')
     .trim()
 
-  if (normalized.length < 2) return undefined
+  if (normalized.length < MIN_SERIES_TITLE_LENGTH) return undefined
   if (DESCRIPTION_GENERIC.has(normalized)) return undefined
   if (DESCRIPTION_NOISE.test(normalized)) return undefined
   if (/^\d+$/.test(normalized)) return undefined
 
-  return cleaned.slice(0, 120).trim()
+  return cleaned.slice(0, MAX_ALIAS_LENGTH).trim()
 }
 
 function isDescriptionTitleHeading(value: string): boolean {

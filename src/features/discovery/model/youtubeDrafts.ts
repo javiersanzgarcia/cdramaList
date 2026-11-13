@@ -1,31 +1,17 @@
-import type { ChapterCandidate } from '../types'
+import type { ChapterCandidate, PlaylistData } from '../types'
 import type { Part, Series, SeriesDraft } from '../../series/types'
 import { detectPart, stripPartMarkers } from '../../series/model/parts'
 import { discoverSeriesUpdates } from './seriesUpdates'
-import { MAX_PLAYLIST_ITEMS, fetchPlaylist } from './youtubePlaylists'
+import { fetchPlaylist } from './youtubePlaylists'
+import { MAX_PLAYLIST_ITEMS } from './constants'
 import {
   channelUrlFor,
   fetchVideoMeta,
   fetchVideoMetaWithoutKey,
   youtubeThumbnail
 } from './youtubeApi'
-import type { PlaylistData } from './youtubePlaylists'
 import type { VideoMeta } from './youtubeApi'
-
-function toPart(video: VideoMeta, info: ReturnType<typeof detectPart>): Part {
-  return {
-    videoId: video.videoId,
-    title: video.title,
-    description: video.description,
-    partNumber: info.partNumber,
-    totalParts: info.totalParts,
-    isFinal: info.isFinal,
-    durationSeconds: video.durationSeconds,
-    publishedAt: video.publishedAt,
-    thumbnail: video.thumbnail ?? youtubeThumbnail(video.videoId),
-    addedAt: Date.now()
-  }
-}
+import { toPart } from './seriesCandidateRanking'
 
 export function candidateToPart(
   candidate: ChapterCandidate,

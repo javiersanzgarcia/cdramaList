@@ -1,9 +1,9 @@
-import { useRef, type Dispatch, type SetStateAction } from 'react'
-import type { PlayerState } from '../../app/types'
+import { useRef } from 'react'
 import type { ChapterCandidate, SeriesRefreshResult } from '../discovery/types'
 import { candidateToPart } from '../discovery/model/youtubeDrafts'
 import { discoverSeriesUpdates } from '../discovery/model/seriesUpdates'
 import { fetchVideosByIds } from '../discovery/model/youtubeApi'
+import { YOUTUBE_CHANNEL_FALLBACK } from '../discovery/model/constants'
 import { reorderParts, sortParts } from './model/parts'
 import {
   applyPartDurations,
@@ -17,21 +17,15 @@ import {
   mergeSeries,
   reconcileCompletedStatus
 } from './model/series'
-import type { PartMetaPatch } from './model/series'
-import type { Part, Series, SeriesDraft, SeriesStatus } from './types'
-import type { DriveSync } from '../sync/hooks/useDriveSync'
-
-interface UseSeriesActionsOptions {
-  series: Series[]
-  setSeries: Dispatch<SetStateAction<Series[]>>
-  apiKey: string
-  semanticEndpoint: string
-  drive: Pick<DriveSync, 'connected' | 'syncNow'>
-  setSelectedSeriesId: Dispatch<SetStateAction<string | null>>
-  setPlayer: Dispatch<SetStateAction<PlayerState | null>>
-  setAddTargetId: Dispatch<SetStateAction<string | null>>
-  setAddOpen: Dispatch<SetStateAction<boolean>>
-}
+import type {
+  Part,
+  PartMetaPatch,
+  RefreshFavoritesResult,
+  Series,
+  SeriesDraft,
+  SeriesStatus,
+  UseSeriesActionsOptions
+} from './types'
 
 export function useSeriesActions({
   series,
@@ -364,7 +358,8 @@ export function useSeriesActions({
           ...existing,
           channelId: existing.channelId ?? update.channelId,
           channelTitle:
-            existing.channelTitle === 'YouTube' && update.channelTitle
+            existing.channelTitle === YOUTUBE_CHANNEL_FALLBACK &&
+            update.channelTitle
               ? update.channelTitle
               : existing.channelTitle,
           channelUrl: existing.channelUrl ?? update.channelUrl,
@@ -427,13 +422,7 @@ export function useSeriesActions({
    * que tienen novedades (capítulos nuevos o candidatos) para revisarlas, y se
    * sincroniza una sola vez al terminar.
    */
-  async function handleRefreshFavorites(): Promise<{
-    updatedIds: string[]
-    candidatesById: Record<string, ChapterCandidate[]>
-    failed: number
-    warnings: string[]
-    syncFailed: boolean
-  }> {
+  async function handleRefreshFavorites(): Promise<RefreshFavoritesResult> {
     if (favoritesRunningRef.current) {
       return {
         updatedIds: [],
@@ -506,7 +495,8 @@ export function useSeriesActions({
             ...current,
             channelId: current.channelId ?? update.channelId,
             channelTitle:
-              current.channelTitle === 'YouTube' && update.channelTitle
+              current.channelTitle === YOUTUBE_CHANNEL_FALLBACK &&
+              update.channelTitle
                 ? update.channelTitle
                 : current.channelTitle,
             channelUrl: current.channelUrl ?? update.channelUrl,
