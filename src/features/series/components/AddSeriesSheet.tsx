@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import type { FormEvent } from 'react'
 import {
   buildCandidateState,
@@ -47,6 +47,7 @@ export function AddSeriesSheet({
   const [draft, setDraft] = useState<SeriesDraft | null>(null)
   const [selected, setSelected] = useState<Set<string>>(new Set())
   const [title, setTitle] = useState('')
+  const [suggestedSeries, setSuggestedSeries] = useState<Series | null>(null)
   const [candidates, setCandidates] = useState<ChapterCandidate[]>([])
   const [candidateNumbers, setCandidateNumbers] = useState<
     Record<string, string>
@@ -64,8 +65,19 @@ export function AddSeriesSheet({
   const existing = draft?.existingSeriesId
     ? series.find((item) => item.id === draft.existingSeriesId)
     : undefined
+  // La serie destino manda cuando se llega desde su ficha. Si no, solo se
+  // adjunta cuando el usuario lo elige en la tarjeta de sugerencia.
+  const attachedSeries = targetSeries ?? existing
+  const isAddMode = Boolean(attachedSeries)
+  const existingVideoIds = useMemo(
+    () => new Set((attachedSeries?.parts ?? []).map((part) => part.videoId)),
+    [attachedSeries]
+  )
+  const newParts = draft
+    ? draft.parts.filter((part) => !existingVideoIds.has(part.videoId))
+    : []
   const allSelected = Boolean(
-    draft && draft.parts.length > 0 && selected.size === draft.parts.length
+    newParts.length > 0 && newParts.every((part) => selected.has(part.videoId))
   )
 
   async function handlePaste() {
@@ -117,20 +129,33 @@ export function AddSeriesSheet({
         throw new YouTubeError('No se ha reconocido el enlace de YouTube.')
       }
 
-      const match = targetSeries ?? findExistingSeries(series, result)
+      // Desde una serie concreta siempre se añade a ella. Desde la portada no
+      // se adjunta nada en silencio: como mucho se ofrece la coincidencia.
+      const match = targetSeries
+      const suggestion = targetSeries
+        ? undefined
+        : findExistingSeries(series, result)
       const finalDraft = match
         ? { ...result, existingSeriesId: match.id }
         : result
 
-      const nextCandidates = finalDraft.candidates ?? []
+      const matchIds = new Set((match?.parts ?? []).map((part) => part.videoId))
+      const nextCandidates = (finalDraft.candidates ?? []).filter(
+        (candidate) => !matchIds.has(candidate.videoId)
+      )
       const candidateState = buildCandidateState(nextCandidates, [
         ...finalDraft.parts,
         ...(match?.parts ?? [])
       ])
 
       setDraft(finalDraft)
-      setSelected(new Set(finalDraft.selectedIds))
+      setSelected(
+        new Set(
+          finalDraft.selectedIds.filter((videoId) => !matchIds.has(videoId))
+        )
+      )
       setTitle(match ? match.title : finalDraft.title)
+      setSuggestedSeries(suggestion ?? null)
       setCandidates(nextCandidates)
       setCandidateNumbers(candidateState.numbers)
       setCandidateFinal(candidateState.finals)
@@ -147,6 +172,7 @@ export function AddSeriesSheet({
   }
 
   function togglePart(videoId: string) {
+    if (existingVideoIds.has(videoId)) return
     setSelected((current) => {
       const next = new Set(current)
       if (next.has(videoId)) next.delete(videoId)
@@ -158,8 +184,58 @@ export function AddSeriesSheet({
   function toggleAll() {
     if (!draft) return
     setSelected(
-      allSelected ? new Set() : new Set(draft.parts.map((part) => part.videoId))
+      allSelected ? new Set() : new Set(newParts.map((part) => part.videoId))
     )
+  }
+
+  // Adjunta el borrador a la serie sugerida solo cuando el usuario lo pide.
+  function attachSuggested() {
+    if (!draft || !suggestedSeries) return
+
+    const suggestionIds = new Set(
+      suggestedSeries.parts.map((part) => part.videoId)
+    )
+    const candidateState = buildCandidateState(candidates, [
+      ...draft.parts,
+      ...suggestedSeries.parts
+    ])
+
+    setDraft({ ...draft, existingSeriesId: suggestedSeries.id })
+    setTitle(suggestedSeries.title)
+    setSelected((current) => {
+      const next = new Set(current)
+      suggestionIds.forEach((videoId) => next.delete(videoId))
+      return next
+    })
+    setCandidateNumbers(candidateState.numbers)
+    setCandidateFinal(candidateState.finals)
+  }
+
+  // Vuelve al flujo de creación. Solo se ofrece cuando la coincidencia la
+  // propuso la app, nunca cuando se llegó desde la ficha de una serie.
+  function createNewFromSuggestion() {
+    if (!draft || targetSeries) return
+
+    const candidateState = buildCandidateState(candidates, draft.parts)
+    setDraft({ ...draft, existingSeriesId: undefined })
+    setTitle(draft.title)
+    setSuggestedSeries(null)
+    // Al desadjuntar, las partes que se habían excluido por estar en la serie
+    // sugerida vuelven a estar seleccionables (y marcadas por defecto).
+    if (suggestedSeries) {
+      const suggestionIds = new Set(
+        suggestedSeries.parts.map((part) => part.videoId)
+      )
+      setSelected((current) => {
+        const next = new Set(current)
+        draft.parts.forEach((part) => {
+          if (suggestionIds.has(part.videoId)) next.add(part.videoId)
+        })
+        return next
+      })
+    }
+    setCandidateNumbers(candidateState.numbers)
+    setCandidateFinal(candidateState.finals)
   }
 
   function discardCandidate(videoId: string) {
@@ -181,10 +257,18 @@ export function AddSeriesSheet({
   function handleAddCandidate(candidate: ChapterCandidate) {
     if (!draft) return
 
+    if (existingVideoIds.has(candidate.videoId)) {
+      setCandidateMessage({
+        kind: 'error',
+        text: 'Esa parte ya está en la serie.'
+      })
+      return
+    }
+
     const raw = candidateNumbers[candidate.videoId] ?? ''
     const numberError = validateCandidateNumber(
       raw,
-      [...draft.parts, ...(existing?.parts ?? [])],
+      [...draft.parts, ...(attachedSeries?.parts ?? [])],
       candidateNumbers,
       candidate.videoId
     )
@@ -214,9 +298,18 @@ export function AddSeriesSheet({
 
   function handleSave() {
     if (!draft) return
-    const parts = draft.parts.filter((part) => selected.has(part.videoId))
+    const parts = draft.parts.filter(
+      (part) =>
+        selected.has(part.videoId) && !existingVideoIds.has(part.videoId)
+    )
     if (parts.length === 0) return
-    onSave(draft, title.trim() || draft.title, parts)
+
+    // En modo añadir el título siempre es el de la serie destino: no se puede
+    // renombrar una serie existente desde este flujo.
+    const finalTitle = attachedSeries
+      ? attachedSeries.title
+      : title.trim() || draft.title
+    onSave(draft, finalTitle, parts)
   }
 
   const sourceLabel =
@@ -244,10 +337,10 @@ export function AddSeriesSheet({
         <div className="sticky top-0 z-10 flex items-center justify-between gap-3 border-b border-zinc-800/80 bg-zinc-900/95 px-4 py-3 backdrop-blur-xl">
           <div className="min-w-0">
             <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-rose-400">
-              Añadir a tu lista
+              {isAddMode ? 'Añadir partes' : 'Añadir a tu lista'}
             </p>
             <h2 id="add-series-title" className="truncate text-lg font-bold">
-              Nueva serie
+              {isAddMode ? 'Añadir a la serie' : 'Crear serie nueva'}
             </h2>
           </div>
           <button
@@ -261,8 +354,40 @@ export function AddSeriesSheet({
         </div>
 
         <div className="px-4 pt-4">
+          {attachedSeries && (
+            <div className="mb-4 flex items-center gap-3 rounded-2xl border border-emerald-500/25 bg-emerald-500/10 p-3">
+              <span className="relative aspect-video w-16 shrink-0 overflow-hidden rounded-lg bg-zinc-800">
+                {attachedSeries.thumbnail && (
+                  <img
+                    src={attachedSeries.thumbnail}
+                    alt=""
+                    loading="lazy"
+                    onError={(event) => {
+                      event.currentTarget.style.display = 'none'
+                    }}
+                    className="size-full object-cover"
+                  />
+                )}
+              </span>
+              <div className="min-w-0 flex-1">
+                <p className="text-[10px] font-bold uppercase tracking-wide text-emerald-300">
+                  Añadiendo a una serie existente
+                </p>
+                <p className="truncate text-sm font-semibold text-zinc-100">
+                  {attachedSeries.title}
+                </p>
+                <p className="mt-0.5 text-[11px] text-emerald-200/70">
+                  {attachedSeries.parts.length}{' '}
+                  {attachedSeries.parts.length === 1 ? 'parte' : 'partes'} en la
+                  serie
+                </p>
+              </div>
+            </div>
+          )}
+
           {phase === 'input' && (
             <YouTubeLinkForm
+              mode={isAddMode ? 'add' : 'create'}
               apiKeyAvailable={apiKey.length > 0}
               url={url}
               onUrlChange={setUrl}
@@ -297,7 +422,7 @@ export function AddSeriesSheet({
                 <Icon.Info className="size-6" />
               </div>
               <h3 className="mt-4 text-base font-semibold text-zinc-100">
-                No se pudo añadir
+                {isAddMode ? 'No se pudo añadir' : 'No se pudo crear la serie'}
               </h3>
               <p className="mt-1.5 text-sm leading-relaxed text-zinc-400">
                 {error}
@@ -327,31 +452,86 @@ export function AddSeriesSheet({
                 <span className="rounded-full bg-rose-500/10 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide text-rose-300">
                   {sourceLabel}
                 </span>
-                {existing && (
+                {isAddMode && (
                   <span className="rounded-full bg-emerald-500/10 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide text-emerald-300">
-                    Serie existente
+                    Añadiendo a serie existente
                   </span>
                 )}
               </div>
 
-              <label
-                htmlFor="series-title"
-                className="mt-4 block text-xs font-medium text-zinc-400"
-              >
-                Título de la serie
-              </label>
-              <input
-                id="series-title"
-                name="series-title"
-                value={title}
-                onChange={(event) => setTitle(event.target.value)}
-                autoComplete="off"
-                className="mt-1.5 w-full rounded-2xl border border-zinc-800 bg-zinc-950/70 px-3.5 py-3 text-sm font-medium text-zinc-100 outline-none transition focus:border-rose-500/60 focus:ring-2 focus:ring-rose-500/20"
-              />
-              <p className="mt-1.5 text-[11px] leading-relaxed text-zinc-500">
-                Si escribes un título distinto al del vídeo, el título real de
-                YouTube se guardará como alias de búsqueda.
-              </p>
+              {suggestedSeries && !isAddMode && (
+                <div className="mt-4 rounded-2xl border border-amber-400/25 bg-amber-400/5 p-3">
+                  <div className="flex items-start gap-2">
+                    <Icon.Info className="mt-0.5 size-4 shrink-0 text-amber-300" />
+                    <div className="min-w-0">
+                      <p className="text-xs font-semibold text-amber-100">
+                        Puede que esta serie ya exista
+                      </p>
+                      <p className="mt-0.5 text-[11px] leading-relaxed text-amber-200/75">
+                        «{suggestedSeries.title}» ya tiene{' '}
+                        {suggestedSeries.parts.length}{' '}
+                        {suggestedSeries.parts.length === 1
+                          ? 'parte'
+                          : 'partes'}
+                        . ¿Añadimos estas partes a esa serie o creamos una
+                        nueva?
+                      </p>
+                    </div>
+                  </div>
+                  <div className="mt-3 grid grid-cols-2 gap-2">
+                    <button
+                      type="button"
+                      onClick={attachSuggested}
+                      className="rounded-xl bg-emerald-500 px-3 py-2 text-xs font-semibold text-white transition hover:bg-emerald-400 active:scale-[0.99]"
+                    >
+                      Añadir a la existente
+                    </button>
+                    <button
+                      type="button"
+                      onClick={createNewFromSuggestion}
+                      className="rounded-xl border border-zinc-700 px-3 py-2 text-xs font-semibold text-zinc-300 transition hover:border-zinc-600 hover:text-white active:scale-[0.99]"
+                    >
+                      Crear serie nueva
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {suggestedSeries && isAddMode && !targetSeries && (
+                <p className="mt-3 text-[11px] leading-relaxed text-zinc-500">
+                  Has elegido añadir estas partes a «{suggestedSeries.title}».{' '}
+                  <button
+                    type="button"
+                    onClick={createNewFromSuggestion}
+                    className="font-semibold text-rose-300 transition hover:text-rose-200"
+                  >
+                    Crear una serie nueva
+                  </button>
+                </p>
+              )}
+
+              {!isAddMode && (
+                <>
+                  <label
+                    htmlFor="series-title"
+                    className="mt-4 block text-xs font-medium text-zinc-400"
+                  >
+                    Título de la serie
+                  </label>
+                  <input
+                    id="series-title"
+                    name="series-title"
+                    value={title}
+                    onChange={(event) => setTitle(event.target.value)}
+                    autoComplete="off"
+                    className="mt-1.5 w-full rounded-2xl border border-zinc-800 bg-zinc-950/70 px-3.5 py-3 text-sm font-medium text-zinc-100 outline-none transition focus:border-rose-500/60 focus:ring-2 focus:ring-rose-500/20"
+                  />
+                  <p className="mt-1.5 text-[11px] leading-relaxed text-zinc-500">
+                    Si escribes un título distinto al del vídeo, el título real
+                    de YouTube se guardará como alias de búsqueda.
+                  </p>
+                </>
+              )}
 
               <div className="mt-3 flex items-center gap-2 text-xs text-zinc-500">
                 <Icon.Youtube className="size-4 shrink-0" />
@@ -368,13 +548,6 @@ export function AddSeriesSheet({
                   </a>
                 )}
               </div>
-
-              {existing && (
-                <p className="mt-2 rounded-xl bg-emerald-500/5 px-2.5 py-2 text-[11px] leading-relaxed text-emerald-200/80">
-                  Se añadirán a «{existing.title}» sin perder las partes que ya
-                  has visto.
-                </p>
-              )}
 
               {draft.warnings.length > 0 && (
                 <ul className="mt-3 space-y-1.5">
@@ -394,6 +567,7 @@ export function AddSeriesSheet({
                 parts={draft.parts}
                 selected={selected}
                 allSelected={allSelected}
+                existingVideoIds={existingVideoIds}
                 candidates={candidates}
                 candidateNumbers={candidateNumbers}
                 candidateFinal={candidateFinal}
@@ -436,7 +610,11 @@ export function AddSeriesSheet({
                   className="flex flex-1 items-center justify-center gap-2 rounded-2xl bg-rose-500 px-4 py-3 text-sm font-semibold text-white shadow-lg shadow-rose-500/25 transition hover:bg-rose-400 active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-40"
                 >
                   <Icon.Check className="size-4" />
-                  {existing ? 'Añadir partes' : 'Guardar serie'}
+                  {isAddMode
+                    ? `Añadir ${selected.size} ${
+                        selected.size === 1 ? 'parte' : 'partes'
+                      }`
+                    : 'Guardar serie'}
                 </button>
               </div>
             </div>

@@ -458,7 +458,7 @@ export function SeriesSheet({
               className="flex w-full items-center justify-center gap-2 rounded-2xl border border-zinc-800 px-4 py-3 text-sm font-semibold text-zinc-300 transition hover:border-zinc-700 hover:text-white active:scale-[0.99]"
             >
               <Icon.Plus className="size-4" />
-              Añadir más vídeos
+              Añadir partes a esta serie
             </button>
 
             <button

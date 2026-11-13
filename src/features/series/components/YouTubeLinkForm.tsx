@@ -2,6 +2,7 @@ import type { FormEventHandler } from 'react'
 import * as Icon from '../../../shared/components/Icons'
 
 interface YouTubeLinkFormProps {
+  mode: 'add' | 'create'
   apiKeyAvailable: boolean
   url: string
   onUrlChange: (value: string) => void
@@ -11,6 +12,7 @@ interface YouTubeLinkFormProps {
 }
 
 export function YouTubeLinkForm({
+  mode,
   apiKeyAvailable,
   url,
   onUrlChange,
@@ -18,6 +20,8 @@ export function YouTubeLinkForm({
   onSubmit,
   onOpenSettings
 }: YouTubeLinkFormProps) {
+  const isAddMode = mode === 'add'
+
   return (
     <form onSubmit={onSubmit}>
       <label
@@ -50,8 +54,9 @@ export function YouTubeLinkForm({
       </div>
 
       <p className="mt-2 text-xs leading-relaxed text-zinc-500">
-        Acepta vídeos, Shorts y listas de reproducción. Si el canal agrupa las
-        partes en una lista, pégala para importarlas todas de golpe.
+        {isAddMode
+          ? 'Pega el enlace de la parte nueva. Si está en una lista, también puedes pegarla: las partes que ya están en la serie se marcarán como «Ya en la serie» y no se duplicarán.'
+          : 'Acepta vídeos, Shorts y listas de reproducción. Si el canal agrupa las partes en una lista, pégala para importarlas todas de golpe.'}
       </p>
 
       {!apiKeyAvailable && (
@@ -76,7 +81,7 @@ export function YouTubeLinkForm({
         className="mt-4 flex w-full items-center justify-center gap-2 rounded-2xl bg-rose-500 px-4 py-3 text-sm font-semibold text-white shadow-lg shadow-rose-500/25 transition hover:bg-rose-400 active:scale-[0.99]"
       >
         <Icon.Sparkles className="size-4" />
-        Buscar partes
+        {isAddMode ? 'Buscar partes nuevas' : 'Buscar partes'}
       </button>
     </form>
   )

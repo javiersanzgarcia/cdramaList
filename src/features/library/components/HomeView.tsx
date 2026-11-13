@@ -163,10 +163,10 @@ export function HomeView({
           </span>
           <span className="min-w-0 flex-1">
             <span className="block text-sm font-semibold text-zinc-100">
-              Añadir una serie
+              Crear una serie nueva
             </span>
             <span className="block text-xs text-zinc-400">
-              Pega un enlace de YouTube y busca todas las partes.
+              Empieza una historia nueva desde un vídeo o una lista.
             </span>
           </span>
           <Icon.ChevronRight className="size-5 shrink-0 text-zinc-500 transition group-hover:translate-x-0.5" />

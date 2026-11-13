@@ -9,6 +9,7 @@ interface SeriesDraftPartsReviewProps {
   parts: Part[]
   selected: Set<string>
   allSelected: boolean
+  existingVideoIds: Set<string>
   candidates: ChapterCandidate[]
   candidateNumbers: Record<string, string>
   candidateFinal: Record<string, boolean>
@@ -25,6 +26,7 @@ export function SeriesDraftPartsReview({
   parts,
   selected,
   allSelected,
+  existingVideoIds,
   candidates,
   candidateNumbers,
   candidateFinal,
@@ -36,6 +38,10 @@ export function SeriesDraftPartsReview({
   onAddCandidate,
   onDiscardCandidate
 }: SeriesDraftPartsReviewProps) {
+  const selectableParts = parts.filter(
+    (part) => !existingVideoIds.has(part.videoId)
+  )
+
   return (
     <>
       <div className="mt-4 flex items-center justify-between gap-3">
@@ -45,7 +51,7 @@ export function SeriesDraftPartsReview({
             {parts.length}
           </span>
         </p>
-        {parts.length > 0 && (
+        {selectableParts.length > 0 && (
           <button
             type="button"
             onClick={onToggleAll}
@@ -59,16 +65,21 @@ export function SeriesDraftPartsReview({
       {parts.length > 0 ? (
         <ul className="mt-2 max-h-72 space-y-1.5 overflow-y-auto rounded-2xl border border-zinc-800 bg-zinc-950/50 p-2">
           {parts.map((part, index) => {
-            const checked = selected.has(part.videoId)
+            const inSeries = existingVideoIds.has(part.videoId)
+            const checked = !inSeries && selected.has(part.videoId)
             const duration = formatDuration(part.durationSeconds)
 
             return (
               <li key={part.videoId}>
                 <label
-                  className={`flex cursor-pointer items-center gap-2.5 rounded-xl border p-2 transition ${
-                    checked
-                      ? 'border-rose-500/40 bg-rose-500/10'
-                      : 'border-transparent hover:bg-zinc-900'
+                  className={`flex items-center gap-2.5 rounded-xl border p-2 transition ${
+                    inSeries
+                      ? 'cursor-default border-emerald-500/15 bg-emerald-500/5 opacity-75'
+                      : `cursor-pointer ${
+                          checked
+                            ? 'border-rose-500/40 bg-rose-500/10'
+                            : 'border-transparent hover:bg-zinc-900'
+                        }`
                   }`}
                 >
                   <input
@@ -76,8 +87,9 @@ export function SeriesDraftPartsReview({
                     name="draft-parts"
                     type="checkbox"
                     checked={checked}
+                    disabled={inSeries}
                     onChange={() => onTogglePart(part.videoId)}
-                    className="size-4 shrink-0 accent-rose-500"
+                    className="size-4 shrink-0 accent-rose-500 disabled:opacity-40"
                   />
                   <span className="relative aspect-video w-16 shrink-0 overflow-hidden rounded-lg bg-zinc-800">
                     {part.thumbnail && (
@@ -93,8 +105,13 @@ export function SeriesDraftPartsReview({
                     )}
                   </span>
                   <span className="min-w-0 flex-1">
-                    <span className="flex items-center gap-1.5 text-[11px] font-semibold text-zinc-400">
+                    <span className="flex flex-wrap items-center gap-1.5 text-[11px] font-semibold text-zinc-400">
                       {partLabel(part, index)}
+                      {inSeries && (
+                        <span className="rounded-full bg-emerald-500/10 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wide text-emerald-300">
+                          Ya en la serie
+                        </span>
+                      )}
                       {duration && (
                         <span className="font-normal text-zinc-600">
                           · {duration}

@@ -4,6 +4,12 @@ PWA para reunir las partes de una historia de YouTube, guardar el progreso y ver
 
 **Demo:** <https://javiersanzgarcia.github.io/cdramaList/>
 
+## Novedades de la 1.2
+
+- **Crear una serie ya no se confunde con añadir partes.** Desde la portada, la app ya no adjunta en silencio una serie nueva a otra parecida: si detecta una coincidencia, muestra una tarjeta para elegir entre **Añadir a la existente** o **Crear serie nueva**, sin adjuntar nada por defecto.
+- **Añadir partes tiene su propio flujo.** Al entrar desde una serie, la cabecera lo indica, aparece un banner con el nombre y la portada de la serie destino, el título no se puede cambiar y el botón de guardar dice cuántas partes nuevas vas a añadir.
+- **Las partes que ya están en la serie se marcan como «Ya en la serie».** Aparecen deshabilitadas, fuera de la selección y «Seleccionar todas» solo afecta a las partes nuevas, así que es imposible duplicarlas por error.
+
 ## Novedades de la 1.1
 
 - **Quitar partes de una serie.** Cada parte de la ficha tiene una papelera para sacarla de la serie sin borrar la serie entera. Pide confirmación con una segunda pulsación y limpia también su marca de vista. La parte queda con una lápida (con su momento de borrado), así que no reaparece en las búsquedas ni la reintroduce la sincronización desde otra copia; si más adelante la vuelves a añadir, la lápida se levanta sola.
