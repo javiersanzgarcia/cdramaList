@@ -165,12 +165,12 @@ export function YouTubePlayer({
   }, [videoId, mode])
 
   return (
-    <div className="relative aspect-video w-full overflow-hidden bg-black">
+    <div className="relative aspect-video w-full overflow-hidden bg-overlay">
       <div ref={containerRef} className="absolute inset-0 size-full" />
 
       {mode === 'loading' && (
-        <div className="absolute inset-0 grid place-items-center bg-zinc-950">
-          <div className="size-10 animate-spin rounded-full border-2 border-zinc-700 border-t-rose-500" />
+        <div className="absolute inset-0 grid place-items-center bg-canvas">
+          <div className="size-10 animate-spin rounded-full border-2 border-line-strong border-t-brand" />
         </div>
       )}
 

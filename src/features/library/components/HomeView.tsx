@@ -149,34 +149,34 @@ export function HomeView({
 
       <section className="px-4 pt-5">
         <h2 className="text-2xl font-bold tracking-tight">¿Qué vemos hoy?</h2>
-        <p className="mt-1 text-sm text-zinc-400">
+        <p className="mt-1 text-sm text-ink-muted">
           Pega un enlace de YouTube y reúne todas las partes de tu historia.
         </p>
 
         <button
           type="button"
           onClick={onAdd}
-          className="group mt-4 flex w-full items-center gap-3 rounded-2xl border border-rose-500/25 bg-gradient-to-r from-rose-500/15 via-rose-500/5 to-amber-400/10 p-3.5 text-left transition active:scale-[0.99]"
+          className="group mt-4 flex w-full items-center gap-3 rounded-2xl border border-brand/25 bg-gradient-to-r from-brand/15 via-brand/5 to-warning/10 p-3.5 text-left transition active:scale-[0.99]"
         >
-          <span className="grid size-11 shrink-0 place-items-center rounded-xl bg-gradient-to-br from-rose-500 to-amber-400 text-white shadow-lg shadow-rose-500/25">
+          <span className="grid size-11 shrink-0 place-items-center rounded-xl bg-gradient-to-br from-brand to-warning text-ink-bright shadow-lg shadow-brand/25">
             <Icon.Plus className="size-5" />
           </span>
           <span className="min-w-0 flex-1">
-            <span className="block text-sm font-semibold text-zinc-100">
+            <span className="block text-sm font-semibold text-ink">
               Crear una serie nueva
             </span>
-            <span className="block text-xs text-zinc-400">
+            <span className="block text-xs text-ink-muted">
               Empieza una historia nueva desde un vídeo o una lista.
             </span>
           </span>
-          <Icon.ChevronRight className="size-5 shrink-0 text-zinc-500 transition group-hover:translate-x-0.5" />
+          <Icon.ChevronRight className="size-5 shrink-0 text-ink-subtle transition group-hover:translate-x-0.5" />
         </button>
 
         {!apiKeyConfigured && (
           <button
             type="button"
             onClick={onOpenSettings}
-            className="mt-2 flex w-full items-center gap-2 rounded-2xl border border-amber-400/20 bg-amber-400/5 px-3 py-2.5 text-left text-xs text-amber-200/85 transition hover:border-amber-400/40"
+            className="mt-2 flex w-full items-center gap-2 rounded-2xl border border-warning/20 bg-warning/5 px-3 py-2.5 text-left text-xs text-warning-softer/85 transition hover:border-warning/40"
           >
             <Icon.Key className="size-4 shrink-0" />
             <span className="flex-1">
@@ -194,10 +194,10 @@ export function HomeView({
       {showContinue && (
         <section className="px-4 pt-5">
           <div className="flex items-baseline justify-between gap-3">
-            <h3 className="text-sm font-semibold text-zinc-200">
+            <h3 className="text-sm font-semibold text-ink-strong">
               Continuar viendo
             </h3>
-            <span className="shrink-0 text-xs text-zinc-500">
+            <span className="shrink-0 text-xs text-ink-subtle">
               {continueList.length}{' '}
               {continueList.length === 1 ? 'serie' : 'series'}
             </span>
@@ -221,10 +221,10 @@ export function HomeView({
 
       <section className="px-4 pt-5">
         <div className="flex items-baseline justify-between gap-3">
-          <h3 className="text-sm font-semibold text-zinc-200">
+          <h3 className="text-sm font-semibold text-ink-strong">
             {sectionTitle}
           </h3>
-          <span className="shrink-0 text-xs text-zinc-500">
+          <span className="shrink-0 text-xs text-ink-subtle">
             {series.length} {series.length === 1 ? 'serie' : 'series'}
           </span>
         </div>
@@ -235,7 +235,7 @@ export function HomeView({
               type="button"
               onClick={() => void handleRefreshFavorites()}
               disabled={favoritesBusy}
-              className="flex w-full items-center justify-center gap-2 rounded-2xl border border-rose-500/30 bg-rose-500/10 px-4 py-3 text-sm font-semibold text-rose-200 transition hover:border-rose-500/50 hover:bg-rose-500/15 hover:text-white active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-60"
+              className="flex w-full items-center justify-center gap-2 rounded-2xl border border-brand/30 bg-brand/10 px-4 py-3 text-sm font-semibold text-brand-softer transition hover:border-brand/50 hover:bg-brand/15 hover:text-ink-bright active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-60"
             >
               <Icon.RefreshCw
                 className={`size-4 ${favoritesBusy ? 'animate-spin' : ''}`}
@@ -249,8 +249,8 @@ export function HomeView({
               <p
                 className={`rounded-2xl border px-3 py-2 text-[11px] leading-relaxed ${
                   favoritesMessage.kind === 'error'
-                    ? 'border-rose-500/20 bg-rose-500/10 text-rose-200'
-                    : 'border-zinc-700 bg-zinc-950/60 text-zinc-300'
+                    ? 'border-brand/20 bg-brand/10 text-brand-softer'
+                    : 'border-line-strong bg-canvas/60 text-ink-soft'
                 }`}
               >
                 {favoritesMessage.text}

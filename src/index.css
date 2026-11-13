@@ -1,4 +1,5 @@
 @import 'tailwindcss';
+@import './styles/colors.css';
 
 @theme {
   --font-sans:
@@ -42,11 +43,11 @@
 @layer base {
   html {
     color-scheme: dark;
-    background-color: var(--color-zinc-950);
+    background-color: var(--color-canvas);
   }
 
   body {
-    @apply bg-zinc-950 text-zinc-100 antialiased;
+    @apply bg-canvas text-ink antialiased;
     -webkit-tap-highlight-color: transparent;
     overscroll-behavior-y: none;
   }
@@ -56,7 +57,7 @@
   }
 
   ::selection {
-    @apply bg-rose-500/40 text-white;
+    @apply bg-brand/40 text-ink-bright;
   }
 }
 

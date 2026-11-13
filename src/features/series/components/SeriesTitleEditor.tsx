@@ -49,14 +49,14 @@ export function SeriesTitleEditor({
   }
 
   return (
-    <div className="mt-4 rounded-2xl border border-zinc-800 bg-zinc-950/60 p-3">
+    <div className="mt-4 rounded-2xl border border-line bg-canvas/60 p-3">
       <div className="flex items-center gap-2">
-        <Icon.Pencil className="size-4 text-rose-300" />
-        <h3 className="text-xs font-semibold uppercase tracking-wide text-zinc-400">
+        <Icon.Pencil className="size-4 text-brand-soft" />
+        <h3 className="text-xs font-semibold uppercase tracking-wide text-ink-muted">
           Título de la serie
         </h3>
       </div>
-      <p className="mt-1 text-[11px] leading-relaxed text-zinc-500">
+      <p className="mt-1 text-[11px] leading-relaxed text-ink-subtle">
         Cambia el título que ves en tu lista. Los títulos reales de YouTube de
         sus vídeos se añadirán como alias para que la búsqueda siga
         encontrándolos.
@@ -74,12 +74,12 @@ export function SeriesTitleEditor({
           aria-label="Título de la serie"
           autoComplete="off"
           maxLength={120}
-          className="min-w-0 flex-1 rounded-xl border border-zinc-800 bg-zinc-900 px-3 py-2 text-xs text-zinc-100 outline-none transition placeholder:text-zinc-600 focus:border-rose-500/60 focus:ring-2 focus:ring-rose-500/20"
+          className="min-w-0 flex-1 rounded-xl border border-line bg-surface px-3 py-2 text-xs text-ink outline-none transition placeholder:text-ink-faint focus:border-brand/60 focus:ring-2 focus:ring-brand/20"
         />
         <button
           type="submit"
           disabled={!changed}
-          className="inline-flex shrink-0 items-center gap-1 rounded-xl bg-zinc-800 px-3 py-2 text-[11px] font-semibold text-zinc-200 transition hover:bg-zinc-700 active:scale-95 disabled:opacity-40"
+          className="inline-flex shrink-0 items-center gap-1 rounded-xl bg-surface-raised px-3 py-2 text-[11px] font-semibold text-ink-strong transition hover:bg-surface-strong active:scale-95 disabled:opacity-40"
         >
           <Icon.Check className="size-3.5" />
           Guardar
@@ -87,7 +87,7 @@ export function SeriesTitleEditor({
       </form>
 
       {message && (
-        <p className="mt-1.5 text-[11px] text-amber-200/80">{message}</p>
+        <p className="mt-1.5 text-[11px] text-warning-softer/80">{message}</p>
       )}
     </div>
   )

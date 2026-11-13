@@ -8,20 +8,20 @@ export const statusMeta: Record<
 > = {
   planned: {
     label: 'Pendientes',
-    badge: 'bg-amber-400/90 text-amber-950',
-    dot: 'bg-amber-400',
+    badge: 'bg-warning/90 text-on-warning',
+    dot: 'bg-warning',
     description: 'Series guardadas para empezar'
   },
   watching: {
     label: 'En curso',
-    badge: 'bg-rose-500/90 text-white',
-    dot: 'bg-rose-400',
+    badge: 'bg-brand/90 text-ink-bright',
+    dot: 'bg-brand-bright',
     description: 'Series que ya has empezado'
   },
   completed: {
     label: 'Completadas',
-    badge: 'bg-emerald-500/90 text-white',
-    dot: 'bg-emerald-400',
+    badge: 'bg-success-strong/90 text-ink-bright',
+    dot: 'bg-success',
     description: 'Series que ya has terminado'
   }
 }

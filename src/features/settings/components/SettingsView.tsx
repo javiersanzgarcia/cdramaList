@@ -81,7 +81,7 @@ export function SettingsView({
       />
 
       <div className="space-y-4 px-4 pt-5">
-        <section className="rounded-3xl border border-zinc-800 bg-zinc-900/60 p-4">
+        <section className="rounded-3xl border border-line bg-surface/60 p-4">
           <button
             type="button"
             onClick={onOpenAccount}
@@ -92,27 +92,27 @@ export function SettingsView({
                 src={googleUser.picture}
                 alt=""
                 referrerPolicy="no-referrer"
-                className="size-12 shrink-0 rounded-full object-cover ring-1 ring-zinc-700"
+                className="size-12 shrink-0 rounded-full object-cover ring-1 ring-line-strong"
               />
             ) : (
-              <div className="grid size-12 shrink-0 place-items-center rounded-full bg-zinc-800 text-zinc-300">
+              <div className="grid size-12 shrink-0 place-items-center rounded-full bg-surface-raised text-ink-soft">
                 <Icon.User className="size-6" />
               </div>
             )}
             <div className="min-w-0 flex-1">
-              <h2 className="text-sm font-semibold text-zinc-200">
+              <h2 className="text-sm font-semibold text-ink-strong">
                 Cuenta y sincronización
               </h2>
-              <p className="truncate text-xs text-zinc-500">
+              <p className="truncate text-xs text-ink-subtle">
                 {googleUser ? googleUser.email : 'Inicia sesión con Google'}
               </p>
               <p
                 className={`mt-0.5 text-[11px] ${
                   syncEnabled
                     ? syncDirty
-                      ? 'text-rose-300'
-                      : 'text-emerald-300'
-                    : 'text-zinc-600'
+                      ? 'text-brand-soft'
+                      : 'text-success-soft'
+                    : 'text-ink-faint'
                 }`}
               >
                 {syncEnabled
@@ -122,39 +122,39 @@ export function SettingsView({
                   : 'Solo en este dispositivo'}
               </p>
             </div>
-            <Icon.ChevronRight className="size-5 shrink-0 text-zinc-500" />
+            <Icon.ChevronRight className="size-5 shrink-0 text-ink-subtle" />
           </button>
         </section>
 
-        <section className="rounded-3xl border border-zinc-800 bg-zinc-900/60 p-4">
+        <section className="rounded-3xl border border-line bg-surface/60 p-4">
           <div className="flex items-center gap-3">
-            <div className="grid size-12 place-items-center rounded-2xl bg-gradient-to-br from-rose-500 to-amber-400 text-xl font-black text-white shadow-lg shadow-rose-500/25">
+            <div className="grid size-12 place-items-center rounded-2xl bg-gradient-to-br from-brand to-warning text-xl font-black text-ink-bright shadow-lg shadow-brand/25">
               C
             </div>
             <div>
               <p className="font-semibold">CdramaList</p>
-              <p className="text-xs text-zinc-500">
+              <p className="text-xs text-ink-subtle">
                 Versión {__APP_VERSION__} · PWA
               </p>
             </div>
           </div>
-          <p className="mt-3 text-sm leading-relaxed text-zinc-400">
+          <p className="mt-3 text-sm leading-relaxed text-ink-muted">
             Encuentra todas las partes de tus historias de YouTube y continúa
             donde lo dejaste. Tus series y tu progreso se guardan en este
             dispositivo y, si conectas Google Drive, también en tu cuenta.
           </p>
         </section>
 
-        <section className="rounded-3xl border border-zinc-800 bg-zinc-900/60 p-4">
+        <section className="rounded-3xl border border-line bg-surface/60 p-4">
           <div className="flex items-start gap-3">
-            <div className="grid size-10 shrink-0 place-items-center rounded-2xl bg-rose-500/10 text-rose-300">
+            <div className="grid size-10 shrink-0 place-items-center rounded-2xl bg-brand/10 text-brand-soft">
               <Icon.Key className="size-5" />
             </div>
             <div className="min-w-0">
-              <h2 className="text-sm font-semibold text-zinc-200">
+              <h2 className="text-sm font-semibold text-ink-strong">
                 Búsqueda automática
               </h2>
-              <p className="mt-1 text-xs leading-relaxed text-zinc-500">
+              <p className="mt-1 text-xs leading-relaxed text-ink-subtle">
                 Con una clave gratuita de YouTube Data API v3, la app busca las
                 partes en el canal y las ordena por ti.
               </p>
@@ -162,19 +162,19 @@ export function SettingsView({
           </div>
 
           {apiKeyLocked ? (
-            <p className="mt-3 rounded-2xl border border-emerald-500/20 bg-emerald-500/10 px-3 py-2 text-[11px] font-medium leading-relaxed text-emerald-300/80">
+            <p className="mt-3 rounded-2xl border border-success-strong/20 bg-success-strong/10 px-3 py-2 text-[11px] font-medium leading-relaxed text-success-soft/80">
               Clave configurada por la aplicación.
             </p>
           ) : (
             <div className="mt-3">
               <label
                 htmlFor="youtube-api-key"
-                className="text-xs font-medium text-zinc-400"
+                className="text-xs font-medium text-ink-muted"
               >
                 Clave de API de YouTube
               </label>
               <div className="relative mt-1.5">
-                <Icon.Key className="pointer-events-none absolute left-3.5 top-1/2 size-4 -translate-y-1/2 text-zinc-500" />
+                <Icon.Key className="pointer-events-none absolute left-3.5 top-1/2 size-4 -translate-y-1/2 text-ink-subtle" />
                 <input
                   id="youtube-api-key"
                   name="youtube-api-key"
@@ -184,13 +184,13 @@ export function SettingsView({
                   placeholder="AIza…"
                   autoComplete="off"
                   spellCheck={false}
-                  className="w-full rounded-2xl border border-zinc-800 bg-zinc-950/70 py-3 pl-10 pr-12 text-sm text-zinc-100 outline-none transition placeholder:text-zinc-600 focus:border-rose-500/60 focus:ring-2 focus:ring-rose-500/20"
+                  className="w-full rounded-2xl border border-line bg-canvas/70 py-3 pl-10 pr-12 text-sm text-ink outline-none transition placeholder:text-ink-faint focus:border-brand/60 focus:ring-2 focus:ring-brand/20"
                 />
                 <button
                   type="button"
                   onClick={() => setShowKey((value) => !value)}
                   aria-label={showKey ? 'Ocultar clave' : 'Mostrar clave'}
-                  className="absolute right-2 top-1/2 grid size-8 -translate-y-1/2 place-items-center rounded-full text-zinc-400 transition hover:bg-zinc-800 hover:text-white"
+                  className="absolute right-2 top-1/2 grid size-8 -translate-y-1/2 place-items-center rounded-full text-ink-muted transition hover:bg-surface-raised hover:text-ink-bright"
                 >
                   {showKey ? (
                     <Icon.EyeOff className="size-4" />
@@ -205,7 +205,7 @@ export function SettingsView({
                   type="button"
                   onClick={handleSaveKey}
                   disabled={!draftKey.trim() || saved}
-                  className="flex flex-1 items-center justify-center gap-2 rounded-2xl bg-rose-500 px-4 py-2.5 text-sm font-semibold text-white shadow-lg shadow-rose-500/20 transition hover:bg-rose-400 active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-40"
+                  className="flex flex-1 items-center justify-center gap-2 rounded-2xl bg-brand px-4 py-2.5 text-sm font-semibold text-ink-bright shadow-lg shadow-brand/20 transition hover:bg-brand-bright active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-40"
                 >
                   {saved ? (
                     <Icon.Check className="size-4" />
@@ -218,14 +218,14 @@ export function SettingsView({
                   <button
                     type="button"
                     onClick={handleClearKey}
-                    className="rounded-2xl border border-zinc-800 px-4 py-2.5 text-sm font-semibold text-zinc-400 transition hover:border-rose-500/40 hover:text-rose-300 active:scale-[0.99]"
+                    className="rounded-2xl border border-line px-4 py-2.5 text-sm font-semibold text-ink-muted transition hover:border-brand/40 hover:text-brand-soft active:scale-[0.99]"
                   >
                     Borrar
                   </button>
                 )}
               </div>
 
-              <p className="mt-2 text-[11px] leading-relaxed text-zinc-600">
+              <p className="mt-2 text-[11px] leading-relaxed text-ink-faint">
                 La clave se guarda solo en este dispositivo y nunca se sube a
                 Google Drive.
               </p>
@@ -233,25 +233,23 @@ export function SettingsView({
           )}
         </section>
 
-        <section className="rounded-3xl border border-zinc-800 bg-zinc-900/60 p-4">
-          <h2 className="text-sm font-semibold text-zinc-200">Mis datos</h2>
+        <section className="rounded-3xl border border-line bg-surface/60 p-4">
+          <h2 className="text-sm font-semibold text-ink-strong">Mis datos</h2>
 
           <div className="mt-3 grid grid-cols-3 gap-2">
-            <div className="rounded-2xl bg-zinc-950/60 p-3 ring-1 ring-zinc-800">
-              <p className="text-2xl font-bold text-zinc-100">{seriesCount}</p>
-              <p className="mt-0.5 text-[11px] text-zinc-500">Series</p>
+            <div className="rounded-2xl bg-canvas/60 p-3 ring-1 ring-line">
+              <p className="text-2xl font-bold text-ink">{seriesCount}</p>
+              <p className="mt-0.5 text-[11px] text-ink-subtle">Series</p>
             </div>
-            <div className="rounded-2xl bg-zinc-950/60 p-3 ring-1 ring-zinc-800">
-              <p className="text-2xl font-bold text-zinc-100">
-                {watchedPartsCount}
+            <div className="rounded-2xl bg-canvas/60 p-3 ring-1 ring-line">
+              <p className="text-2xl font-bold text-ink">{watchedPartsCount}</p>
+              <p className="mt-0.5 text-[11px] text-ink-subtle">
+                Partes vistas
               </p>
-              <p className="mt-0.5 text-[11px] text-zinc-500">Partes vistas</p>
             </div>
-            <div className="rounded-2xl bg-zinc-950/60 p-3 ring-1 ring-zinc-800">
-              <p className="text-2xl font-bold text-zinc-100">
-                {favoriteCount}
-              </p>
-              <p className="mt-0.5 text-[11px] text-zinc-500">Favoritas</p>
+            <div className="rounded-2xl bg-canvas/60 p-3 ring-1 ring-line">
+              <p className="text-2xl font-bold text-ink">{favoriteCount}</p>
+              <p className="mt-0.5 text-[11px] text-ink-subtle">Favoritas</p>
             </div>
           </div>
 
@@ -259,12 +257,12 @@ export function SettingsView({
             <button
               type="button"
               onClick={onExport}
-              className="flex items-center justify-center gap-2 rounded-2xl border border-zinc-800 px-3 py-2.5 text-xs font-semibold text-zinc-300 transition hover:border-zinc-700 hover:text-white active:scale-[0.99]"
+              className="flex items-center justify-center gap-2 rounded-2xl border border-line px-3 py-2.5 text-xs font-semibold text-ink-soft transition hover:border-line-strong hover:text-ink-bright active:scale-[0.99]"
             >
               <Icon.Download className="size-4" />
               Exportar
             </button>
-            <label className="flex cursor-pointer items-center justify-center gap-2 rounded-2xl border border-zinc-800 px-3 py-2.5 text-xs font-semibold text-zinc-300 transition hover:border-zinc-700 hover:text-white active:scale-[0.99]">
+            <label className="flex cursor-pointer items-center justify-center gap-2 rounded-2xl border border-line px-3 py-2.5 text-xs font-semibold text-ink-soft transition hover:border-line-strong hover:text-ink-bright active:scale-[0.99]">
               <Icon.Upload className="size-4" />
               Importar
               <input
@@ -282,7 +280,7 @@ export function SettingsView({
             </label>
           </div>
 
-          <p className="mt-2 text-[11px] leading-relaxed text-zinc-600">
+          <p className="mt-2 text-[11px] leading-relaxed text-ink-faint">
             Exporta una copia antes de borrar los datos del navegador o cambiar
             de dispositivo.
           </p>
@@ -290,35 +288,35 @@ export function SettingsView({
           <button
             type="button"
             onClick={handleReset}
-            className="mt-3 flex w-full items-center justify-center gap-2 rounded-2xl border border-zinc-800 px-4 py-3 text-sm font-semibold text-zinc-400 transition hover:border-rose-500/40 hover:text-rose-300 active:scale-[0.99]"
+            className="mt-3 flex w-full items-center justify-center gap-2 rounded-2xl border border-line px-4 py-3 text-sm font-semibold text-ink-muted transition hover:border-brand/40 hover:text-brand-soft active:scale-[0.99]"
           >
             <Icon.Trash className="size-4" />
             Borrar series y progreso
           </button>
         </section>
 
-        <section className="rounded-3xl border border-zinc-800 bg-zinc-900/60 p-4">
-          <h2 className="text-sm font-semibold text-zinc-200">Instalación</h2>
+        <section className="rounded-3xl border border-line bg-surface/60 p-4">
+          <h2 className="text-sm font-semibold text-ink-strong">Instalación</h2>
 
           {canInstall ? (
             <>
-              <p className="mt-2 text-sm leading-relaxed text-zinc-400">
+              <p className="mt-2 text-sm leading-relaxed text-ink-muted">
                 Añade CdramaList a tu pantalla de inicio y ábrela como una app
                 nativa.
               </p>
               <button
                 type="button"
                 onClick={onInstall}
-                className="mt-3 flex w-full items-center justify-center gap-2 rounded-2xl bg-rose-500 px-4 py-3 text-sm font-semibold text-white shadow-lg shadow-rose-500/25 transition hover:bg-rose-400 active:scale-[0.99]"
+                className="mt-3 flex w-full items-center justify-center gap-2 rounded-2xl bg-brand px-4 py-3 text-sm font-semibold text-ink-bright shadow-lg shadow-brand/25 transition hover:bg-brand-bright active:scale-[0.99]"
               >
                 <Icon.Download className="size-4" />
                 Instalar en el móvil
               </button>
             </>
           ) : (
-            <p className="mt-2 text-sm leading-relaxed text-zinc-400">
+            <p className="mt-2 text-sm leading-relaxed text-ink-muted">
               Abre el menú del navegador y elige{' '}
-              <span className="font-medium text-zinc-200">
+              <span className="font-medium text-ink-strong">
                 «Añadir a pantalla de inicio»
               </span>{' '}
               para usar la app como una aplicación nativa.
@@ -326,16 +324,16 @@ export function SettingsView({
           )}
         </section>
 
-        <section className="rounded-3xl border border-zinc-800 bg-zinc-900/60 p-4">
+        <section className="rounded-3xl border border-line bg-surface/60 p-4">
           <div className="flex items-start gap-3">
-            <div className="grid size-10 shrink-0 place-items-center rounded-2xl bg-zinc-800/80 text-zinc-400">
+            <div className="grid size-10 shrink-0 place-items-center rounded-2xl bg-surface-raised/80 text-ink-muted">
               <Icon.Info className="size-5" />
             </div>
             <div>
-              <h2 className="text-sm font-semibold text-zinc-200">
+              <h2 className="text-sm font-semibold text-ink-strong">
                 Sobre las partes
               </h2>
-              <p className="mt-1 text-xs leading-relaxed text-zinc-500">
+              <p className="mt-1 text-xs leading-relaxed text-ink-subtle">
                 La detección automática busca en el canal y reconoce títulos
                 como «Parte 2», «P2», «2/5», «Capítulo 2» o «Final». Si un canal
                 no numera las partes, puedes añadirlas a mano desde la serie.
@@ -344,7 +342,7 @@ export function SettingsView({
           </div>
         </section>
 
-        <p className="pb-2 text-center text-xs text-zinc-600">
+        <p className="pb-2 text-center text-xs text-ink-faint">
           Hecho con React, Vite y Tailwind CSS
         </p>
       </div>

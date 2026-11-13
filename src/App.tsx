@@ -353,7 +353,7 @@ export default function App() {
   }
 
   return (
-    <div className="mx-auto flex min-h-dvh w-full max-w-md flex-col bg-zinc-950 pb-24">
+    <div className="mx-auto flex min-h-dvh w-full max-w-md flex-col bg-canvas pb-24">
       <main className="flex-1">
         {tab === 'home' && (
           <HomeView
@@ -439,7 +439,7 @@ export default function App() {
               <button
                 type="button"
                 onClick={() => setSelectedSeriesId(reviewQueue[0])}
-                className="pointer-events-auto flex items-center gap-2 self-center rounded-full bg-rose-500 px-4 py-2.5 text-sm font-semibold text-white shadow-xl shadow-rose-500/30 transition hover:bg-rose-400 active:scale-95"
+                className="pointer-events-auto flex items-center gap-2 self-center rounded-full bg-brand px-4 py-2.5 text-sm font-semibold text-ink-bright shadow-xl shadow-brand/30 transition hover:bg-brand-bright active:scale-95"
               >
                 <Icon.Sparkles className="size-4" />
                 Revisar novedades ({reviewQueue.length})
@@ -451,7 +451,7 @@ export default function App() {
                 type="button"
                 onClick={openAdd}
                 aria-label="Añadir serie"
-                className="pointer-events-auto grid size-12 place-items-center rounded-full bg-rose-500 text-white shadow-xl shadow-rose-500/30 transition hover:bg-rose-400 active:scale-95"
+                className="pointer-events-auto grid size-12 place-items-center rounded-full bg-brand text-ink-bright shadow-xl shadow-brand/30 transition hover:bg-brand-bright active:scale-95"
               >
                 <Icon.Plus className="size-5" />
               </button>

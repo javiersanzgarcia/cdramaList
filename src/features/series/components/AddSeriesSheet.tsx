@@ -330,13 +330,13 @@ export function AddSeriesSheet({
         type="button"
         onClick={onClose}
         aria-label="Cerrar"
-        className="absolute inset-0 animate-fade-in bg-black/70 backdrop-blur-sm"
+        className="absolute inset-0 animate-fade-in bg-overlay/70 backdrop-blur-sm"
       />
 
-      <div className="no-scrollbar relative max-h-[92dvh] w-full max-w-md animate-sheet-up overflow-y-auto overscroll-contain rounded-t-3xl border-t border-zinc-800 bg-zinc-900 pb-[calc(env(safe-area-inset-bottom)_+_1rem)]">
-        <div className="sticky top-0 z-10 flex items-center justify-between gap-3 border-b border-zinc-800/80 bg-zinc-900/95 px-4 py-3 backdrop-blur-xl">
+      <div className="no-scrollbar relative max-h-[92dvh] w-full max-w-md animate-sheet-up overflow-y-auto overscroll-contain rounded-t-3xl border-t border-line bg-surface pb-[calc(env(safe-area-inset-bottom)_+_1rem)]">
+        <div className="sticky top-0 z-10 flex items-center justify-between gap-3 border-b border-line/80 bg-surface/95 px-4 py-3 backdrop-blur-xl">
           <div className="min-w-0">
-            <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-rose-400">
+            <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-brand-bright">
               {isAddMode ? 'Añadir partes' : 'Añadir a tu lista'}
             </p>
             <h2 id="add-series-title" className="truncate text-lg font-bold">
@@ -347,7 +347,7 @@ export function AddSeriesSheet({
             type="button"
             onClick={onClose}
             aria-label="Cerrar"
-            className="grid size-9 shrink-0 place-items-center rounded-full bg-zinc-800/80 text-zinc-300 transition hover:text-white active:scale-90"
+            className="grid size-9 shrink-0 place-items-center rounded-full bg-surface-raised/80 text-ink-soft transition hover:text-ink-bright active:scale-90"
           >
             <Icon.X className="size-5" />
           </button>
@@ -355,8 +355,8 @@ export function AddSeriesSheet({
 
         <div className="px-4 pt-4">
           {attachedSeries && (
-            <div className="mb-4 flex items-center gap-3 rounded-2xl border border-emerald-500/25 bg-emerald-500/10 p-3">
-              <span className="relative aspect-video w-16 shrink-0 overflow-hidden rounded-lg bg-zinc-800">
+            <div className="mb-4 flex items-center gap-3 rounded-2xl border border-success-strong/25 bg-success-strong/10 p-3">
+              <span className="relative aspect-video w-16 shrink-0 overflow-hidden rounded-lg bg-surface-raised">
                 {attachedSeries.thumbnail && (
                   <img
                     src={attachedSeries.thumbnail}
@@ -370,13 +370,13 @@ export function AddSeriesSheet({
                 )}
               </span>
               <div className="min-w-0 flex-1">
-                <p className="text-[10px] font-bold uppercase tracking-wide text-emerald-300">
+                <p className="text-[10px] font-bold uppercase tracking-wide text-success-soft">
                   Añadiendo a una serie existente
                 </p>
-                <p className="truncate text-sm font-semibold text-zinc-100">
+                <p className="truncate text-sm font-semibold text-ink">
                   {attachedSeries.title}
                 </p>
-                <p className="mt-0.5 text-[11px] text-emerald-200/70">
+                <p className="mt-0.5 text-[11px] text-success-softer/70">
                   {attachedSeries.parts.length}{' '}
                   {attachedSeries.parts.length === 1 ? 'parte' : 'partes'} en la
                   serie
@@ -399,17 +399,17 @@ export function AddSeriesSheet({
 
           {phase === 'loading' && (
             <div className="flex flex-col items-center py-12 text-center">
-              <div className="size-12 animate-spin rounded-full border-2 border-zinc-700 border-t-rose-500" />
-              <p className="mt-4 text-sm font-medium text-zinc-200">
+              <div className="size-12 animate-spin rounded-full border-2 border-line-strong border-t-brand" />
+              <p className="mt-4 text-sm font-medium text-ink-strong">
                 {message}
               </p>
-              <p className="mt-1 text-xs text-zinc-500">
+              <p className="mt-1 text-xs text-ink-subtle">
                 Esto puede tardar unos segundos.
               </p>
               <button
                 type="button"
                 onClick={() => setPhase('input')}
-                className="mt-6 text-xs font-medium text-zinc-500 transition hover:text-zinc-300"
+                className="mt-6 text-xs font-medium text-ink-subtle transition hover:text-ink-soft"
               >
                 Cancelar
               </button>
@@ -418,27 +418,27 @@ export function AddSeriesSheet({
 
           {phase === 'error' && (
             <div className="py-8 text-center">
-              <div className="mx-auto grid size-14 place-items-center rounded-2xl bg-rose-500/10 text-rose-300">
+              <div className="mx-auto grid size-14 place-items-center rounded-2xl bg-brand/10 text-brand-soft">
                 <Icon.Info className="size-6" />
               </div>
-              <h3 className="mt-4 text-base font-semibold text-zinc-100">
+              <h3 className="mt-4 text-base font-semibold text-ink">
                 {isAddMode ? 'No se pudo añadir' : 'No se pudo crear la serie'}
               </h3>
-              <p className="mt-1.5 text-sm leading-relaxed text-zinc-400">
+              <p className="mt-1.5 text-sm leading-relaxed text-ink-muted">
                 {error}
               </p>
               <div className="mt-5 flex gap-2">
                 <button
                   type="button"
                   onClick={() => setPhase('input')}
-                  className="flex-1 rounded-2xl border border-zinc-800 px-4 py-2.5 text-sm font-semibold text-zinc-300 transition hover:border-zinc-700 hover:text-white active:scale-[0.99]"
+                  className="flex-1 rounded-2xl border border-line px-4 py-2.5 text-sm font-semibold text-ink-soft transition hover:border-line-strong hover:text-ink-bright active:scale-[0.99]"
                 >
                   Volver
                 </button>
                 <button
                   type="button"
                   onClick={onOpenSettings}
-                  className="flex-1 rounded-2xl bg-rose-500 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-rose-400 active:scale-[0.99]"
+                  className="flex-1 rounded-2xl bg-brand px-4 py-2.5 text-sm font-semibold text-ink-bright transition hover:bg-brand-bright active:scale-[0.99]"
                 >
                   Abrir Ajustes
                 </button>
@@ -449,25 +449,25 @@ export function AddSeriesSheet({
           {phase === 'preview' && draft && (
             <div className="pb-2">
               <div className="flex flex-wrap items-center gap-2">
-                <span className="rounded-full bg-rose-500/10 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide text-rose-300">
+                <span className="rounded-full bg-brand/10 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide text-brand-soft">
                   {sourceLabel}
                 </span>
                 {isAddMode && (
-                  <span className="rounded-full bg-emerald-500/10 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide text-emerald-300">
+                  <span className="rounded-full bg-success-strong/10 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide text-success-soft">
                     Añadiendo a serie existente
                   </span>
                 )}
               </div>
 
               {suggestedSeries && !isAddMode && (
-                <div className="mt-4 rounded-2xl border border-amber-400/25 bg-amber-400/5 p-3">
+                <div className="mt-4 rounded-2xl border border-warning/25 bg-warning/5 p-3">
                   <div className="flex items-start gap-2">
-                    <Icon.Info className="mt-0.5 size-4 shrink-0 text-amber-300" />
+                    <Icon.Info className="mt-0.5 size-4 shrink-0 text-warning-soft" />
                     <div className="min-w-0">
-                      <p className="text-xs font-semibold text-amber-100">
+                      <p className="text-xs font-semibold text-warning-softest">
                         Puede que esta serie ya exista
                       </p>
-                      <p className="mt-0.5 text-[11px] leading-relaxed text-amber-200/75">
+                      <p className="mt-0.5 text-[11px] leading-relaxed text-warning-softer/75">
                         «{suggestedSeries.title}» ya tiene{' '}
                         {suggestedSeries.parts.length}{' '}
                         {suggestedSeries.parts.length === 1
@@ -482,14 +482,14 @@ export function AddSeriesSheet({
                     <button
                       type="button"
                       onClick={attachSuggested}
-                      className="rounded-xl bg-emerald-500 px-3 py-2 text-xs font-semibold text-white transition hover:bg-emerald-400 active:scale-[0.99]"
+                      className="rounded-xl bg-success-strong px-3 py-2 text-xs font-semibold text-ink-bright transition hover:bg-success active:scale-[0.99]"
                     >
                       Añadir a la existente
                     </button>
                     <button
                       type="button"
                       onClick={createNewFromSuggestion}
-                      className="rounded-xl border border-zinc-700 px-3 py-2 text-xs font-semibold text-zinc-300 transition hover:border-zinc-600 hover:text-white active:scale-[0.99]"
+                      className="rounded-xl border border-line-strong px-3 py-2 text-xs font-semibold text-ink-soft transition hover:border-line-contrast hover:text-ink-bright active:scale-[0.99]"
                     >
                       Crear serie nueva
                     </button>
@@ -498,12 +498,12 @@ export function AddSeriesSheet({
               )}
 
               {suggestedSeries && isAddMode && !targetSeries && (
-                <p className="mt-3 text-[11px] leading-relaxed text-zinc-500">
+                <p className="mt-3 text-[11px] leading-relaxed text-ink-subtle">
                   Has elegido añadir estas partes a «{suggestedSeries.title}».{' '}
                   <button
                     type="button"
                     onClick={createNewFromSuggestion}
-                    className="font-semibold text-rose-300 transition hover:text-rose-200"
+                    className="font-semibold text-brand-soft transition hover:text-brand-softer"
                   >
                     Crear una serie nueva
                   </button>
@@ -514,7 +514,7 @@ export function AddSeriesSheet({
                 <>
                   <label
                     htmlFor="series-title"
-                    className="mt-4 block text-xs font-medium text-zinc-400"
+                    className="mt-4 block text-xs font-medium text-ink-muted"
                   >
                     Título de la serie
                   </label>
@@ -524,16 +524,16 @@ export function AddSeriesSheet({
                     value={title}
                     onChange={(event) => setTitle(event.target.value)}
                     autoComplete="off"
-                    className="mt-1.5 w-full rounded-2xl border border-zinc-800 bg-zinc-950/70 px-3.5 py-3 text-sm font-medium text-zinc-100 outline-none transition focus:border-rose-500/60 focus:ring-2 focus:ring-rose-500/20"
+                    className="mt-1.5 w-full rounded-2xl border border-line bg-canvas/70 px-3.5 py-3 text-sm font-medium text-ink outline-none transition focus:border-brand/60 focus:ring-2 focus:ring-brand/20"
                   />
-                  <p className="mt-1.5 text-[11px] leading-relaxed text-zinc-500">
+                  <p className="mt-1.5 text-[11px] leading-relaxed text-ink-subtle">
                     Si escribes un título distinto al del vídeo, el título real
                     de YouTube se guardará como alias de búsqueda.
                   </p>
                 </>
               )}
 
-              <div className="mt-3 flex items-center gap-2 text-xs text-zinc-500">
+              <div className="mt-3 flex items-center gap-2 text-xs text-ink-subtle">
                 <Icon.Youtube className="size-4 shrink-0" />
                 <span className="truncate">{draft.channelTitle}</span>
                 {draft.channelUrl && (
@@ -541,7 +541,7 @@ export function AddSeriesSheet({
                     href={draft.channelUrl}
                     target="_blank"
                     rel="noreferrer"
-                    className="ml-auto inline-flex shrink-0 items-center gap-1 font-medium text-zinc-400 transition hover:text-white"
+                    className="ml-auto inline-flex shrink-0 items-center gap-1 font-medium text-ink-muted transition hover:text-ink-bright"
                   >
                     Ver canal
                     <Icon.ExternalLink className="size-3.5" />
@@ -554,7 +554,7 @@ export function AddSeriesSheet({
                   {draft.warnings.map((warning) => (
                     <li
                       key={warning}
-                      className="flex gap-2 rounded-xl bg-amber-400/5 px-2.5 py-2 text-[11px] leading-relaxed text-amber-200/80"
+                      className="flex gap-2 rounded-xl bg-warning/5 px-2.5 py-2 text-[11px] leading-relaxed text-warning-softer/80"
                     >
                       <Icon.Info className="mt-0.5 size-3.5 shrink-0" />
                       {warning}
@@ -599,7 +599,7 @@ export function AddSeriesSheet({
                 <button
                   type="button"
                   onClick={() => setPhase('input')}
-                  className="rounded-2xl border border-zinc-800 px-4 py-3 text-sm font-semibold text-zinc-300 transition hover:border-zinc-700 hover:text-white active:scale-[0.99]"
+                  className="rounded-2xl border border-line px-4 py-3 text-sm font-semibold text-ink-soft transition hover:border-line-strong hover:text-ink-bright active:scale-[0.99]"
                 >
                   Volver
                 </button>
@@ -607,7 +607,7 @@ export function AddSeriesSheet({
                   type="button"
                   onClick={handleSave}
                   disabled={selected.size === 0}
-                  className="flex flex-1 items-center justify-center gap-2 rounded-2xl bg-rose-500 px-4 py-3 text-sm font-semibold text-white shadow-lg shadow-rose-500/25 transition hover:bg-rose-400 active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-40"
+                  className="flex flex-1 items-center justify-center gap-2 rounded-2xl bg-brand px-4 py-3 text-sm font-semibold text-ink-bright shadow-lg shadow-brand/25 transition hover:bg-brand-bright active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-40"
                 >
                   <Icon.Check className="size-4" />
                   {isAddMode

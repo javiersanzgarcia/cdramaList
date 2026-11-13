@@ -29,11 +29,11 @@ export function ContinueCard({ series, onPlay, onOpen }: ContinueCardProps) {
 
   return (
     <article className="w-64 shrink-0">
-      <div className="relative aspect-video overflow-hidden rounded-2xl bg-zinc-900 shadow-lg shadow-black/40">
+      <div className="relative aspect-video overflow-hidden rounded-2xl bg-surface shadow-lg shadow-overlay/40">
         <button
           type="button"
           onClick={() => onPlay(series, nextIndex)}
-          className="absolute inset-0 text-left outline-none focus-visible:ring-2 focus-visible:ring-rose-500"
+          className="absolute inset-0 text-left outline-none focus-visible:ring-2 focus-visible:ring-brand"
         >
           {series.thumbnail && (
             <img
@@ -46,21 +46,21 @@ export function ContinueCard({ series, onPlay, onOpen }: ContinueCardProps) {
               className="absolute inset-0 size-full object-cover"
             />
           )}
-          <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/20 to-transparent" />
+          <div className="absolute inset-0 bg-gradient-to-t from-overlay/85 via-overlay/20 to-transparent" />
 
           <span className="absolute inset-0 grid place-items-center">
-            <span className="grid size-12 place-items-center rounded-full bg-rose-500/90 text-white shadow-lg shadow-rose-500/30 backdrop-blur transition active:scale-90">
+            <span className="grid size-12 place-items-center rounded-full bg-brand/90 text-ink-bright shadow-lg shadow-brand/30 backdrop-blur transition active:scale-90">
               <Icon.Play className="size-5" />
             </span>
           </span>
 
-          <span className="absolute left-2 top-2 rounded-full bg-black/55 px-2 py-1 text-[10px] font-bold uppercase tracking-wide text-white backdrop-blur">
+          <span className="absolute left-2 top-2 rounded-full bg-overlay/55 px-2 py-1 text-[10px] font-bold uppercase tracking-wide text-ink-bright backdrop-blur">
             {watched}/{series.parts.length}
           </span>
 
-          <div className="absolute inset-x-2.5 bottom-2.5 h-1.5 overflow-hidden rounded-full bg-white/25">
+          <div className="absolute inset-x-2.5 bottom-2.5 h-1.5 overflow-hidden rounded-full bg-paper/25">
             <div
-              className={`h-full rounded-full ${complete ? 'bg-emerald-400' : 'bg-rose-400'}`}
+              className={`h-full rounded-full ${complete ? 'bg-success' : 'bg-brand-bright'}`}
               style={{ width: `${progressPercent(series)}%` }}
             />
           </div>
@@ -70,7 +70,7 @@ export function ContinueCard({ series, onPlay, onOpen }: ContinueCardProps) {
           type="button"
           onClick={() => onOpen(series)}
           aria-label={`Ver todas las partes de ${series.title}`}
-          className="absolute right-2 top-2 grid size-8 place-items-center rounded-full bg-black/50 text-white/80 backdrop-blur transition hover:text-white active:scale-90"
+          className="absolute right-2 top-2 grid size-8 place-items-center rounded-full bg-overlay/50 text-ink-bright/80 backdrop-blur transition hover:text-ink-bright active:scale-90"
         >
           <Icon.Bookmark className="size-4" />
         </button>
@@ -81,10 +81,10 @@ export function ContinueCard({ series, onPlay, onOpen }: ContinueCardProps) {
         onClick={() => onPlay(series, nextIndex)}
         className="mt-2 block w-full text-left"
       >
-        <h3 className="line-clamp-1 text-sm font-semibold text-zinc-100">
+        <h3 className="line-clamp-1 text-sm font-semibold text-ink">
           {series.title}
         </h3>
-        <p className="mt-0.5 text-xs font-medium text-rose-400">{label}</p>
+        <p className="mt-0.5 text-xs font-medium text-brand-bright">{label}</p>
       </button>
     </article>
   )

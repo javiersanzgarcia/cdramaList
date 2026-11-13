@@ -209,7 +209,7 @@ export function SeriesRefreshPanel({
         type="button"
         onClick={() => void handleRefresh()}
         disabled={refreshing}
-        className="flex w-full items-center justify-center gap-2 rounded-2xl border border-rose-500/30 bg-rose-500/10 px-4 py-3 text-sm font-semibold text-rose-200 transition hover:border-rose-500/50 hover:bg-rose-500/15 hover:text-white active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-60"
+        className="flex w-full items-center justify-center gap-2 rounded-2xl border border-brand/30 bg-brand/10 px-4 py-3 text-sm font-semibold text-brand-softer transition hover:border-brand/50 hover:bg-brand/15 hover:text-ink-bright active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-60"
       >
         <Icon.RefreshCw
           className={`size-4 ${refreshing ? 'animate-spin' : ''}`}
@@ -218,7 +218,7 @@ export function SeriesRefreshPanel({
       </button>
 
       {!semanticConfigured && (
-        <p className="text-[11px] leading-relaxed text-zinc-500">
+        <p className="text-[11px] leading-relaxed text-ink-subtle">
           Similitud semántica desactivada: no se configuró el servicio de IA al
           compilar esta app.
         </p>
@@ -228,10 +228,10 @@ export function SeriesRefreshPanel({
         <p
           className={`rounded-2xl border px-3 py-2 text-[11px] leading-relaxed ${
             refreshMessage.kind === 'error'
-              ? 'border-rose-500/20 bg-rose-500/10 text-rose-200'
+              ? 'border-brand/20 bg-brand/10 text-brand-softer'
               : refreshMessage.kind === 'ok'
-                ? 'border-emerald-400/20 bg-emerald-400/10 text-emerald-200'
-                : 'border-zinc-700 bg-zinc-950/60 text-zinc-300'
+                ? 'border-success/20 bg-success/10 text-success-softer'
+                : 'border-line-strong bg-canvas/60 text-ink-soft'
           }`}
         >
           {refreshMessage.text}
@@ -239,14 +239,14 @@ export function SeriesRefreshPanel({
       )}
 
       {candidates.length > 0 && (
-        <div className="rounded-2xl border border-amber-400/20 bg-amber-400/5 p-3">
+        <div className="rounded-2xl border border-warning/20 bg-warning/5 p-3">
           <div className="flex items-start gap-2">
-            <Icon.Sparkles className="mt-0.5 size-4 shrink-0 text-amber-300" />
+            <Icon.Sparkles className="mt-0.5 size-4 shrink-0 text-warning-soft" />
             <div className="min-w-0">
-              <p className="text-xs font-semibold text-amber-100">
+              <p className="text-xs font-semibold text-warning-softest">
                 Posibles capítulos ({candidates.length})
               </p>
-              <p className="mt-0.5 text-[11px] leading-relaxed text-amber-200/70">
+              <p className="mt-0.5 text-[11px] leading-relaxed text-warning-softer/70">
                 Hemos buscado por el título, los alias, el título real de la
                 descripción y sus sinónimos. Revisa el número y añádelos solo si
                 son de esta serie.
@@ -291,8 +291,8 @@ export function SeriesRefreshPanel({
         <p
           className={`rounded-2xl border px-3 py-2 text-[11px] leading-relaxed ${
             candidateMessage.kind === 'error'
-              ? 'border-rose-500/20 bg-rose-500/10 text-rose-200'
-              : 'border-emerald-400/20 bg-emerald-400/10 text-emerald-200'
+              ? 'border-brand/20 bg-brand/10 text-brand-softer'
+              : 'border-success/20 bg-success/10 text-success-softer'
           }`}
         >
           {candidateMessage.text}

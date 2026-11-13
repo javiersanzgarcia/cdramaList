@@ -206,9 +206,15 @@ src/
 │   └── sync/            # hooks/, model/, types.ts para Google Drive
 ├── shared/              # UI, hooks y utilidades reutilizables
 ├── store/               # Zustand persistido y migración de localStorage
+├── styles/
+│   └── colors.css       # paleta única de la app (tokens semánticos)
 ├── App.tsx               # composición de features
-└── index.css             # Tailwind y tema
+└── index.css             # Tailwind y estilos base
 ```
+
+### Colores
+
+Todos los colores viven en `src/styles/colors.css` como tokens semánticos de Tailwind v4 (`canvas`, `surface`, `ink`, `brand`, `success`, `warning`…). Los componentes usan utilidades derivadas (`bg-canvas`, `text-ink-muted`, `border-line`, `bg-brand/10`), así que cambiar un valor en ese archivo actualiza toda la interfaz. Evita clases de paleta directas (`bg-zinc-900`, `text-rose-500`) en componentes nuevos.
 
 ## Datos guardados
 

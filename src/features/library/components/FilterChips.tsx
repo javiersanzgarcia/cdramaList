@@ -23,19 +23,19 @@ export function FilterChips({ value, onChange }: FilterChipsProps) {
         value={value}
         onChange={(event) => onChange(event.target.value as Filter)}
         aria-label="Filtrar series"
-        className="w-full cursor-pointer appearance-none rounded-full border border-zinc-800 bg-zinc-900/70 py-2 pl-4 pr-11 text-sm font-semibold text-zinc-100 outline-none transition hover:border-zinc-700 focus:border-rose-500/60 focus:ring-2 focus:ring-rose-500/25"
+        className="w-full cursor-pointer appearance-none rounded-full border border-line bg-surface/70 py-2 pl-4 pr-11 text-sm font-semibold text-ink outline-none transition hover:border-line-strong focus:border-brand/60 focus:ring-2 focus:ring-brand/25"
       >
         {filters.map((filter) => (
           <option
             key={filter.value}
             value={filter.value}
-            className="bg-zinc-900 text-zinc-100"
+            className="bg-surface text-ink"
           >
             {filter.label}
           </option>
         ))}
       </select>
-      <span className="pointer-events-none absolute inset-y-0 right-4 grid place-items-center text-zinc-500">
+      <span className="pointer-events-none absolute inset-y-0 right-4 grid place-items-center text-ink-subtle">
         <Icon.ChevronDown className="size-4" />
       </span>
     </div>

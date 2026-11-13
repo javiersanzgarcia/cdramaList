@@ -1,0 +1,73 @@
+/**
+ * Paleta de la aplicación.
+ *
+ * Única fuente de verdad para los colores. Tailwind genera las utilidades a
+ * partir de estas variables (`bg-canvas`, `text-ink-muted`, `border-line`…),
+ * así que cambiar un valor aquí actualiza toda la interfaz.
+ *
+ * Los nombres son semánticos: describen el papel del color, no el tono. Los
+ * valores están en OKLCH para que las mezclas y los modificadores de opacidad
+ * (`bg-brand/10`) se mantengan uniformes.
+ */
+@theme {
+  /* --- Superficies neutras --- */
+  --color-canvas: oklch(14.1% 0.005 285.823);
+  --color-surface: oklch(21% 0.006 285.885);
+  --color-surface-raised: oklch(27.4% 0.006 286.033);
+  --color-surface-strong: oklch(37% 0.013 285.805);
+  --color-paper: oklch(100% 0 0);
+  --color-paper-soft: oklch(96.7% 0.001 286.375);
+  --color-overlay: oklch(0% 0 0);
+
+  /* --- Bordes --- */
+  --color-line: oklch(27.4% 0.006 286.033);
+  --color-line-soft: oklch(21% 0.006 285.885);
+  --color-line-strong: oklch(37% 0.013 285.805);
+  --color-line-contrast: oklch(44.2% 0.017 285.786);
+
+  /* --- Texto --- */
+  --color-ink: oklch(96.7% 0.001 286.375);
+  --color-ink-bright: oklch(100% 0 0);
+  --color-ink-strong: oklch(92% 0.004 286.32);
+  --color-ink-soft: oklch(87.1% 0.006 286.286);
+  --color-ink-muted: oklch(70.5% 0.015 286.067);
+  --color-ink-subtle: oklch(55.2% 0.016 285.938);
+  --color-ink-faint: oklch(44.2% 0.017 285.786);
+  --color-ink-inverse: oklch(21% 0.006 285.885);
+
+  /* --- Marca --- */
+  --color-brand: oklch(64.5% 0.246 16.439);
+  --color-brand-bright: oklch(71.2% 0.194 13.428);
+  --color-brand-soft: oklch(81% 0.117 11.638);
+  --color-brand-softer: oklch(89.2% 0.058 10.001);
+  --color-brand-softest: oklch(94.1% 0.03 12.58);
+
+  /* --- Éxito --- */
+  --color-success: oklch(76.5% 0.177 163.223);
+  --color-success-strong: oklch(69.6% 0.17 162.48);
+  --color-success-soft: oklch(84.5% 0.143 164.978);
+  --color-success-softer: oklch(90.5% 0.093 164.15);
+
+  /* --- Aviso --- */
+  --color-warning: oklch(82.8% 0.189 84.429);
+  --color-warning-soft: oklch(87.9% 0.169 91.605);
+  --color-warning-softer: oklch(92.4% 0.12 95.746);
+  --color-warning-softest: oklch(96.2% 0.059 95.617);
+  --color-on-warning: oklch(27.9% 0.077 45.635);
+
+  /* --- Portadas decorativas de las tarjetas --- */
+  --color-cover-rose: oklch(64.5% 0.246 16.439);
+  --color-cover-red: oklch(63.7% 0.237 25.331);
+  --color-cover-orange: oklch(75% 0.183 55.934);
+  --color-cover-orange-strong: oklch(70.5% 0.213 47.604);
+  --color-cover-indigo: oklch(58.5% 0.233 277.117);
+  --color-cover-purple: oklch(62.7% 0.265 303.9);
+  --color-cover-purple-deep: oklch(55.8% 0.288 302.321);
+  --color-cover-fuchsia: oklch(66.7% 0.295 322.15);
+  --color-cover-amber: oklch(82.8% 0.189 84.429);
+  --color-cover-sky: oklch(68.5% 0.169 237.323);
+  --color-cover-cyan: oklch(71.5% 0.143 215.221);
+  --color-cover-emerald: oklch(76.5% 0.177 163.223);
+  --color-cover-violet: oklch(54.1% 0.281 293.009);
+  --color-cover-pink: oklch(65.6% 0.241 354.308);
+}

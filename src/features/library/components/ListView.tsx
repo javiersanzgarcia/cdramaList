@@ -50,10 +50,10 @@ export function ListView({
               <section key={status} className="animate-rise">
                 <div className="mb-2.5 flex items-center gap-2 px-0.5">
                   <span className={`size-2 rounded-full ${meta.dot}`} />
-                  <h2 className="text-sm font-semibold text-zinc-200">
+                  <h2 className="text-sm font-semibold text-ink-strong">
                     {meta.label}
                   </h2>
-                  <span className="text-xs text-zinc-500">{list.length}</span>
+                  <span className="text-xs text-ink-subtle">{list.length}</span>
                 </div>
 
                 <div className="grid grid-cols-2 gap-3">

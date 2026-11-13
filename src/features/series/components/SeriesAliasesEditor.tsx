@@ -54,17 +54,17 @@ export function SeriesAliasesEditor({
   }
 
   return (
-    <div className="mt-4 rounded-2xl border border-zinc-800 bg-zinc-950/60 p-3">
+    <div className="mt-4 rounded-2xl border border-line bg-canvas/60 p-3">
       <div className="flex items-center gap-2">
-        <Icon.Search className="size-4 text-rose-300" />
-        <h3 className="text-xs font-semibold uppercase tracking-wide text-zinc-400">
+        <Icon.Search className="size-4 text-brand-soft" />
+        <h3 className="text-xs font-semibold uppercase tracking-wide text-ink-muted">
           Alias de búsqueda
         </h3>
-        <span className="ml-auto text-[10px] font-medium text-zinc-600">
+        <span className="ml-auto text-[10px] font-medium text-ink-faint">
           {aliases.length}/{MAX_SERIES_ALIASES}
         </span>
       </div>
-      <p className="mt-1 text-[11px] leading-relaxed text-zinc-500">
+      <p className="mt-1 text-[11px] leading-relaxed text-ink-subtle">
         Otros títulos con los que se publica esta serie (traducciones o títulos
         alternativos). Se buscarán junto al título principal al actualizar.
       </p>
@@ -74,14 +74,14 @@ export function SeriesAliasesEditor({
           {aliases.map((alias) => (
             <li
               key={alias}
-              className="inline-flex max-w-full items-center gap-1 rounded-full bg-zinc-800/80 py-1 pl-2.5 pr-1 text-[11px] text-zinc-200"
+              className="inline-flex max-w-full items-center gap-1 rounded-full bg-surface-raised/80 py-1 pl-2.5 pr-1 text-[11px] text-ink-strong"
             >
               <span className="truncate">{alias}</span>
               <button
                 type="button"
                 onClick={() => removeAlias(alias)}
                 aria-label={`Quitar alias ${alias}`}
-                className="grid size-5 shrink-0 place-items-center rounded-full text-zinc-500 transition hover:bg-zinc-700 hover:text-white active:scale-90"
+                className="grid size-5 shrink-0 place-items-center rounded-full text-ink-subtle transition hover:bg-surface-strong hover:text-ink-bright active:scale-90"
               >
                 <Icon.X className="size-3" />
               </button>
@@ -103,12 +103,12 @@ export function SeriesAliasesEditor({
           aria-label="Nuevo alias"
           autoComplete="off"
           maxLength={120}
-          className="min-w-0 flex-1 rounded-xl border border-zinc-800 bg-zinc-900 px-3 py-2 text-xs text-zinc-100 outline-none transition placeholder:text-zinc-600 focus:border-rose-500/60 focus:ring-2 focus:ring-rose-500/20"
+          className="min-w-0 flex-1 rounded-xl border border-line bg-surface px-3 py-2 text-xs text-ink outline-none transition placeholder:text-ink-faint focus:border-brand/60 focus:ring-2 focus:ring-brand/20"
         />
         <button
           type="submit"
           disabled={aliasDraft.trim().length < 2}
-          className="inline-flex shrink-0 items-center gap-1 rounded-xl bg-zinc-800 px-3 py-2 text-[11px] font-semibold text-zinc-200 transition hover:bg-zinc-700 active:scale-95 disabled:opacity-40"
+          className="inline-flex shrink-0 items-center gap-1 rounded-xl bg-surface-raised px-3 py-2 text-[11px] font-semibold text-ink-strong transition hover:bg-surface-strong active:scale-95 disabled:opacity-40"
         >
           <Icon.Plus className="size-3.5" />
           Añadir
@@ -116,7 +116,9 @@ export function SeriesAliasesEditor({
       </form>
 
       {aliasMessage && (
-        <p className="mt-1.5 text-[11px] text-amber-200/80">{aliasMessage}</p>
+        <p className="mt-1.5 text-[11px] text-warning-softer/80">
+          {aliasMessage}
+        </p>
       )}
     </div>
   )

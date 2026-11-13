@@ -160,27 +160,27 @@ export function PlayerSheet({
 
   return (
     <div
-      className="fixed inset-0 z-50 overflow-y-auto bg-zinc-950"
+      className="fixed inset-0 z-50 overflow-y-auto bg-canvas"
       role="dialog"
       aria-modal="true"
       aria-label={`Reproductor de ${series.title}`}
     >
       <div className="mx-auto flex min-h-dvh w-full max-w-md flex-col pb-[calc(env(safe-area-inset-bottom)_+_1.25rem)]">
-        <header className="sticky top-0 z-10 flex items-center gap-2 border-b border-zinc-900 bg-zinc-950/95 px-3 pb-2.5 pt-[calc(env(safe-area-inset-top)_+_0.6rem)] backdrop-blur-xl">
+        <header className="sticky top-0 z-10 flex items-center gap-2 border-b border-line-soft bg-canvas/95 px-3 pb-2.5 pt-[calc(env(safe-area-inset-top)_+_0.6rem)] backdrop-blur-xl">
           <button
             type="button"
             onClick={onClose}
             aria-label="Cerrar reproductor"
-            className="grid size-9 shrink-0 place-items-center rounded-full bg-zinc-900 text-zinc-300 transition hover:text-white active:scale-90"
+            className="grid size-9 shrink-0 place-items-center rounded-full bg-surface text-ink-soft transition hover:text-ink-bright active:scale-90"
           >
             <Icon.ChevronLeft className="size-5" />
           </button>
 
           <div className="min-w-0 flex-1">
-            <p className="truncate text-sm font-semibold text-zinc-100">
+            <p className="truncate text-sm font-semibold text-ink">
               {series.title}
             </p>
-            <p className="truncate text-[11px] text-zinc-500">
+            <p className="truncate text-[11px] text-ink-subtle">
               {partLabel(part, safeIndex)} · {series.channelTitle}
             </p>
           </div>
@@ -190,7 +190,7 @@ export function PlayerSheet({
             target="_blank"
             rel="noreferrer"
             aria-label="Abrir en YouTube"
-            className="grid size-9 shrink-0 place-items-center rounded-full bg-zinc-900 text-zinc-400 transition hover:text-white active:scale-90"
+            className="grid size-9 shrink-0 place-items-center rounded-full bg-surface text-ink-muted transition hover:text-ink-bright active:scale-90"
           >
             <Icon.ExternalLink className="size-4" />
           </a>
@@ -204,7 +204,7 @@ export function PlayerSheet({
 
         <div className="px-4 pt-3">
           {playerError && (
-            <div className="mb-3 flex items-start gap-2 rounded-2xl border border-amber-400/20 bg-amber-400/5 px-3 py-2.5 text-[11px] leading-relaxed text-amber-200/85">
+            <div className="mb-3 flex items-start gap-2 rounded-2xl border border-warning/20 bg-warning/5 px-3 py-2.5 text-[11px] leading-relaxed text-warning-softer/85">
               <Icon.Info className="mt-0.5 size-4 shrink-0" />
               <span>
                 Este vídeo no se puede reproducir aquí (puede tener
@@ -223,7 +223,7 @@ export function PlayerSheet({
           )}
 
           {complete && (
-            <div className="mb-3 flex items-center gap-2 rounded-2xl border border-emerald-400/20 bg-emerald-400/5 px-3 py-2.5 text-[11px] font-medium text-emerald-200/90">
+            <div className="mb-3 flex items-center gap-2 rounded-2xl border border-success/20 bg-success/5 px-3 py-2.5 text-[11px] font-medium text-success-softer/90">
               <Icon.Check className="size-4 shrink-0" />
               Has completado todas las partes de esta serie.
             </div>
@@ -231,13 +231,13 @@ export function PlayerSheet({
 
           <div className="flex items-start justify-between gap-3">
             <div className="min-w-0 flex-1">
-              <p className="text-[11px] font-semibold uppercase tracking-wide text-rose-300">
+              <p className="text-[11px] font-semibold uppercase tracking-wide text-brand-soft">
                 {partLabel(part, safeIndex)}
                 {duration && (
-                  <span className="ml-1.5 text-zinc-500">· {duration}</span>
+                  <span className="ml-1.5 text-ink-subtle">· {duration}</span>
                 )}
               </p>
-              <h2 className="mt-1 text-base font-semibold leading-snug text-zinc-100">
+              <h2 className="mt-1 text-base font-semibold leading-snug text-ink">
                 {part.title}
               </h2>
             </div>
@@ -248,8 +248,8 @@ export function PlayerSheet({
               aria-pressed={watched}
               className={`flex shrink-0 items-center gap-1.5 rounded-full border px-3 py-2 text-[11px] font-semibold transition active:scale-95 ${
                 watched
-                  ? 'border-emerald-400/30 bg-emerald-400/10 text-emerald-300'
-                  : 'border-zinc-800 bg-zinc-900 text-zinc-400 hover:text-zinc-200'
+                  ? 'border-success/30 bg-success/10 text-success-soft'
+                  : 'border-line bg-surface text-ink-muted hover:text-ink-strong'
               }`}
             >
               <Icon.Check className="size-3.5" />
@@ -258,22 +258,22 @@ export function PlayerSheet({
           </div>
 
           {(description || descriptionLoading) && (
-            <div className="mt-3 rounded-2xl border border-zinc-800/80 bg-zinc-900/40 p-3">
-              <p className="text-[10px] font-semibold uppercase tracking-wide text-zinc-500">
+            <div className="mt-3 rounded-2xl border border-line/80 bg-surface/40 p-3">
+              <p className="text-[10px] font-semibold uppercase tracking-wide text-ink-subtle">
                 Descripción
               </p>
 
               {descriptionLoading ? (
                 <div className="mt-2 space-y-1.5" aria-hidden="true">
-                  <div className="h-2.5 w-full animate-pulse rounded bg-zinc-800" />
-                  <div className="h-2.5 w-11/12 animate-pulse rounded bg-zinc-800" />
-                  <div className="h-2.5 w-4/5 animate-pulse rounded bg-zinc-800" />
+                  <div className="h-2.5 w-full animate-pulse rounded bg-surface-raised" />
+                  <div className="h-2.5 w-11/12 animate-pulse rounded bg-surface-raised" />
+                  <div className="h-2.5 w-4/5 animate-pulse rounded bg-surface-raised" />
                 </div>
               ) : (
                 <>
                   <p
                     ref={descriptionRef}
-                    className={`mt-1.5 whitespace-pre-line text-xs leading-relaxed text-zinc-400 ${
+                    className={`mt-1.5 whitespace-pre-line text-xs leading-relaxed text-ink-muted ${
                       descriptionExpanded ? '' : 'line-clamp-4'
                     }`}
                   >
@@ -286,7 +286,7 @@ export function PlayerSheet({
                         setDescriptionExpanded((current) => !current)
                       }
                       aria-expanded={descriptionExpanded}
-                      className="mt-1.5 text-[11px] font-semibold text-rose-300 transition hover:text-rose-200 active:scale-95"
+                      className="mt-1.5 text-[11px] font-semibold text-brand-soft transition hover:text-brand-softer active:scale-95"
                     >
                       {descriptionExpanded ? 'Ver menos' : 'Ver más'}
                     </button>
@@ -297,15 +297,15 @@ export function PlayerSheet({
           )}
 
           <div className="mt-3 flex items-center gap-2">
-            <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-zinc-800">
+            <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-surface-raised">
               <div
                 className={`h-full rounded-full transition-all ${
-                  complete ? 'bg-emerald-400' : 'bg-rose-500'
+                  complete ? 'bg-success' : 'bg-brand'
                 }`}
                 style={{ width: `${progressPercent(series)}%` }}
               />
             </div>
-            <span className="shrink-0 text-[11px] font-medium text-zinc-500">
+            <span className="shrink-0 text-[11px] font-medium text-ink-subtle">
               {watchedTotal}/{total}
             </span>
           </div>
@@ -315,7 +315,7 @@ export function PlayerSheet({
               type="button"
               onClick={() => goTo(safeIndex - 1)}
               disabled={!hasPrevious}
-              className="flex items-center justify-center gap-1.5 rounded-2xl border border-zinc-800 px-3 py-2.5 text-xs font-semibold text-zinc-300 transition hover:border-zinc-700 hover:text-white active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-30"
+              className="flex items-center justify-center gap-1.5 rounded-2xl border border-line px-3 py-2.5 text-xs font-semibold text-ink-soft transition hover:border-line-strong hover:text-ink-bright active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-30"
             >
               <Icon.ChevronLeft className="size-4" />
               Anterior
@@ -324,7 +324,7 @@ export function PlayerSheet({
               type="button"
               onClick={() => goTo(safeIndex + 1)}
               disabled={!hasNext}
-              className="flex items-center justify-center gap-1.5 rounded-2xl border border-zinc-800 px-3 py-2.5 text-xs font-semibold text-zinc-300 transition hover:border-zinc-700 hover:text-white active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-30"
+              className="flex items-center justify-center gap-1.5 rounded-2xl border border-line px-3 py-2.5 text-xs font-semibold text-ink-soft transition hover:border-line-strong hover:text-ink-bright active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-30"
             >
               Siguiente
               <Icon.ChevronRight className="size-4" />
@@ -339,7 +339,7 @@ export function PlayerSheet({
                 if (hasNext) goTo(safeIndex + 1)
               }}
               disabled={!hasNext}
-              className="flex w-full items-center justify-center gap-2 rounded-2xl bg-rose-500 px-4 py-3 text-sm font-semibold text-white shadow-lg shadow-rose-500/25 transition hover:bg-rose-400 active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-30"
+              className="flex w-full items-center justify-center gap-2 rounded-2xl bg-brand px-4 py-3 text-sm font-semibold text-ink-bright shadow-lg shadow-brand/25 transition hover:bg-brand-bright active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-30"
             >
               <Icon.Check className="size-4" />
               {hasNext ? 'Vista y siguiente' : 'Última parte'}
@@ -349,10 +349,10 @@ export function PlayerSheet({
 
         <section className="px-4 pt-6">
           <div className="flex items-baseline justify-between gap-3">
-            <h3 className="text-xs font-semibold uppercase tracking-wide text-zinc-500">
+            <h3 className="text-xs font-semibold uppercase tracking-wide text-ink-subtle">
               Partes de la serie
             </h3>
-            <span className="text-[11px] text-zinc-600">
+            <span className="text-[11px] text-ink-faint">
               {watchedTotal} vistas
             </span>
           </div>
@@ -371,11 +371,11 @@ export function PlayerSheet({
                     aria-current={isCurrent ? 'true' : undefined}
                     className={`flex w-full items-center gap-2.5 rounded-2xl border p-2 text-left transition active:scale-[0.995] ${
                       isCurrent
-                        ? 'border-rose-500/40 bg-rose-500/10'
-                        : 'border-transparent hover:bg-zinc-900/70'
+                        ? 'border-brand/40 bg-brand/10'
+                        : 'border-transparent hover:bg-surface/70'
                     }`}
                   >
-                    <span className="relative aspect-video w-20 shrink-0 overflow-hidden rounded-lg bg-zinc-900">
+                    <span className="relative aspect-video w-20 shrink-0 overflow-hidden rounded-lg bg-surface">
                       {item.thumbnail && (
                         <img
                           src={item.thumbnail}
@@ -388,22 +388,22 @@ export function PlayerSheet({
                         />
                       )}
                       {isCurrent && (
-                        <span className="absolute inset-0 grid place-items-center bg-black/55">
-                          <Icon.Play className="size-5 text-white" />
+                        <span className="absolute inset-0 grid place-items-center bg-overlay/55">
+                          <Icon.Play className="size-5 text-ink-bright" />
                         </span>
                       )}
                     </span>
 
                     <span className="min-w-0 flex-1">
-                      <span className="flex items-center gap-1.5 text-[11px] font-semibold text-rose-300">
+                      <span className="flex items-center gap-1.5 text-[11px] font-semibold text-brand-soft">
                         {partLabel(item, itemIndex)}
                         {itemDuration && (
-                          <span className="font-normal text-zinc-600">
+                          <span className="font-normal text-ink-faint">
                             · {itemDuration}
                           </span>
                         )}
                       </span>
-                      <span className="mt-0.5 line-clamp-2 block text-xs leading-snug text-zinc-300">
+                      <span className="mt-0.5 line-clamp-2 block text-xs leading-snug text-ink-soft">
                         {item.title}
                       </span>
                     </span>
@@ -411,8 +411,8 @@ export function PlayerSheet({
                     <span
                       className={`grid size-6 shrink-0 place-items-center rounded-full ${
                         isWatched
-                          ? 'bg-emerald-400/15 text-emerald-300'
-                          : 'bg-zinc-800/70 text-zinc-600'
+                          ? 'bg-success/15 text-success-soft'
+                          : 'bg-surface-raised/70 text-ink-faint'
                       }`}
                       aria-hidden="true"
                     >
