@@ -138,18 +138,14 @@ export function detectPart(title: string): PartInfo {
   return { isFinal }
 }
 
-const DESCRIPTION_RELATION =
-  '(?:d(?:e(?:l)?|[ao]s?)\\s+(?:(?:el|la|los|las|o|a)\\s+)?)'
+const DESCRIPTION_RELATION = '(?:d(?:e(?:l)?|[ao]s?)\\s+(?:(?:el|la|los|las|o|a)\\s+)?)'
 
 const DESCRIPTION_TITLE_LABEL = new RegExp(
   `(?:t[ií]tulo\\s+(?:original|${DESCRIPTION_RELATION}(?:drama|serie|s[eé]rie|novela|v[ií]deo))|t[ií]tulos?|original\\s+title|title|nome(?:\\s+${DESCRIPTION_RELATION}(?:drama|s[eé]rie|novela))?|nombre(?:\\s+${DESCRIPTION_RELATION}(?:drama|serie|novela))?|drama|serie|series|novela|剧名|标题|片名|名称)`,
   'iu'
 )
 
-const DESCRIPTION_TITLE_HEADING = new RegExp(
-  `^(?:${DESCRIPTION_TITLE_LABEL.source})$`,
-  'iu'
-)
+const DESCRIPTION_TITLE_HEADING = new RegExp(`^(?:${DESCRIPTION_TITLE_LABEL.source})$`, 'iu')
 
 const DESCRIPTION_TITLE_INLINE = new RegExp(
   `^[^\\p{L}\\p{N}]*${DESCRIPTION_TITLE_LABEL.source}\\s*(?:[:：]|】|\\]|\\))\\s*(.+)$`,
@@ -224,10 +220,7 @@ function isSectionHeading(value: string): boolean {
   return DESCRIPTION_NOISE.test(cleanDescriptionLine(trimmed))
 }
 
-function nextDescriptionTitleLine(
-  lines: string[],
-  start: number
-): string | undefined {
+function nextDescriptionTitleLine(lines: string[], start: number): string | undefined {
   for (let index = start + 1; index < lines.length; index += 1) {
     const raw = lines[index].trim()
     if (!raw) continue
@@ -249,9 +242,7 @@ function nextDescriptionTitleLine(
  *
  * También admite formatos como «Título: …» o «Nombre del drama: …».
  */
-export function extractDescriptionTitle(
-  description?: string
-): string | undefined {
+export function extractDescriptionTitle(description?: string): string | undefined {
   if (!description) return undefined
 
   const lines = description.replace(/\r\n?/g, '\n').split('\n')
@@ -320,8 +311,7 @@ export function sortParts(parts: Part[]): Part[] {
     const first = a.partNumber
     const second = b.partNumber
 
-    if (first != null && second != null && first !== second)
-      return first - second
+    if (first != null && second != null && first !== second) return first - second
     if (first != null && second == null) return -1
     if (first == null && second != null) return 1
 
@@ -336,11 +326,7 @@ export function sortParts(parts: Part[]): Part[] {
   })
 }
 
-export function reorderParts(
-  parts: Part[],
-  fromIndex: number,
-  toIndex: number
-): Part[] {
+export function reorderParts(parts: Part[], fromIndex: number, toIndex: number): Part[] {
   if (
     fromIndex < 0 ||
     fromIndex >= parts.length ||

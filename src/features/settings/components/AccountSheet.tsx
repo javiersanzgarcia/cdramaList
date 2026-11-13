@@ -11,12 +11,7 @@ interface AccountSheetProps {
   onClose: () => void
 }
 
-export function AccountSheet({
-  user,
-  clientId,
-  drive,
-  onClose
-}: AccountSheetProps) {
+export function AccountSheet({ user, clientId, drive, onClose }: AccountSheetProps) {
   useSheet(onClose)
 
   const busy = drive.busy
@@ -84,12 +79,10 @@ export function AccountSheet({
                 <Icon.Google className="size-5" />
               </div>
               <div className="min-w-0">
-                <h2 className="text-sm font-semibold text-ink-strong">
-                  Cuenta de Google
-                </h2>
+                <h2 className="text-sm font-semibold text-ink-strong">Cuenta de Google</h2>
                 <p className="mt-1 text-xs leading-relaxed text-ink-subtle">
-                  Conecta tu cuenta para sincronizar tus series entre
-                  dispositivos con una carpeta privada de Google Drive.
+                  Conecta tu cuenta para sincronizar tus series entre dispositivos con una
+                  carpeta privada de Google Drive.
                 </p>
               </div>
             </div>
@@ -109,12 +102,8 @@ export function AccountSheet({
                   </div>
                 )}
                 <div className="min-w-0 flex-1">
-                  <p className="truncate text-sm font-semibold text-ink">
-                    {accountName}
-                  </p>
-                  <p className="truncate text-xs text-ink-subtle">
-                    {accountEmail}
-                  </p>
+                  <p className="truncate text-sm font-semibold text-ink">{accountName}</p>
+                  <p className="truncate text-xs text-ink-subtle">{accountEmail}</p>
                 </div>
                 <button
                   type="button"
@@ -139,17 +128,16 @@ export function AccountSheet({
                 </button>
 
                 <p className="text-center text-[11px] leading-relaxed text-ink-faint">
-                  Se pedirá permiso para guardar un archivo privado de
-                  CdramaList en tu Drive. La app no puede ver el resto de tus
-                  archivos.
+                  Se pedirá permiso para guardar un archivo privado de CdramaList en tu Drive.
+                  La app no puede ver el resto de tus archivos.
                 </p>
               </div>
             )}
 
             {!clientId && (
               <p className="mt-3 rounded-2xl border border-brand/20 bg-brand/10 px-3 py-2 text-[11px] leading-relaxed text-brand-softer">
-                Falta configurar <code>VITE_GOOGLE_CLIENT_ID</code>. Consulta el
-                README para activar Google Drive.
+                Falta configurar <code>VITE_GOOGLE_CLIENT_ID</code>. Consulta el README para
+                activar Google Drive.
               </p>
             )}
           </section>
@@ -172,8 +160,8 @@ export function AccountSheet({
                 </div>
                 <p className="mt-1 text-xs leading-relaxed text-ink-subtle">
                   Tus series se guardan en{' '}
-                  <span className="text-ink-soft">cdramalist.json</span> dentro
-                  de la carpeta privada de la app en tu Drive.
+                  <span className="text-ink-soft">cdramalist.json</span> dentro de la carpeta
+                  privada de la app en tu Drive.
                 </p>
               </div>
             </div>
@@ -243,9 +231,7 @@ export function AccountSheet({
                   disabled={busy}
                   className="flex w-full items-center justify-center gap-2 rounded-2xl bg-brand px-4 py-3 text-sm font-semibold text-ink-bright shadow-lg shadow-brand/25 transition hover:bg-brand-bright active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-40"
                 >
-                  <Icon.RefreshCw
-                    className={`size-4 ${busy ? 'animate-spin' : ''}`}
-                  />
+                  <Icon.RefreshCw className={`size-4 ${busy ? 'animate-spin' : ''}`} />
                   {busy ? 'Sincronizando…' : 'Sincronizar y combinar'}
                 </button>
 
@@ -281,9 +267,8 @@ export function AccountSheet({
                 </button>
 
                 <p className="text-[11px] leading-relaxed text-ink-faint">
-                  Sincronizar combina ambos lados. Subir reemplaza la nube con
-                  este dispositivo y Bajar reemplaza este dispositivo con la
-                  nube.
+                  Sincronizar combina ambos lados. Subir reemplaza la nube con este dispositivo
+                  y Bajar reemplaza este dispositivo con la nube.
                 </p>
               </div>
             ) : clientId ? (
@@ -309,17 +294,17 @@ export function AccountSheet({
               </div>
             ) : (
               <p className="mt-3 text-sm leading-relaxed text-ink-muted">
-                Falta configurar <code>VITE_GOOGLE_CLIENT_ID</code>. Consulta el
-                README para activar Google Drive.
+                Falta configurar <code>VITE_GOOGLE_CLIENT_ID</code>. Consulta el README para
+                activar Google Drive.
               </p>
             )}
 
             <div className="mt-3 flex items-start gap-2 rounded-2xl border border-success/15 bg-success/5 px-3 py-2.5 text-[11px] leading-relaxed text-success-softer/80">
               <Icon.Shield className="mt-0.5 size-4 shrink-0" />
               <span>
-                Los datos se guardan en la carpeta privada{' '}
-                <code>appDataFolder</code> de tu Google Drive. CdramaList solo
-                puede acceder a sus propios archivos, no al resto de tu Drive.
+                Los datos se guardan en la carpeta privada <code>appDataFolder</code> de tu
+                Google Drive. CdramaList solo puede acceder a sus propios archivos, no al resto
+                de tu Drive.
               </span>
             </div>
 
@@ -338,8 +323,7 @@ export function AccountSheet({
                   >
                     Google Cloud
                   </a>
-                  , activa la{' '}
-                  <span className="text-ink-strong">Google Drive API</span>.
+                  , activa la <span className="text-ink-strong">Google Drive API</span>.
                 </li>
                 <li>
                   En la pantalla de consentimiento OAuth, añade el permiso{' '}
@@ -349,12 +333,10 @@ export function AccountSheet({
                   .
                 </li>
                 <li>
-                  Añade tu correo como usuario de prueba mientras la app esté en
-                  modo pruebas.
+                  Añade tu correo como usuario de prueba mientras la app esté en modo pruebas.
                 </li>
                 <li>
-                  Usa el mismo{' '}
-                  <span className="text-ink-strong">Client ID</span> de tipo
+                  Usa el mismo <span className="text-ink-strong">Client ID</span> de tipo
                   «Aplicación web» que ya utiliza la app.
                 </li>
               </ol>

@@ -1,11 +1,4 @@
-import type {
-  Filter,
-  Part,
-  PartMetaPatch,
-  Series,
-  SeriesDraft,
-  SeriesStatus
-} from '../types'
+import type { Filter, Part, PartMetaPatch, Series, SeriesDraft, SeriesStatus } from '../types'
 import { normalizeSemanticFingerprint } from '../../discovery/model/semanticAi'
 import {
   YOUTUBE_CHANNEL_FALLBACK,
@@ -28,8 +21,7 @@ import {
 } from './constants'
 
 export function watchedCount(series: Series): number {
-  return series.parts.filter((part) => series.watched.includes(part.videoId))
-    .length
+  return series.parts.filter((part) => series.watched.includes(part.videoId)).length
 }
 
 /**
@@ -69,9 +61,7 @@ export function progressPercent(series: Series): number {
 }
 
 export function nextPartIndex(series: Series): number {
-  const index = series.parts.findIndex(
-    (part) => !series.watched.includes(part.videoId)
-  )
+  const index = series.parts.findIndex((part) => !series.watched.includes(part.videoId))
   return index === -1 ? 0 : index
 }
 
@@ -83,20 +73,14 @@ export function progressLabel(series: Series): string {
   return `${watchedCount(series)}/${series.parts.length}`
 }
 
-export function filterSeries(
-  series: Series[],
-  query: string,
-  filter: Filter
-): Series[] {
+export function filterSeries(series: Series[], query: string, filter: Filter): Series[] {
   const term = query.trim().toLowerCase()
 
   return series.filter((item) => {
     const matchesQuery =
       term.length === 0 ||
       item.title.toLowerCase().includes(term) ||
-      (item.aliases ?? []).some((alias) =>
-        alias.toLowerCase().includes(term)
-      ) ||
+      (item.aliases ?? []).some((alias) => alias.toLowerCase().includes(term)) ||
       item.channelTitle.toLowerCase().includes(term)
 
     const matchesFilter =
@@ -120,8 +104,7 @@ export function groupSeries(series: Series[]): Record<SeriesStatus, Series[]> {
 
   for (const status of statusOrder) {
     groups[status].sort(
-      (a, b) =>
-        (b.lastOpenedAt ?? b.updatedAt) - (a.lastOpenedAt ?? a.updatedAt)
+      (a, b) => (b.lastOpenedAt ?? b.updatedAt) - (a.lastOpenedAt ?? a.updatedAt)
     )
   }
 
@@ -131,24 +114,16 @@ export function groupSeries(series: Series[]): Record<SeriesStatus, Series[]> {
 export function continueWatching(series: Series[]): Series[] {
   return series
     .filter((item) => seriesStatus(item) === 'watching')
-    .sort(
-      (a, b) =>
-        (b.lastOpenedAt ?? b.updatedAt) - (a.lastOpenedAt ?? a.updatedAt)
-    )
+    .sort((a, b) => (b.lastOpenedAt ?? b.updatedAt) - (a.lastOpenedAt ?? a.updatedAt))
 }
 
-export function findExistingSeries(
-  series: Series[],
-  draft: SeriesDraft
-): Series | undefined {
+export function findExistingSeries(series: Series[], draft: SeriesDraft): Series | undefined {
   if (draft.existingSeriesId) {
     return series.find((item) => item.id === draft.existingSeriesId)
   }
 
   const draftIds = new Set(draft.parts.map((part) => part.videoId))
-  const byPart = series.find((item) =>
-    item.parts.some((part) => draftIds.has(part.videoId))
-  )
+  const byPart = series.find((item) => item.parts.some((part) => draftIds.has(part.videoId)))
   if (byPart) return byPart
 
   const matches = series
@@ -167,14 +142,10 @@ export function findExistingSeries(
         draft.channelTitle === YOUTUBE_CHANNEL_FALLBACK ||
         item.channelTitle === YOUTUBE_CHANNEL_FALLBACK
 
-      return (
-        sameChannelName && similarity >= SERIES_MATCH_SAME_CHANNEL_SIMILARITY
-      )
+      return sameChannelName && similarity >= SERIES_MATCH_SAME_CHANNEL_SIMILARITY
     })
     .sort(
-      (a, b) =>
-        titleSimilarity(b.title, draft.title) -
-        titleSimilarity(a.title, draft.title)
+      (a, b) => titleSimilarity(b.title, draft.title) - titleSimilarity(a.title, draft.title)
     )
 
   return matches[0]
@@ -189,9 +160,7 @@ function acceptedCandidateTitles(
 
   return (draft.candidates ?? [])
     .filter(
-      (candidate) =>
-        selectedIds.has(candidate.videoId) &&
-        !excludedIds.has(candidate.videoId)
+      (candidate) => selectedIds.has(candidate.videoId) && !excludedIds.has(candidate.videoId)
     )
     .flatMap((candidate) =>
       [candidate.title, candidate.descriptionTitle].filter(
@@ -200,11 +169,7 @@ function acceptedCandidateTitles(
     )
 }
 
-export function createSeries(
-  draft: SeriesDraft,
-  title: string,
-  parts: Part[]
-): Series {
+export function createSeries(draft: SeriesDraft, title: string, parts: Part[]): Series {
   const now = Date.now()
   const id =
     typeof crypto !== 'undefined' && 'randomUUID' in crypto
@@ -216,10 +181,7 @@ export function createSeries(
     id,
     title: finalTitle,
     aliases: mergeAliasesWithParts([], parts, finalTitle),
-    keywordConfidence: learnKeywordConfidence(
-      {},
-      acceptedCandidateTitles(draft, parts)
-    ),
+    keywordConfidence: learnKeywordConfidence({}, acceptedCandidateTitles(draft, parts)),
     channelId: draft.channelId,
     channelTitle: draft.channelTitle,
     channelUrl: draft.channelUrl,
@@ -289,8 +251,7 @@ function combineRemovedParts(
 
   for (const [videoId, removedAt] of Object.entries(incoming ?? {})) {
     const previous = merged[videoId]
-    merged[videoId] =
-      previous == null ? removedAt : Math.max(previous, removedAt)
+    merged[videoId] = previous == null ? removedAt : Math.max(previous, removedAt)
   }
 
   return Object.keys(merged).length > 0 ? merged : undefined
@@ -330,11 +291,7 @@ function keepPendingRemovals(
 }
 
 /** Aplica metadatos de un vídeo (descripción y duración) a una parte. */
-export function applyPartMeta(
-  series: Series,
-  videoId: string,
-  patch: PartMetaPatch
-): Series {
+export function applyPartMeta(series: Series, videoId: string, patch: PartMetaPatch): Series {
   const description = patch.description?.trim()
   const durationSeconds =
     typeof patch.durationSeconds === 'number' && patch.durationSeconds > 0
@@ -348,10 +305,7 @@ export function applyPartMeta(
 
     const nextDescription = description || part.description
     const nextDuration = durationSeconds ?? part.durationSeconds
-    if (
-      nextDescription === part.description &&
-      nextDuration === part.durationSeconds
-    ) {
+    if (nextDescription === part.description && nextDuration === part.durationSeconds) {
       return part
     }
 
@@ -367,10 +321,7 @@ export function applyPartMeta(
 }
 
 /** Rellena las duraciones que falten a partir de los metadatos de YouTube. */
-export function applyPartDurations(
-  series: Series,
-  metas: Map<string, PartMetaPatch>
-): Series {
+export function applyPartDurations(series: Series, metas: Map<string, PartMetaPatch>): Series {
   let changed = false
   const parts = series.parts.map((part) => {
     if (part.durationSeconds != null) return part
@@ -380,10 +331,7 @@ export function applyPartDurations(
 
     const durationSeconds = meta.durationSeconds ?? part.durationSeconds
     const description = part.description ?? meta.description
-    if (
-      durationSeconds === part.durationSeconds &&
-      description === part.description
-    ) {
+    if (durationSeconds === part.durationSeconds && description === part.description) {
       return part
     }
 
@@ -407,14 +355,9 @@ export function mergeSeries(
   const discardedCandidates = (existing.discardedCandidates ?? []).filter(
     (videoId) => !selectedIds.has(videoId)
   )
-  const mergedParts = filterRemovedParts(
-    mergeParts(existing.parts, parts),
-    removedParts
-  )
+  const mergedParts = filterRemovedParts(mergeParts(existing.parts, parts), removedParts)
   const existingPartIds = new Set(existing.parts.map((part) => part.videoId))
-  const gainedParts = mergedParts.some(
-    (part) => !existingPartIds.has(part.videoId)
-  )
+  const gainedParts = mergedParts.some((part) => !existingPartIds.has(part.videoId))
   const finalTitle = title.trim() || existing.title
 
   return {
@@ -429,8 +372,7 @@ export function mergeSeries(
         ? draft.channelTitle
         : existing.channelTitle,
     channelUrl: existing.channelUrl ?? draft.channelUrl,
-    thumbnail:
-      existing.thumbnail ?? draft.thumbnail ?? mergedParts[0]?.thumbnail,
+    thumbnail: existing.thumbnail ?? draft.thumbnail ?? mergedParts[0]?.thumbnail,
     parts: mergedParts,
     discardedCandidates,
     removedParts,
@@ -462,9 +404,7 @@ export function reconcileCompletedStatus(
   return hasUnwatched ? undefined : status
 }
 
-export function normalizeKeywordConfidence(
-  value: unknown
-): Record<string, number> {
+export function normalizeKeywordConfidence(value: unknown): Record<string, number> {
   if (!value || typeof value !== 'object' || Array.isArray(value)) return {}
 
   const entries = Object.entries(value as Record<string, unknown>)
@@ -491,9 +431,7 @@ export function learnKeywordConfidence(
   const confidence = normalizeKeywordConfidence(current)
 
   for (const keyword of new Set(titles.flatMap(extractKeywords))) {
-    const previous = Object.hasOwn(confidence, keyword)
-      ? confidence[keyword]
-      : 0
+    const previous = Object.hasOwn(confidence, keyword) ? confidence[keyword] : 0
     confidence[keyword] = Math.min(MAX_KEYWORD_CONFIDENCE, previous + 1)
   }
 
@@ -506,12 +444,8 @@ function combineKeywordConfidence(
 ): Record<string, number> {
   const confidence = normalizeKeywordConfidence(current)
 
-  for (const [keyword, score] of Object.entries(
-    normalizeKeywordConfidence(incoming)
-  )) {
-    const currentScore = Object.hasOwn(confidence, keyword)
-      ? confidence[keyword]
-      : 0
+  for (const [keyword, score] of Object.entries(normalizeKeywordConfidence(incoming))) {
+    const currentScore = Object.hasOwn(confidence, keyword) ? confidence[keyword] : 0
     confidence[keyword] = Math.max(currentScore, score)
   }
 
@@ -552,20 +486,15 @@ export function normalizeAliases(value: unknown): string[] {
 export function normalizeDiscardedCandidates(value: unknown): string[] {
   if (!Array.isArray(value)) return []
 
-  return [
-    ...new Set(value.filter((id): id is string => typeof id === 'string'))
-  ]
+  return [...new Set(value.filter((id): id is string => typeof id === 'string'))]
 }
 
 /**
  * Lápidas de partes: id del vídeo y momento en que se quitó de la serie. Se
  * descartan las entradas sin marca de tiempo válida.
  */
-export function normalizeRemovedParts(
-  value: unknown
-): Record<string, number> | undefined {
-  if (!value || typeof value !== 'object' || Array.isArray(value))
-    return undefined
+export function normalizeRemovedParts(value: unknown): Record<string, number> | undefined {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return undefined
 
   const entries = Object.entries(value as Record<string, unknown>).filter(
     (entry): entry is [string, number] =>
@@ -585,10 +514,7 @@ export function youtubeTitleAliases(parts: Part[]): string[] {
 
   for (const part of parts) {
     const title = stripPartMarkers(part.title)
-      .replace(
-        /[\s\-–—|:]*\b(?:final|fin|ending|last|[uú]ltima\s+parte)\s*$/iu,
-        ''
-      )
+      .replace(/[\s\-–—|:]*\b(?:final|fin|ending|last|[uú]ltima\s+parte)\s*$/iu, '')
       .replace(/[\s\-–—|:]+$/gu, '')
       .trim()
     if (title.length < MIN_SERIES_TITLE_LENGTH) continue
@@ -613,16 +539,12 @@ export function mergeAliasesWithParts(
   title: string
 ): string[] {
   const titleKey = title.trim().toLowerCase()
-  const aliases = (current ?? []).filter(
-    (alias) => alias.trim().toLowerCase() !== titleKey
-  )
+  const aliases = (current ?? []).filter((alias) => alias.trim().toLowerCase() !== titleKey)
 
   return normalizeAliases([
     // Los títulos de YouTube van primero: la búsqueda global solo lanza unas
     // pocas consultas, así que deben tener prioridad sobre alias antiguos.
-    ...youtubeTitleAliases(parts).filter(
-      (alias) => alias.toLowerCase() !== titleKey
-    ),
+    ...youtubeTitleAliases(parts).filter((alias) => alias.toLowerCase() !== titleKey),
     ...aliases
   ])
 }
@@ -646,18 +568,13 @@ export function normalizeSeries(value: Series): Series {
     title: value.title.trim() || 'Serie sin título',
     aliases: normalizeAliases(value.aliases),
     keywordConfidence: normalizeKeywordConfidence(value.keywordConfidence),
-    semanticFingerprint: normalizeSemanticFingerprint(
-      value.semanticFingerprint
-    ),
+    semanticFingerprint: normalizeSemanticFingerprint(value.semanticFingerprint),
     channelId: value.channelId,
     channelTitle: value.channelTitle || YOUTUBE_CHANNEL_FALLBACK,
     channelUrl: value.channelUrl,
     thumbnail: value.thumbnail,
     parts: value.parts
-      .filter(
-        (part) =>
-          part && typeof part.videoId === 'string' && part.videoId.length > 0
-      )
+      .filter((part) => part && typeof part.videoId === 'string' && part.videoId.length > 0)
       .map((part) => ({
         videoId: part.videoId,
         title:
@@ -668,10 +585,8 @@ export function normalizeSeries(value: Series): Series {
           typeof part.description === 'string'
             ? part.description.slice(0, MAX_PART_DESCRIPTION_LENGTH)
             : undefined,
-        partNumber:
-          typeof part.partNumber === 'number' ? part.partNumber : undefined,
-        totalParts:
-          typeof part.totalParts === 'number' ? part.totalParts : undefined,
+        partNumber: typeof part.partNumber === 'number' ? part.partNumber : undefined,
+        totalParts: typeof part.totalParts === 'number' ? part.totalParts : undefined,
         sortOrder:
           typeof part.sortOrder === 'number' &&
           Number.isFinite(part.sortOrder) &&
@@ -680,31 +595,22 @@ export function normalizeSeries(value: Series): Series {
             : undefined,
         isFinal: Boolean(part.isFinal),
         durationSeconds:
-          typeof part.durationSeconds === 'number'
-            ? part.durationSeconds
-            : undefined,
-        publishedAt:
-          typeof part.publishedAt === 'string' ? part.publishedAt : undefined,
-        thumbnail:
-          typeof part.thumbnail === 'string' ? part.thumbnail : undefined,
+          typeof part.durationSeconds === 'number' ? part.durationSeconds : undefined,
+        publishedAt: typeof part.publishedAt === 'string' ? part.publishedAt : undefined,
+        thumbnail: typeof part.thumbnail === 'string' ? part.thumbnail : undefined,
         addedAt: typeof part.addedAt === 'number' ? part.addedAt : now
       })),
     watched: value.watched.filter((id) => typeof id === 'string'),
     favorite: Boolean(value.favorite),
     status:
-      value.status === 'watching' ||
-      value.status === 'planned' ||
-      value.status === 'completed'
+      value.status === 'watching' || value.status === 'planned' || value.status === 'completed'
         ? value.status
         : undefined,
-    discardedCandidates: normalizeDiscardedCandidates(
-      value.discardedCandidates
-    ),
+    discardedCandidates: normalizeDiscardedCandidates(value.discardedCandidates),
     removedParts: normalizeRemovedParts(value.removedParts),
     createdAt: typeof value.createdAt === 'number' ? value.createdAt : now,
     updatedAt: typeof value.updatedAt === 'number' ? value.updatedAt : now,
-    lastOpenedAt:
-      typeof value.lastOpenedAt === 'number' ? value.lastOpenedAt : undefined,
+    lastOpenedAt: typeof value.lastOpenedAt === 'number' ? value.lastOpenedAt : undefined,
     deletedAt: typeof value.deletedAt === 'number' ? value.deletedAt : undefined
   }
 }
@@ -768,24 +674,14 @@ function mergeStatus(
   return newer.status
 }
 
-export function combineSeries(
-  current: Series,
-  incoming: Series,
-  base?: Series
-): Series {
+export function combineSeries(current: Series, incoming: Series, base?: Series): Series {
   // En caso de empate gana la copia local: así un cambio hecho en este
   // dispositivo (por ejemplo el estado) no lo borra la copia de Drive, que
   // puede tener el mismo `updatedAt` sin reflejar ese cambio.
   const newer = incoming.updatedAt > current.updatedAt ? incoming : current
   const older = newer === incoming ? current : incoming
-  const lastOpenedAt = Math.max(
-    current.lastOpenedAt ?? 0,
-    incoming.lastOpenedAt ?? 0
-  )
-  const removedParts = combineRemovedParts(
-    current.removedParts,
-    incoming.removedParts
-  )
+  const lastOpenedAt = Math.max(current.lastOpenedAt ?? 0, incoming.lastOpenedAt ?? 0)
+  const removedParts = combineRemovedParts(current.removedParts, incoming.removedParts)
   const parts = filterRemovedParts(
     // Un vídeo quitado a mano no vuelve desde la copia que aún lo tiene: la
     // lápida de la parte solo la levanta una re-adición posterior.
@@ -797,34 +693,14 @@ export function combineSeries(
   // otro dispositivo había subido.
   const watched = [
     ...new Set(
-      mergeField(
-        base,
-        current,
-        incoming,
-        newer,
-        (item) => item.watched,
-        sameStringSet
-      )
+      mergeField(base, current, incoming, newer, (item) => item.watched, sameStringSet)
     )
   ]
   const aliases = normalizeAliases(
-    mergeField(
-      base,
-      current,
-      incoming,
-      newer,
-      (item) => item.aliases ?? [],
-      sameStringSet
-    )
+    mergeField(base, current, incoming, newer, (item) => item.aliases ?? [], sameStringSet)
   )
   const title = mergeField(base, current, incoming, newer, (item) => item.title)
-  const favorite = mergeField(
-    base,
-    current,
-    incoming,
-    newer,
-    (item) => item.favorite
-  )
+  const favorite = mergeField(base, current, incoming, newer, (item) => item.favorite)
   const mergedStatus = mergeStatus(base, current, incoming, newer)
 
   return {
@@ -904,15 +780,11 @@ export function mergeSeriesCollections(
     const previous = byId.get(incoming.id)
     byId.set(
       incoming.id,
-      previous
-        ? combineSeries(previous, incoming, baseById.get(incoming.id))
-        : incoming
+      previous ? combineSeries(previous, incoming, baseById.get(incoming.id)) : incoming
     )
   }
 
   // Se descartan las lápidas antiguas para que no crezcan sin límite en
   // localStorage ni en el archivo de Drive.
-  return pruneDeletedSeries(
-    [...byId.values()].sort((a, b) => b.updatedAt - a.updatedAt)
-  )
+  return pruneDeletedSeries([...byId.values()].sort((a, b) => b.updatedAt - a.updatedAt))
 }

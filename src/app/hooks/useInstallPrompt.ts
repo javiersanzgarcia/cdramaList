@@ -10,8 +10,7 @@ function isStandalone() {
 }
 
 export function useInstallPrompt() {
-  const [promptEvent, setPromptEvent] =
-    useState<BeforeInstallPromptEvent | null>(null)
+  const [promptEvent, setPromptEvent] = useState<BeforeInstallPromptEvent | null>(null)
   const [installed, setInstalled] = useState(isStandalone)
 
   useEffect(() => {

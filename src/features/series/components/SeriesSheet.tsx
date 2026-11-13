@@ -10,10 +10,7 @@ import {
 } from '../model/series'
 import { statusMeta, statusOrder } from '../model/status'
 import { channelUrlFor, youtubeThumbnail } from '../../discovery/model/youtube'
-import type {
-  ChapterCandidate,
-  SeriesRefreshResult
-} from '../../discovery/types'
+import type { ChapterCandidate, SeriesRefreshResult } from '../../discovery/types'
 import type { Series, SeriesStatus } from '../types'
 import { useSheet } from '../../../shared/hooks/useSheet'
 import { SeriesAliasesEditor } from './SeriesAliasesEditor'
@@ -106,8 +103,7 @@ export function SeriesSheet({
   const nextPart = series.parts[nextIndex]
   const progress = progressPercent(series)
   const channelUrl =
-    series.channelUrl ??
-    (series.channelId ? channelUrlFor(series.channelId) : undefined)
+    series.channelUrl ?? (series.channelId ? channelUrlFor(series.channelId) : undefined)
 
   // Solo se conocen las duraciones que ha devuelto YouTube: si falta alguna,
   // el total es parcial y se indica con un «+» para no engañar.
@@ -115,9 +111,7 @@ export function SeriesSheet({
     (sum, part) => sum + (part.durationSeconds ?? 0),
     0
   )
-  const missingDurations = series.parts.filter(
-    (part) => part.durationSeconds == null
-  ).length
+  const missingDurations = series.parts.filter((part) => part.durationSeconds == null).length
   const totalLabel = formatDuration(totalDuration)
   const durationLabel = totalLabel
     ? `${totalLabel}${missingDurations > 0 ? '+' : ''}`
@@ -180,7 +174,7 @@ export function SeriesSheet({
         className="absolute inset-0 animate-fade-in bg-overlay/70 backdrop-blur-sm"
       />
 
-      <div className="no-scrollbar relative max-h-[92dvh] w-full max-w-md animate-sheet-up overflow-y-auto overscroll-contain rounded-t-3xl border-t border-line bg-surface pb-[calc(env(safe-area-inset-bottom)_+_1rem)]">
+      <div className="no-scrollbar relative max-h-[92dvh] w-full max-w-md animate-sheet-up overflow-y-auto overscroll-contain rounded-t-3xl border-t border-line bg-surface pb-[calc(env(safe-area-inset-bottom)+1rem)]">
         <div className="sticky top-0 z-10 flex items-center justify-between gap-3 border-b border-line/80 bg-surface/95 px-4 py-3 backdrop-blur-xl">
           <div className="min-w-0">
             <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-brand-bright">
@@ -242,9 +236,7 @@ export function SeriesSheet({
             <button
               type="button"
               onClick={() => onToggleFavorite(series.id)}
-              aria-label={
-                series.favorite ? 'Quitar de favoritas' : 'Añadir a favoritas'
-              }
+              aria-label={series.favorite ? 'Quitar de favoritas' : 'Añadir a favoritas'}
               aria-pressed={series.favorite}
               className={`absolute right-2.5 top-2.5 grid size-9 place-items-center rounded-full backdrop-blur transition active:scale-90 ${
                 series.favorite
@@ -335,9 +327,7 @@ export function SeriesSheet({
           <div className="mt-3 flex items-center gap-2">
             <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-surface-raised">
               <div
-                className={`h-full rounded-full transition-all ${
-                  complete ? 'bg-success' : 'bg-brand'
-                }`}
+                className={`h-full rounded-full transition-all ${complete ? 'bg-success' : 'bg-brand'}`}
                 style={{ width: `${progress}%` }}
               />
             </div>
@@ -392,9 +382,8 @@ export function SeriesSheet({
             </div>
             {pendingStatus && complete && (
               <p className="mt-2 rounded-2xl border border-warning/20 bg-warning/5 px-3 py-2 text-[11px] leading-relaxed text-warning-softer/80">
-                Marcar como «{statusMeta[pendingStatus].label}» borra el
-                progreso de las {total} partes vistas. Pulsa otra vez para
-                confirmar.
+                Marcar como «{statusMeta[pendingStatus].label}» borra el progreso de las{' '}
+                {total} partes vistas. Pulsa otra vez para confirmar.
               </p>
             )}
           </div>
@@ -409,12 +398,8 @@ export function SeriesSheet({
               <p className="mt-0.5 text-[11px] text-ink-subtle">Vistas</p>
             </div>
             <div className="rounded-2xl bg-canvas/60 p-3 ring-1 ring-line">
-              <p className="text-lg font-bold text-ink">
-                {durationLabel ?? '—'}
-              </p>
-              <p className="mt-0.5 text-[11px] text-ink-subtle">
-                {durationCaption}
-              </p>
+              <p className="text-lg font-bold text-ink">{durationLabel ?? '—'}</p>
+              <p className="mt-0.5 text-[11px] text-ink-subtle">{durationCaption}</p>
             </div>
           </div>
 
@@ -471,9 +456,7 @@ export function SeriesSheet({
               }`}
             >
               <Icon.Trash className="size-4" />
-              {confirmingDelete
-                ? 'Pulsa otra vez para borrar la serie'
-                : 'Borrar serie'}
+              {confirmingDelete ? 'Pulsa otra vez para borrar la serie' : 'Borrar serie'}
             </button>
           </div>
         </div>

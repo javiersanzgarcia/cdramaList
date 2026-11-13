@@ -4,10 +4,7 @@ import {
   parseCandidateNumber,
   validateCandidateNumber
 } from '../../discovery/model/candidates'
-import type {
-  ChapterCandidate,
-  SeriesRefreshResult
-} from '../../discovery/types'
+import type { ChapterCandidate, SeriesRefreshResult } from '../../discovery/types'
 import type { Series } from '../types'
 import { CandidateCard } from './CandidateCard'
 import * as Icon from '../../../shared/components/Icons'
@@ -47,15 +44,13 @@ export function SeriesRefreshPanel({
   const [candidates, setCandidates] = useState<ChapterCandidate[]>(
     () => initialCandidates ?? []
   )
-  const [candidateNumbers, setCandidateNumbers] = useState<
-    Record<string, string>
-  >(() => buildCandidateState(initialCandidates ?? [], series.parts).numbers)
+  const [candidateNumbers, setCandidateNumbers] = useState<Record<string, string>>(
+    () => buildCandidateState(initialCandidates ?? [], series.parts).numbers
+  )
   const [candidateFinal, setCandidateFinal] = useState<Record<string, boolean>>(
     () => buildCandidateState(initialCandidates ?? [], series.parts).finals
   )
-  const [addingCandidateId, setAddingCandidateId] = useState<string | null>(
-    null
-  )
+  const [addingCandidateId, setAddingCandidateId] = useState<string | null>(null)
   const [candidateMessage, setCandidateMessage] = useState<{
     kind: 'ok' | 'error'
     text: string
@@ -72,9 +67,7 @@ export function SeriesRefreshPanel({
   function discardCandidate(videoId: string) {
     // Se guarda en la serie para no volver a proponerlo en próximas búsquedas.
     onDiscardCandidate(series, videoId)
-    const remaining = candidates.filter(
-      (candidate) => candidate.videoId !== videoId
-    )
+    const remaining = candidates.filter((candidate) => candidate.videoId !== videoId)
     setCandidates(remaining)
     setCandidateNumbers((current) => {
       const next = { ...current }
@@ -148,8 +141,7 @@ export function SeriesRefreshPanel({
     try {
       const result = await onRefresh(series)
       prepareCandidates(result.candidates, result.parts)
-      const warningText =
-        result.warnings.length > 0 ? ` ${result.warnings.join(' ')}` : ''
+      const warningText = result.warnings.length > 0 ? ` ${result.warnings.join(' ')}` : ''
 
       if (result.added === 0 && result.candidates.length === 0) {
         setRefreshMessage({
@@ -173,10 +165,7 @@ export function SeriesRefreshPanel({
         return
       }
 
-      const noun =
-        result.added === 1
-          ? '1 capítulo nuevo'
-          : `${result.added} capítulos nuevos`
+      const noun = result.added === 1 ? '1 capítulo nuevo' : `${result.added} capítulos nuevos`
       const verb = result.added === 1 ? 'añadido' : 'añadidos'
       const extra =
         result.candidates.length > 0
@@ -211,16 +200,14 @@ export function SeriesRefreshPanel({
         disabled={refreshing}
         className="flex w-full items-center justify-center gap-2 rounded-2xl border border-brand/30 bg-brand/10 px-4 py-3 text-sm font-semibold text-brand-softer transition hover:border-brand/50 hover:bg-brand/15 hover:text-ink-bright active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-60"
       >
-        <Icon.RefreshCw
-          className={`size-4 ${refreshing ? 'animate-spin' : ''}`}
-        />
+        <Icon.RefreshCw className={`size-4 ${refreshing ? 'animate-spin' : ''}`} />
         {refreshing ? 'Buscando capítulos nuevos…' : 'Actualizar serie'}
       </button>
 
       {!semanticConfigured && (
         <p className="text-[11px] leading-relaxed text-ink-subtle">
-          Similitud semántica desactivada: no se configuró el servicio de IA al
-          compilar esta app.
+          Similitud semántica desactivada: no se configuró el servicio de IA al compilar esta
+          app.
         </p>
       )}
 
@@ -247,9 +234,8 @@ export function SeriesRefreshPanel({
                 Posibles capítulos ({candidates.length})
               </p>
               <p className="mt-0.5 text-[11px] leading-relaxed text-warning-softer/70">
-                Hemos buscado por el título, los alias, el título real de la
-                descripción y sus sinónimos. Revisa el número y añádelos solo si
-                son de esta serie.
+                Hemos buscado por el título, los alias, el título real de la descripción y sus
+                sinónimos. Revisa el número y añádelos solo si son de esta serie.
               </p>
             </div>
           </div>
@@ -260,9 +246,7 @@ export function SeriesRefreshPanel({
                 key={candidate.videoId}
                 candidate={candidate}
                 number={candidateNumbers[candidate.videoId] ?? ''}
-                isFinal={Boolean(
-                  candidateFinal[candidate.videoId] ?? candidate.isFinal
-                )}
+                isFinal={Boolean(candidateFinal[candidate.videoId] ?? candidate.isFinal)}
                 adding={addingCandidateId === candidate.videoId}
                 busy={addingCandidateId !== null}
                 onNumberChange={(value) =>
@@ -274,9 +258,7 @@ export function SeriesRefreshPanel({
                 onToggleFinal={() =>
                   setCandidateFinal((current) => ({
                     ...current,
-                    [candidate.videoId]: !(
-                      current[candidate.videoId] ?? candidate.isFinal
-                    )
+                    [candidate.videoId]: !(current[candidate.videoId] ?? candidate.isFinal)
                   }))
                 }
                 onAdd={() => void handleAddCandidate(candidate)}

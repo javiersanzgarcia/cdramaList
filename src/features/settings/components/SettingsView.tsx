@@ -128,20 +128,18 @@ export function SettingsView({
 
         <section className="rounded-3xl border border-line bg-surface/60 p-4">
           <div className="flex items-center gap-3">
-            <div className="grid size-12 place-items-center rounded-2xl bg-gradient-to-br from-brand to-warning text-xl font-black text-ink-bright shadow-lg shadow-brand/25">
+            <div className="grid size-12 place-items-center rounded-2xl bg-linear-to-br from-brand to-warning text-xl font-black text-ink-bright shadow-lg shadow-brand/25">
               C
             </div>
             <div>
               <p className="font-semibold">CdramaList</p>
-              <p className="text-xs text-ink-subtle">
-                Versión {__APP_VERSION__} · PWA
-              </p>
+              <p className="text-xs text-ink-subtle">Versión {__APP_VERSION__} · PWA</p>
             </div>
           </div>
           <p className="mt-3 text-sm leading-relaxed text-ink-muted">
-            Encuentra todas las partes de tus historias de YouTube y continúa
-            donde lo dejaste. Tus series y tu progreso se guardan en este
-            dispositivo y, si conectas Google Drive, también en tu cuenta.
+            Encuentra todas las partes de tus historias de YouTube y continúa donde lo dejaste.
+            Tus series y tu progreso se guardan en este dispositivo y, si conectas Google
+            Drive, también en tu cuenta.
           </p>
         </section>
 
@@ -151,12 +149,10 @@ export function SettingsView({
               <Icon.Key className="size-5" />
             </div>
             <div className="min-w-0">
-              <h2 className="text-sm font-semibold text-ink-strong">
-                Búsqueda automática
-              </h2>
+              <h2 className="text-sm font-semibold text-ink-strong">Búsqueda automática</h2>
               <p className="mt-1 text-xs leading-relaxed text-ink-subtle">
-                Con una clave gratuita de YouTube Data API v3, la app busca las
-                partes en el canal y las ordena por ti.
+                Con una clave gratuita de YouTube Data API v3, la app busca las partes en el
+                canal y las ordena por ti.
               </p>
             </div>
           </div>
@@ -167,10 +163,7 @@ export function SettingsView({
             </p>
           ) : (
             <div className="mt-3">
-              <label
-                htmlFor="youtube-api-key"
-                className="text-xs font-medium text-ink-muted"
-              >
+              <label htmlFor="youtube-api-key" className="text-xs font-medium text-ink-muted">
                 Clave de API de YouTube
               </label>
               <div className="relative mt-1.5">
@@ -207,11 +200,7 @@ export function SettingsView({
                   disabled={!draftKey.trim() || saved}
                   className="flex flex-1 items-center justify-center gap-2 rounded-2xl bg-brand px-4 py-2.5 text-sm font-semibold text-ink-bright shadow-lg shadow-brand/20 transition hover:bg-brand-bright active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-40"
                 >
-                  {saved ? (
-                    <Icon.Check className="size-4" />
-                  ) : (
-                    <Icon.Key className="size-4" />
-                  )}
+                  {saved ? <Icon.Check className="size-4" /> : <Icon.Key className="size-4" />}
                   {saved ? 'Clave guardada' : 'Guardar clave'}
                 </button>
                 {apiKey.length > 0 && (
@@ -226,8 +215,7 @@ export function SettingsView({
               </div>
 
               <p className="mt-2 text-[11px] leading-relaxed text-ink-faint">
-                La clave se guarda solo en este dispositivo y nunca se sube a
-                Google Drive.
+                La clave se guarda solo en este dispositivo y nunca se sube a Google Drive.
               </p>
             </div>
           )}
@@ -243,9 +231,7 @@ export function SettingsView({
             </div>
             <div className="rounded-2xl bg-canvas/60 p-3 ring-1 ring-line">
               <p className="text-2xl font-bold text-ink">{watchedPartsCount}</p>
-              <p className="mt-0.5 text-[11px] text-ink-subtle">
-                Partes vistas
-              </p>
+              <p className="mt-0.5 text-[11px] text-ink-subtle">Partes vistas</p>
             </div>
             <div className="rounded-2xl bg-canvas/60 p-3 ring-1 ring-line">
               <p className="text-2xl font-bold text-ink">{favoriteCount}</p>
@@ -281,8 +267,7 @@ export function SettingsView({
           </div>
 
           <p className="mt-2 text-[11px] leading-relaxed text-ink-faint">
-            Exporta una copia antes de borrar los datos del navegador o cambiar
-            de dispositivo.
+            Exporta una copia antes de borrar los datos del navegador o cambiar de dispositivo.
           </p>
 
           <button
@@ -301,8 +286,7 @@ export function SettingsView({
           {canInstall ? (
             <>
               <p className="mt-2 text-sm leading-relaxed text-ink-muted">
-                Añade CdramaList a tu pantalla de inicio y ábrela como una app
-                nativa.
+                Añade CdramaList a tu pantalla de inicio y ábrela como una app nativa.
               </p>
               <button
                 type="button"
@@ -330,13 +314,11 @@ export function SettingsView({
               <Icon.Info className="size-5" />
             </div>
             <div>
-              <h2 className="text-sm font-semibold text-ink-strong">
-                Sobre las partes
-              </h2>
+              <h2 className="text-sm font-semibold text-ink-strong">Sobre las partes</h2>
               <p className="mt-1 text-xs leading-relaxed text-ink-subtle">
-                La detección automática busca en el canal y reconoce títulos
-                como «Parte 2», «P2», «2/5», «Capítulo 2» o «Final». Si un canal
-                no numera las partes, puedes añadirlas a mano desde la serie.
+                La detección automática busca en el canal y reconoce títulos como «Parte 2»,
+                «P2», «2/5», «Capítulo 2» o «Final». Si un canal no numera las partes, puedes
+                añadirlas a mano desde la serie.
               </p>
             </div>
           </div>

@@ -58,10 +58,7 @@ function tokenize(value: string): string[] {
     .replace(/#[\p{L}\p{N}_]+/gu, ' ')
     .replace(/[^\p{L}\p{N}\s]/gu, ' ')
     .split(/\s+/)
-    .filter(
-      (token) =>
-        token.length > 0 && !STOPWORDS.has(token) && !/^\d{4}$/.test(token)
-    )
+    .filter((token) => token.length > 0 && !STOPWORDS.has(token) && !/^\d{4}$/.test(token))
 }
 
 function normalizeKeyword(value: string): string {
@@ -109,10 +106,7 @@ export function tokenCount(value: string): number {
 
 export type TokenAliases = ReadonlyMap<string, string>
 
-function applyTokenAliases(
-  tokens: Set<string>,
-  aliases?: TokenAliases
-): Set<string> {
+function applyTokenAliases(tokens: Set<string>, aliases?: TokenAliases): Set<string> {
   const result = new Set<string>()
   for (const token of tokens) {
     result.add(normalizeKeyword(aliases?.get(token) ?? token))
@@ -120,11 +114,7 @@ function applyTokenAliases(
   return result
 }
 
-export function sharedTokenCount(
-  a: string,
-  b: string,
-  aliases?: TokenAliases
-): number {
+export function sharedTokenCount(a: string, b: string, aliases?: TokenAliases): number {
   const first = applyTokenAliases(new Set(tokenize(a)), aliases)
   const second = applyTokenAliases(new Set(tokenize(b)), aliases)
   let shared = 0
@@ -146,11 +136,7 @@ export function normalizedBaseTitle(value: string): string {
     .trim()
 }
 
-export function titleSimilarity(
-  a: string,
-  b: string,
-  aliases?: TokenAliases
-): number {
+export function titleSimilarity(a: string, b: string, aliases?: TokenAliases): number {
   const first = applyTokenAliases(new Set(tokenize(a)), aliases)
   const second = applyTokenAliases(new Set(tokenize(b)), aliases)
 
@@ -165,11 +151,7 @@ export function titleSimilarity(
 }
 
 /** Similitud de Jaccard, penaliza palabras adicionales para distinguir historias. */
-export function titleJaccard(
-  a: string,
-  b: string,
-  aliases?: TokenAliases
-): number {
+export function titleJaccard(a: string, b: string, aliases?: TokenAliases): number {
   const first = applyTokenAliases(new Set(tokenize(a)), aliases)
   const second = applyTokenAliases(new Set(tokenize(b)), aliases)
 

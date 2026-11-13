@@ -1,10 +1,6 @@
 import type { RankedCandidate, SeriesUpdate, VideoMeta } from '../types'
 import type { Part, Series } from '../../series/types'
-import {
-  detectPart,
-  extractDescriptionTitle,
-  sortParts
-} from '../../series/model/parts'
+import { detectPart, extractDescriptionTitle, sortParts } from '../../series/model/parts'
 import {
   buildGlobalSearchQuery,
   keywordConfidenceBonus,
@@ -82,9 +78,7 @@ export async function discoverSeriesUpdates(
       channelUrl = channelUrl ?? reference.channelUrl
     } catch {
       failed = true
-      warnings.push(
-        'No se ha podido identificar el canal; se buscará solo en todo YouTube.'
-      )
+      warnings.push('No se ha podido identificar el canal; se buscará solo en todo YouTube.')
     }
   }
 
@@ -99,16 +93,12 @@ export async function discoverSeriesUpdates(
           return [] as VideoMeta[]
         })
       : Promise.resolve([] as VideoMeta[]),
-    fetchVideosByIds([...known], apiKey).catch(
-      () => new Map<string, VideoMeta>()
-    )
+    fetchVideosByIds([...known], apiKey).catch(() => new Map<string, VideoMeta>())
   ])
 
   const descriptionTitles: string[] = []
   for (const part of series.parts) {
-    const title = extractDescriptionTitle(
-      referenceVideos.get(part.videoId)?.description
-    )
+    const title = extractDescriptionTitle(referenceVideos.get(part.videoId)?.description)
     if (title) descriptionTitles.push(title)
   }
 
@@ -141,9 +131,7 @@ export async function discoverSeriesUpdates(
   const referenceQueries = [
     ...manualAliases.map((alias) => buildGlobalSearchQuery(alias)),
     ...descriptionTitles.map((title) => buildGlobalSearchQuery(title)),
-    descriptionReference
-      ? buildGlobalSearchQuery(descriptionReference)
-      : undefined,
+    descriptionReference ? buildGlobalSearchQuery(descriptionReference) : undefined,
     ...series.parts.map((part) => buildGlobalSearchQuery(part.title))
   ]
   const queries: string[] = []
@@ -203,9 +191,7 @@ export async function discoverSeriesUpdates(
     ...series.parts.map((part) => part.title)
   ])
   const referenceKeys = new Set(
-    references
-      .map((reference) => normalizedBaseTitle(reference))
-      .filter(Boolean)
+    references.map((reference) => normalizedBaseTitle(reference)).filter(Boolean)
   )
   const referenceTokenCount = Math.max(
     1,
@@ -213,15 +199,10 @@ export async function discoverSeriesUpdates(
   )
   const minShared = referenceTokenCount <= 2 ? 1 : 2
   const exactKeys = new Set(
-    [series.title, ...manualAliases]
-      .map((title) => normalizedBaseTitle(title))
-      .filter(Boolean)
+    [series.title, ...manualAliases].map((title) => normalizedBaseTitle(title)).filter(Boolean)
   )
 
-  const byId = new Map<
-    string,
-    { video: VideoMeta; source: 'channel' | 'search' }
-  >()
+  const byId = new Map<string, { video: VideoMeta; source: 'channel' | 'search' }>()
   for (const video of uploads) {
     byId.set(video.videoId, { video, source: 'channel' })
   }
@@ -248,24 +229,16 @@ export async function discoverSeriesUpdates(
 
     const info = detectPart(video.title)
     const descriptionTitle = extractDescriptionTitle(video.description)
-    const descriptionKey = descriptionTitle
-      ? normalizedBaseTitle(descriptionTitle)
-      : ''
+    const descriptionKey = descriptionTitle ? normalizedBaseTitle(descriptionTitle) : ''
     const titleOverlap = Math.max(
-      ...references.map((reference) =>
-        titleJaccard(reference, video.title, aliases)
-      )
+      ...references.map((reference) => titleJaccard(reference, video.title, aliases))
     )
     const titleShared = Math.max(
-      ...references.map((reference) =>
-        sharedTokenCount(reference, video.title, aliases)
-      )
+      ...references.map((reference) => sharedTokenCount(reference, video.title, aliases))
     )
     const descriptionOverlap = descriptionTitle
       ? Math.max(
-          ...references.map((reference) =>
-            titleJaccard(reference, descriptionTitle, aliases)
-          )
+          ...references.map((reference) => titleJaccard(reference, descriptionTitle, aliases))
         )
       : 0
     const descriptionShared = descriptionTitle
@@ -288,27 +261,22 @@ export async function discoverSeriesUpdates(
       continue
     }
 
-    const descriptionMatch = Boolean(
-      descriptionKey && referenceKeys.has(descriptionKey)
-    )
+    const descriptionMatch = Boolean(descriptionKey && referenceKeys.has(descriptionKey))
     const descriptionRelevant = Boolean(
       descriptionTitle &&
       (descriptionMatch ||
         (descriptionShared >= minShared &&
           descriptionOverlap >= SERIES_UPDATE_DESCRIPTION_OVERLAP) ||
-        (learningBonus >= SERIES_UPDATE_LEARNING_BONUS_MIN &&
-          descriptionShared >= 1))
+        (learningBonus >= SERIES_UPDATE_LEARNING_BONUS_MIN && descriptionShared >= 1))
     )
     const titleRelevant =
       (titleShared >= minShared &&
         (titleOverlap >= SERIES_UPDATE_TITLE_OVERLAP ||
           (titleOverlap >= SERIES_UPDATE_TITLE_OVERLAP_SAME_CHANNEL &&
-            (sameChannel ||
-              titleShared >= SERIES_UPDATE_TITLE_SHARED_SAME_CHANNEL)))) ||
+            (sameChannel || titleShared >= SERIES_UPDATE_TITLE_SHARED_SAME_CHANNEL)))) ||
       (learningBonus >= SERIES_UPDATE_LEARNING_BONUS_MIN && titleShared >= 1)
     const matchedBy: 'title' | 'description' =
-      descriptionRelevant &&
-      (descriptionMatch || descriptionOverlap >= titleOverlap)
+      descriptionRelevant && (descriptionMatch || descriptionOverlap >= titleOverlap)
         ? 'description'
         : 'title'
 
@@ -320,8 +288,7 @@ export async function discoverSeriesUpdates(
       sameChannel,
       learningBonus
     )
-    if (descriptionMatch)
-      score = Math.min(100, score + SERIES_UPDATE_DESCRIPTION_MATCH_BONUS)
+    if (descriptionMatch) score = Math.min(100, score + SERIES_UPDATE_DESCRIPTION_MATCH_BONUS)
     else if (descriptionRelevant)
       score = Math.min(100, score + SERIES_UPDATE_DESCRIPTION_RELEVANT_BONUS)
 
@@ -355,20 +322,16 @@ export async function discoverSeriesUpdates(
       .sort((a, b) => b.score - a.score)
       .slice(0, MAX_SEMANTIC_CANDIDATES)
     const prioritizedCandidates = [
-      ...semanticPool
-        .sort((a, b) => b.score - a.score)
-        .slice(0, MAX_SEMANTIC_CANDIDATES),
+      ...semanticPool.sort((a, b) => b.score - a.score).slice(0, MAX_SEMANTIC_CANDIDATES),
       ...recentPool,
       ...lexicalCandidates
     ]
-    const maxFingerprintCandidates =
-      MAX_FINGERPRINT_CANDIDATES - (semanticFingerprint ? 0 : 1)
+    const maxFingerprintCandidates = MAX_FINGERPRINT_CANDIDATES - (semanticFingerprint ? 0 : 1)
     const candidatesForFingerprint = prioritizedCandidates
       .filter(
         (candidate, index, candidates) =>
-          candidates.findIndex(
-            (other) => other.video.videoId === candidate.video.videoId
-          ) === index
+          candidates.findIndex((other) => other.video.videoId === candidate.video.videoId) ===
+          index
       )
       .slice(0, maxFingerprintCandidates)
     const entries = [
@@ -389,18 +352,13 @@ export async function discoverSeriesUpdates(
         : []),
       ...candidatesForFingerprint.map((candidate) => ({
         id: candidate.video.videoId,
-        text: [candidate.video.title, candidate.descriptionTitle]
-          .filter(Boolean)
-          .join('\n')
+        text: [candidate.video.title, candidate.descriptionTitle].filter(Boolean).join('\n')
       }))
     ]
 
     if (entries.length > 0) {
       try {
-        const fingerprints = await generateSemanticFingerprints(
-          semanticEndpoint,
-          entries
-        )
+        const fingerprints = await generateSemanticFingerprints(semanticEndpoint, entries)
         semanticFingerprint = fingerprints.get('series') ?? semanticFingerprint
 
         if (semanticFingerprint) {
@@ -423,8 +381,7 @@ export async function discoverSeriesUpdates(
               ...candidate,
               score: Math.min(
                 100,
-                baseScore +
-                  Math.round(similarity * SERIES_UPDATE_SEMANTIC_SCORE_WEIGHT)
+                baseScore + Math.round(similarity * SERIES_UPDATE_SEMANTIC_SCORE_WEIGHT)
               )
             }
             if (existingIndex == null) {

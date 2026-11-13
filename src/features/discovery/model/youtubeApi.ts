@@ -84,14 +84,11 @@ function toVideoMeta(item: VideoItem): VideoMeta {
     title: item.snippet.title,
     channelId: item.snippet.channelId,
     channelTitle: item.snippet.channelTitle,
-    channelUrl: item.snippet.channelId
-      ? channelUrlFor(item.snippet.channelId)
-      : undefined,
+    channelUrl: item.snippet.channelId ? channelUrlFor(item.snippet.channelId) : undefined,
     publishedAt: item.snippet.publishedAt,
     description: item.snippet.description,
     tags: item.snippet.tags,
-    thumbnail:
-      pickThumbnail(item.snippet.thumbnails) ?? youtubeThumbnail(item.id),
+    thumbnail: pickThumbnail(item.snippet.thumbnails) ?? youtubeThumbnail(item.id),
     durationSeconds: parseIsoDuration(item.contentDetails?.duration)
   }
 }
@@ -110,10 +107,7 @@ export async function fetchJson<T>(
 
   let response: Response
   const controller = new AbortController()
-  const timeout = setTimeout(
-    () => controller.abort(),
-    YOUTUBE_REQUEST_TIMEOUT_MS
-  )
+  const timeout = setTimeout(() => controller.abort(), YOUTUBE_REQUEST_TIMEOUT_MS)
   try {
     response = await fetch(url.toString(), { signal: controller.signal })
   } catch {
@@ -136,8 +130,7 @@ export async function fetchJson<T>(
 
     const reason = body?.error?.errors?.[0]?.reason
     const detail =
-      body?.error?.message ??
-      `YouTube respondió con el código ${response.status}.`
+      body?.error?.message ?? `YouTube respondió con el código ${response.status}.`
 
     if (reason === 'quotaExceeded') {
       throw new YouTubeError(
@@ -154,10 +147,7 @@ export async function fetchJson<T>(
     }
 
     if (response.status === 404) {
-      throw new YouTubeError(
-        'No se encontró el vídeo o la lista de reproducción.',
-        reason
-      )
+      throw new YouTubeError('No se encontró el vídeo o la lista de reproducción.', reason)
     }
 
     throw new YouTubeError(detail, reason)
@@ -171,8 +161,7 @@ export function parseYouTubeUrl(input: string): ParsedYouTubeUrl | null {
   if (!value) return null
 
   if (VIDEO_ID.test(value)) return { videoId: value }
-  if (!value.startsWith('http') && PLAYLIST_ID.test(value))
-    return { playlistId: value }
+  if (!value.startsWith('http') && PLAYLIST_ID.test(value)) return { playlistId: value }
 
   let url: URL
   try {
@@ -193,10 +182,7 @@ export function parseYouTubeUrl(input: string): ParsedYouTubeUrl | null {
     videoId = url.pathname.split('/').filter(Boolean)[0]
   } else {
     const segments = url.pathname.split('/').filter(Boolean)
-    if (
-      !videoId &&
-      ['shorts', 'embed', 'live', 'v'].includes(segments[0] ?? '')
-    ) {
+    if (!videoId && ['shorts', 'embed', 'live', 'v'].includes(segments[0] ?? '')) {
       videoId = segments[1]
     }
   }
@@ -208,10 +194,7 @@ export function parseYouTubeUrl(input: string): ParsedYouTubeUrl | null {
   return { videoId, playlistId }
 }
 
-export async function fetchVideoMeta(
-  videoId: string,
-  apiKey: string
-): Promise<VideoMeta> {
+export async function fetchVideoMeta(videoId: string, apiKey: string): Promise<VideoMeta> {
   const data = await fetchJson<{ items?: VideoItem[] }>(
     'videos',
     { part: 'snippet,contentDetails', id: videoId },
@@ -237,11 +220,7 @@ export async function fetchVideosByIds(
   if (unique.length === 0) return result
 
   const chunks: string[][] = []
-  for (
-    let index = 0;
-    index < unique.length;
-    index += YOUTUBE_MAX_VIDEOS_PER_REQUEST
-  ) {
+  for (let index = 0; index < unique.length; index += YOUTUBE_MAX_VIDEOS_PER_REQUEST) {
     chunks.push(unique.slice(index, index + YOUTUBE_MAX_VIDEOS_PER_REQUEST))
   }
 
@@ -287,9 +266,7 @@ export async function searchYouTubeVideos(
       part: 'snippet',
       q: term,
       type: 'video',
-      maxResults: String(
-        Math.min(Math.max(maxResults, 1), YOUTUBE_MAX_VIDEOS_PER_REQUEST)
-      ),
+      maxResults: String(Math.min(Math.max(maxResults, 1), YOUTUBE_MAX_VIDEOS_PER_REQUEST)),
       order: 'relevance',
       relevanceLanguage: YOUTUBE_SEARCH_LANGUAGE
     },
@@ -308,8 +285,7 @@ export async function searchYouTubeVideos(
       description: item.snippet.description,
       tags: item.snippet.tags,
       thumbnail:
-        pickThumbnail(item.snippet.thumbnails) ??
-        youtubeThumbnail(item.id.videoId as string)
+        pickThumbnail(item.snippet.thumbnails) ?? youtubeThumbnail(item.id.videoId as string)
     }))
 
   // La búsqueda no devuelve la duración: la pedimos en una sola llamada extra.
@@ -325,23 +301,14 @@ export async function searchYouTubeVideos(
   }))
 }
 
-export async function fetchVideoMetaWithoutKey(
-  videoId: string
-): Promise<VideoMeta> {
-  const endpoint = `${YOUTUBE_OEMBED_URL}?url=${encodeURIComponent(
-    `${YOUTUBE_WATCH_URL}${videoId}`
-  )}&format=json`
+export async function fetchVideoMetaWithoutKey(videoId: string): Promise<VideoMeta> {
+  const endpoint = `${YOUTUBE_OEMBED_URL}?url=${encodeURIComponent(`${YOUTUBE_WATCH_URL}${videoId}`)}&format=json`
 
-  const proxies = YOUTUBE_PROXIES.map(
-    (proxy) => `${proxy}${encodeURIComponent(endpoint)}`
-  )
+  const proxies = YOUTUBE_PROXIES.map((proxy) => `${proxy}${encodeURIComponent(endpoint)}`)
 
   for (const proxy of proxies) {
     const controller = new AbortController()
-    const timeout = window.setTimeout(
-      () => controller.abort(),
-      YOUTUBE_PROXY_TIMEOUT_MS
-    )
+    const timeout = window.setTimeout(() => controller.abort(), YOUTUBE_PROXY_TIMEOUT_MS)
 
     try {
       const response = await fetch(proxy, { signal: controller.signal })

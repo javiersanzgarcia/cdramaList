@@ -1,8 +1,4 @@
-import {
-  isSeriesComplete,
-  progressPercent,
-  progressLabel
-} from '../../series/model/series'
+import { isSeriesComplete, progressPercent, progressLabel } from '../../series/model/series'
 import type { Series } from '../../series/types'
 import * as Icon from '../../../shared/components/Icons'
 
@@ -29,11 +25,7 @@ interface SeriesCardProps {
   onToggleFavorite: (id: string) => void
 }
 
-export function SeriesCard({
-  series,
-  onOpen,
-  onToggleFavorite
-}: SeriesCardProps) {
+export function SeriesCard({ series, onOpen, onToggleFavorite }: SeriesCardProps) {
   const complete = isSeriesComplete(series)
   const progress = progressPercent(series)
   const total = series.parts.length
@@ -46,7 +38,7 @@ export function SeriesCard({
         className="block w-full rounded-2xl text-left outline-none focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-offset-2 focus-visible:ring-offset-canvas"
       >
         <div
-          className={`relative aspect-video overflow-hidden rounded-2xl bg-gradient-to-br ${gradientFor(series.id)} shadow-lg shadow-overlay/40`}
+          className={`relative aspect-video overflow-hidden rounded-2xl bg-linear-to-br ${gradientFor(series.id)} shadow-lg shadow-overlay/40`}
         >
           {series.thumbnail && (
             <img
@@ -59,7 +51,7 @@ export function SeriesCard({
               className="absolute inset-0 size-full object-cover"
             />
           )}
-          <div className="absolute inset-0 bg-gradient-to-t from-overlay/85 via-overlay/10 to-transparent" />
+          <div className="absolute inset-0 bg-linear-to-t from-overlay/85 via-overlay/10 to-transparent" />
 
           <span className="absolute left-2 top-2 rounded-full bg-overlay/55 px-2 py-1 text-[10px] font-bold uppercase tracking-wide text-ink-bright backdrop-blur">
             {complete ? 'Completada' : `${progressLabel(series)} partes`}
@@ -86,9 +78,7 @@ export function SeriesCard({
           <h3 className="line-clamp-2 text-sm font-semibold leading-snug text-ink">
             {series.title}
           </h3>
-          <p className="mt-0.5 line-clamp-1 text-xs text-ink-subtle">
-            {series.channelTitle}
-          </p>
+          <p className="mt-0.5 line-clamp-1 text-xs text-ink-subtle">{series.channelTitle}</p>
         </div>
       </button>
 

@@ -10,10 +10,7 @@ interface SeriesAliasesEditorProps {
   onUpdateAliases: (seriesId: string, aliases: string[]) => void
 }
 
-export function SeriesAliasesEditor({
-  series,
-  onUpdateAliases
-}: SeriesAliasesEditorProps) {
+export function SeriesAliasesEditor({ series, onUpdateAliases }: SeriesAliasesEditorProps) {
   const [aliasDraft, setAliasDraft] = useState('')
   const [aliasMessage, setAliasMessage] = useState<string | null>(null)
   const aliases = series.aliases ?? []
@@ -65,8 +62,8 @@ export function SeriesAliasesEditor({
         </span>
       </div>
       <p className="mt-1 text-[11px] leading-relaxed text-ink-subtle">
-        Otros títulos con los que se publica esta serie (traducciones o títulos
-        alternativos). Se buscarán junto al título principal al actualizar.
+        Otros títulos con los que se publica esta serie (traducciones o títulos alternativos).
+        Se buscarán junto al título principal al actualizar.
       </p>
 
       {aliases.length > 0 && (
@@ -116,9 +113,7 @@ export function SeriesAliasesEditor({
       </form>
 
       {aliasMessage && (
-        <p className="mt-1.5 text-[11px] text-warning-softer/80">
-          {aliasMessage}
-        </p>
+        <p className="mt-1.5 text-[11px] text-warning-softer/80">{aliasMessage}</p>
       )}
     </div>
   )

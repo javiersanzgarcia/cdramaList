@@ -23,9 +23,7 @@ export function SeriesPartsList({
 }: SeriesPartsListProps) {
   const [pendingVideoId, setPendingVideoId] = useState<string | null>(null)
   const total = series.parts.length
-  const pendingIndex = series.parts.findIndex(
-    (part) => part.videoId === pendingVideoId
-  )
+  const pendingIndex = series.parts.findIndex((part) => part.videoId === pendingVideoId)
   const pendingPart = pendingIndex >= 0 ? series.parts[pendingIndex] : undefined
 
   // Quitar una parte es irreversible: la primera pulsación arma el botón y la
@@ -94,9 +92,7 @@ export function SeriesPartsList({
                       <span className="flex items-center gap-1.5 text-[11px] font-semibold text-brand-soft">
                         {partLabel(part, index)}
                         {duration && (
-                          <span className="font-normal text-ink-faint">
-                            · {duration}
-                          </span>
+                          <span className="font-normal text-ink-faint">· {duration}</span>
                         )}
                       </span>
                       <span className="mt-0.5 line-clamp-2 block text-xs leading-snug text-ink-soft">
@@ -130,9 +126,7 @@ export function SeriesPartsList({
 
                   <button
                     type="button"
-                    onClick={() =>
-                      onSetWatched(series.id, part.videoId, !isWatched)
-                    }
+                    onClick={() => onSetWatched(series.id, part.videoId, !isWatched)}
                     aria-pressed={isWatched}
                     aria-label={
                       isWatched
@@ -171,16 +165,14 @@ export function SeriesPartsList({
           </ul>
           {pendingPart && (
             <p className="mt-2 rounded-2xl border border-brand/30 bg-brand/10 px-3 py-2 text-[11px] leading-relaxed text-brand-softer">
-              Pulsa otra vez la papelera para quitar{' '}
-              {partLabel(pendingPart, pendingIndex)} de la serie.
+              Pulsa otra vez la papelera para quitar {partLabel(pendingPart, pendingIndex)} de
+              la serie.
             </p>
           )}
         </>
       ) : (
         <div className="mt-2 rounded-2xl border border-dashed border-line bg-canvas/50 px-4 py-8 text-center">
-          <p className="text-sm font-medium text-ink-soft">
-            Esta serie no tiene partes
-          </p>
+          <p className="text-sm font-medium text-ink-soft">Esta serie no tiene partes</p>
           <p className="mt-1 text-xs text-ink-subtle">
             Añade un vídeo o una lista de reproducción para empezar.
           </p>

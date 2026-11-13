@@ -12,10 +12,7 @@ function normalizeTitle(value: string): string {
   return value.trim().replace(/\s+/g, ' ')
 }
 
-export function SeriesTitleEditor({
-  series,
-  onUpdateTitle
-}: SeriesTitleEditorProps) {
+export function SeriesTitleEditor({ series, onUpdateTitle }: SeriesTitleEditorProps) {
   const [titleDraft, setTitleDraft] = useState(series.title)
   const [previousTitle, setPreviousTitle] = useState(series.title)
   const [message, setMessage] = useState<string | null>(null)
@@ -57,9 +54,8 @@ export function SeriesTitleEditor({
         </h3>
       </div>
       <p className="mt-1 text-[11px] leading-relaxed text-ink-subtle">
-        Cambia el título que ves en tu lista. Los títulos reales de YouTube de
-        sus vídeos se añadirán como alias para que la búsqueda siga
-        encontrándolos.
+        Cambia el título que ves en tu lista. Los títulos reales de YouTube de sus vídeos se
+        añadirán como alias para que la búsqueda siga encontrándolos.
       </p>
 
       <form onSubmit={handleSubmit} className="mt-2 flex gap-2">
@@ -86,9 +82,7 @@ export function SeriesTitleEditor({
         </button>
       </form>
 
-      {message && (
-        <p className="mt-1.5 text-[11px] text-warning-softer/80">{message}</p>
-      )}
+      {message && <p className="mt-1.5 text-[11px] text-warning-softer/80">{message}</p>}
     </div>
   )
 }

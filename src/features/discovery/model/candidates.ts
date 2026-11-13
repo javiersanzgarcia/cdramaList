@@ -62,9 +62,7 @@ export function validateCandidateNumber(
 
   const duplicate = Object.entries(otherNumbers).some(
     ([videoId, raw]) =>
-      videoId !== currentVideoId &&
-      raw.trim() !== '' &&
-      Number(raw) === partNumber
+      videoId !== currentVideoId && raw.trim() !== '' && Number(raw) === partNumber
   )
 
   if (duplicate) {

@@ -26,9 +26,7 @@ export function BusyOverlay({ open, title, message }: BusyOverlayProps) {
       <div className="w-full max-w-xs rounded-3xl border border-line bg-surface p-5 text-center shadow-2xl shadow-overlay/60">
         <Icon.RefreshCw className="mx-auto size-8 animate-spin text-brand-bright" />
         <p className="mt-3 text-sm font-semibold text-ink">{title}</p>
-        <p className="mt-1 text-[11px] leading-relaxed text-ink-muted">
-          {message}
-        </p>
+        <p className="mt-1 text-[11px] leading-relaxed text-ink-muted">{message}</p>
       </div>
     </div>
   )

@@ -15,8 +15,7 @@ import {
   SYNONYM_REQUEST_TIMEOUT_MS
 } from './constants'
 
-const BLOCKED_LABEL =
-  /coloquial|despectiv|regional|poco usado|vulgar|malsonante/i
+const BLOCKED_LABEL = /coloquial|despectiv|regional|poco usado|vulgar|malsonante/i
 
 interface ApiSynonym {
   word?: string
@@ -75,13 +74,8 @@ export function normalizeWord(value: string): string {
  * palabras vacías ni números. Se priorizan las más largas (suelen ser las más
  * específicas del título).
  */
-export function pickSynonymWords(
-  value: string,
-  limit = SYNONYM_MAX_WORDS
-): string[] {
-  const cleaned = value
-    .replace(/https?:\/\/\S+/gi, ' ')
-    .replace(/#[\p{L}\p{N}_]+/gu, ' ')
+export function pickSynonymWords(value: string, limit = SYNONYM_MAX_WORDS): string[] {
+  const cleaned = value.replace(/https?:\/\/\S+/gi, ' ').replace(/#[\p{L}\p{N}_]+/gu, ' ')
 
   const words = cleaned.match(/[\p{L}]+/gu) ?? []
   const seen = new Set<string>()
@@ -135,10 +129,7 @@ function splitSynonym(value: string): string[] {
   return value
     .split(/[,;/]/)
     .map((part) => part.trim().toLowerCase())
-    .filter(
-      (part) =>
-        part.length >= 3 && /^[\p{L}]+$/u.test(part) && !isStopword(part)
-    )
+    .filter((part) => part.length >= 3 && /^[\p{L}]+$/u.test(part) && !isStopword(part))
 }
 
 function extractSynonyms(data: ApiResponse, sourceWord: string): string[] {
@@ -202,9 +193,7 @@ function extractSynonyms(data: ApiResponse, sourceWord: string): string[] {
   return result.slice(0, SYNONYM_MAX_PER_WORD)
 }
 
-async function requestSynonyms(
-  word: string
-): Promise<SynonymCacheEntry | null> {
+async function requestSynonyms(word: string): Promise<SynonymCacheEntry | null> {
   // Si la API acaba de responder 429, no insistimos durante un minuto.
   if (Date.now() < blockedUntil) return null
 
@@ -212,13 +201,10 @@ async function requestSynonyms(
   const timer = setTimeout(() => controller.abort(), SYNONYM_REQUEST_TIMEOUT_MS)
 
   try {
-    const response = await fetch(
-      `${RAE_API_BASE}/${encodeURIComponent(word)}`,
-      {
-        signal: controller.signal,
-        headers: { Accept: 'application/json' }
-      }
-    )
+    const response = await fetch(`${RAE_API_BASE}/${encodeURIComponent(word)}`, {
+      signal: controller.signal,
+      headers: { Accept: 'application/json' }
+    })
 
     if (response.status === 429) {
       blockedUntil = Date.now() + SYNONYM_BLOCK_DURATION_MS
@@ -245,9 +231,7 @@ async function requestSynonyms(
  * Busca sinónimos en la RAE con caché persistida en Zustand. Las palabras repetidas
  * no vuelven a consultarse durante 60 días y los fallos no se cachean.
  */
-export async function fetchSynonyms(
-  words: string[]
-): Promise<Map<string, string[]>> {
+export async function fetchSynonyms(words: string[]): Promise<Map<string, string[]>> {
   const cache = readCache()
   const wasBlocked = Date.now() < blockedUntil
   const result = new Map<string, string[]>()
@@ -280,11 +264,7 @@ export async function fetchSynonyms(
 
   // Si todas las consultas fallaron (red caída, timeout…), no repetimos el
   // intento en cada búsqueda durante un minuto.
-  if (
-    !wasBlocked &&
-    missing.length > 0 &&
-    fetched.every(({ entry }) => entry === null)
-  ) {
+  if (!wasBlocked && missing.length > 0 && fetched.every(({ entry }) => entry === null)) {
     blockedUntil = Date.now() + SYNONYM_BLOCK_DURATION_MS
   }
 
@@ -305,9 +285,7 @@ export async function fetchSynonyms(
  * Relaciona cada sinónimo con la palabra original. Se usa para que, al
  * comparar títulos, «catástrofe» y «apocalipsis» cuenten como la misma palabra.
  */
-export function buildSynonymAliases(
-  synonyms: Map<string, string[]>
-): Map<string, string> {
+export function buildSynonymAliases(synonyms: Map<string, string[]>): Map<string, string> {
   const aliases = new Map<string, string>()
 
   for (const [word, list] of synonyms) {
@@ -336,9 +314,7 @@ export function expandQueryWithSynonyms(
   if (words.length === 0 || synonyms.size === 0) return query
 
   const perWord = words.map((word) =>
-    [...(synonyms.get(normalizeWord(word)) ?? [])].sort(
-      (a, b) => b.length - a.length
-    )
+    [...(synonyms.get(normalizeWord(word)) ?? [])].sort((a, b) => b.length - a.length)
   )
   if (perWord.every((list) => list.length === 0)) return query
 
@@ -352,11 +328,7 @@ export function expandQueryWithSynonyms(
   // Solo variantes que cambian una palabra. Añadir demasiados OR hace que
   // YouTube pierda resultados, así que nos quedamos con las dos mejores
   // variantes (la original y una más).
-  for (
-    let round = 0;
-    variants.length < SYNONYM_MAX_QUERY_VARIANTS - 1;
-    round += 1
-  ) {
+  for (let round = 0; variants.length < SYNONYM_MAX_QUERY_VARIANTS - 1; round += 1) {
     let added = false
 
     for (const index of order) {

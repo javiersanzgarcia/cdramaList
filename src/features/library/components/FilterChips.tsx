@@ -26,11 +26,7 @@ export function FilterChips({ value, onChange }: FilterChipsProps) {
         className="w-full cursor-pointer appearance-none rounded-full border border-line bg-surface/70 py-2 pl-4 pr-11 text-sm font-semibold text-ink outline-none transition hover:border-line-strong focus:border-brand/60 focus:ring-2 focus:ring-brand/25"
       >
         {filters.map((filter) => (
-          <option
-            key={filter.value}
-            value={filter.value}
-            className="bg-surface text-ink"
-          >
+          <option key={filter.value} value={filter.value} className="bg-surface text-ink">
             {filter.label}
           </option>
         ))}

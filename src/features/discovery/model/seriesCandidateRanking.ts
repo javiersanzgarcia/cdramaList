@@ -1,9 +1,6 @@
 import type { ChapterCandidate, VideoMeta } from '../types'
 import type { Part, PartInfo } from '../../series/types'
-import {
-  normalizedBaseTitle,
-  tokenCount
-} from '../../series/model/titleMatching'
+import { normalizedBaseTitle, tokenCount } from '../../series/model/titleMatching'
 import { channelUrlFor, youtubeThumbnail } from './youtubeApi'
 import {
   CANDIDATE_SCORE_FINAL,
@@ -113,8 +110,7 @@ export function toCandidate(
     channelId: video.channelId,
     channelTitle: video.channelTitle,
     channelUrl:
-      video.channelUrl ??
-      (video.channelId ? channelUrlFor(video.channelId) : undefined),
+      video.channelUrl ?? (video.channelId ? channelUrlFor(video.channelId) : undefined),
     thumbnail: video.thumbnail ?? youtubeThumbnail(video.videoId),
     durationSeconds: video.durationSeconds,
     publishedAt: video.publishedAt,

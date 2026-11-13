@@ -15,11 +15,7 @@ interface PlayerSheetProps {
   apiKey: string
   onClose: () => void
   onSetWatched: (seriesId: string, videoId: string, watched: boolean) => void
-  onUpdatePartMeta: (
-    seriesId: string,
-    videoId: string,
-    patch: PartMetaPatch
-  ) => void
+  onUpdatePartMeta: (seriesId: string, videoId: string, patch: PartMetaPatch) => void
   onFillDurations: (series: Series) => Promise<void>
 }
 
@@ -136,9 +132,7 @@ export function PlayerSheet({
   const complete = total > 0 && watchedTotal >= total
   const duration = formatDuration(
     part.durationSeconds ??
-      (fetchedDuration?.videoId === part.videoId
-        ? fetchedDuration.seconds
-        : undefined)
+      (fetchedDuration?.videoId === part.videoId ? fetchedDuration.seconds : undefined)
   )
   const hasPrevious = safeIndex > 0
   const hasNext = safeIndex < total - 1
@@ -165,8 +159,8 @@ export function PlayerSheet({
       aria-modal="true"
       aria-label={`Reproductor de ${series.title}`}
     >
-      <div className="mx-auto flex min-h-dvh w-full max-w-md flex-col pb-[calc(env(safe-area-inset-bottom)_+_1.25rem)]">
-        <header className="sticky top-0 z-10 flex items-center gap-2 border-b border-line-soft bg-canvas/95 px-3 pb-2.5 pt-[calc(env(safe-area-inset-top)_+_0.6rem)] backdrop-blur-xl">
+      <div className="mx-auto flex min-h-dvh w-full max-w-md flex-col pb-[calc(env(safe-area-inset-bottom)+1.25rem)]">
+        <header className="sticky top-0 z-10 flex items-center gap-2 border-b border-line-soft bg-canvas/95 px-3 pb-2.5 pt-[calc(env(safe-area-inset-top)+0.6rem)] backdrop-blur-xl">
           <button
             type="button"
             onClick={onClose}
@@ -177,9 +171,7 @@ export function PlayerSheet({
           </button>
 
           <div className="min-w-0 flex-1">
-            <p className="truncate text-sm font-semibold text-ink">
-              {series.title}
-            </p>
+            <p className="truncate text-sm font-semibold text-ink">{series.title}</p>
             <p className="truncate text-[11px] text-ink-subtle">
               {partLabel(part, safeIndex)} · {series.channelTitle}
             </p>
@@ -207,8 +199,7 @@ export function PlayerSheet({
             <div className="mb-3 flex items-start gap-2 rounded-2xl border border-warning/20 bg-warning/5 px-3 py-2.5 text-[11px] leading-relaxed text-warning-softer/85">
               <Icon.Info className="mt-0.5 size-4 shrink-0" />
               <span>
-                Este vídeo no se puede reproducir aquí (puede tener
-                restricciones).{' '}
+                Este vídeo no se puede reproducir aquí (puede tener restricciones).{' '}
                 <a
                   href={watchUrl}
                   target="_blank"
@@ -233,9 +224,7 @@ export function PlayerSheet({
             <div className="min-w-0 flex-1">
               <p className="text-[11px] font-semibold uppercase tracking-wide text-brand-soft">
                 {partLabel(part, safeIndex)}
-                {duration && (
-                  <span className="ml-1.5 text-ink-subtle">· {duration}</span>
-                )}
+                {duration && <span className="ml-1.5 text-ink-subtle">· {duration}</span>}
               </p>
               <h2 className="mt-1 text-base font-semibold leading-snug text-ink">
                 {part.title}
@@ -282,9 +271,7 @@ export function PlayerSheet({
                   {descriptionCanExpand && (
                     <button
                       type="button"
-                      onClick={() =>
-                        setDescriptionExpanded((current) => !current)
-                      }
+                      onClick={() => setDescriptionExpanded((current) => !current)}
                       aria-expanded={descriptionExpanded}
                       className="mt-1.5 text-[11px] font-semibold text-brand-soft transition hover:text-brand-softer active:scale-95"
                     >
@@ -299,9 +286,7 @@ export function PlayerSheet({
           <div className="mt-3 flex items-center gap-2">
             <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-surface-raised">
               <div
-                className={`h-full rounded-full transition-all ${
-                  complete ? 'bg-success' : 'bg-brand'
-                }`}
+                className={`h-full rounded-full transition-all ${complete ? 'bg-success' : 'bg-brand'}`}
                 style={{ width: `${progressPercent(series)}%` }}
               />
             </div>
@@ -352,9 +337,7 @@ export function PlayerSheet({
             <h3 className="text-xs font-semibold uppercase tracking-wide text-ink-subtle">
               Partes de la serie
             </h3>
-            <span className="text-[11px] text-ink-faint">
-              {watchedTotal} vistas
-            </span>
+            <span className="text-[11px] text-ink-faint">{watchedTotal} vistas</span>
           </div>
 
           <ul className="mt-2 space-y-1">
@@ -398,9 +381,7 @@ export function PlayerSheet({
                       <span className="flex items-center gap-1.5 text-[11px] font-semibold text-brand-soft">
                         {partLabel(item, itemIndex)}
                         {itemDuration && (
-                          <span className="font-normal text-ink-faint">
-                            · {itemDuration}
-                          </span>
+                          <span className="font-normal text-ink-faint">· {itemDuration}</span>
                         )}
                       </span>
                       <span className="mt-0.5 line-clamp-2 block text-xs leading-snug text-ink-soft">

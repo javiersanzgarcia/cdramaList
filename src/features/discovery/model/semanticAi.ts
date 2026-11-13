@@ -47,22 +47,15 @@ function normalizeTags(value: unknown): string[] {
   ].slice(0, SEMANTIC_MAX_TAGS)
 }
 
-export function normalizeSemanticFingerprint(
-  value: unknown
-): SemanticFingerprint | undefined {
+export function normalizeSemanticFingerprint(value: unknown): SemanticFingerprint | undefined {
   if (!value || typeof value !== 'object') return undefined
 
   const record = value as Record<string, unknown>
   const fingerprint = Object.fromEntries(
-    FINGERPRINT_CATEGORIES.map((category) => [
-      category,
-      normalizeTags(record[category])
-    ])
+    FINGERPRINT_CATEGORIES.map((category) => [category, normalizeTags(record[category])])
   ) as unknown as SemanticFingerprint
 
-  const valid = FINGERPRINT_CATEGORIES.some((category) =>
-    Array.isArray(record[category])
-  )
+  const valid = FINGERPRINT_CATEGORIES.some((category) => Array.isArray(record[category]))
 
   return valid ? fingerprint : undefined
 }
@@ -110,9 +103,7 @@ async function requestFingerprints(
   } catch (cause) {
     if (timedOut) {
       throw new Error(
-        `El servicio semántico agotó el tiempo máximo de respuesta de ${
-          SEMANTIC_REQUEST_TIMEOUT_MS / 1000
-        } segundos.`
+        `El servicio semántico agotó el tiempo máximo de respuesta de ${SEMANTIC_REQUEST_TIMEOUT_MS / 1000} segundos.`
       )
     }
     throw cause
@@ -139,11 +130,7 @@ export async function generateSemanticFingerprints(
 
   const deadline = Date.now() + SEMANTIC_REQUEST_TIMEOUT_MS
   const chunks: FingerprintInput[][] = []
-  for (
-    let index = 0;
-    index < entries.length;
-    index += SEMANTIC_MAX_ENTRIES_PER_REQUEST
-  ) {
+  for (let index = 0; index < entries.length; index += SEMANTIC_MAX_ENTRIES_PER_REQUEST) {
     chunks.push(entries.slice(index, index + SEMANTIC_MAX_ENTRIES_PER_REQUEST))
   }
 
@@ -177,23 +164,17 @@ async function requestFingerprintChunk(
   entries: FingerprintInput[],
   deadline: number
 ): Promise<Map<string, SemanticFingerprint>> {
-  const request = () =>
-    requestFingerprints(url, entries, Math.max(1, deadline - Date.now()))
+  const request = () => requestFingerprints(url, entries, Math.max(1, deadline - Date.now()))
 
   let result = await request()
   if (result.response.status === 429 || result.response.status === 503) {
-    const waitMs = Math.min(
-      retryDelay(result.response),
-      Math.max(0, deadline - Date.now())
-    )
+    const waitMs = Math.min(retryDelay(result.response), Math.max(0, deadline - Date.now()))
     if (waitMs > 0) {
       await new Promise((resolve) => setTimeout(resolve, waitMs))
     }
     if (Date.now() >= deadline) {
       throw new Error(
-        `El servicio semántico agotó el tiempo máximo de respuesta de ${
-          SEMANTIC_REQUEST_TIMEOUT_MS / 1000
-        } segundos.`
+        `El servicio semántico agotó el tiempo máximo de respuesta de ${SEMANTIC_REQUEST_TIMEOUT_MS / 1000} segundos.`
       )
     }
     result = await request()

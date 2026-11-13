@@ -61,11 +61,7 @@ async function driveError(response: Response): Promise<DriveError> {
   return new DriveError(message)
 }
 
-async function driveFetch(
-  url: string,
-  token: string,
-  init?: RequestInit
-): Promise<Response> {
+async function driveFetch(url: string, token: string, init?: RequestInit): Promise<Response> {
   let response: Response
 
   try {
@@ -96,16 +92,11 @@ async function findDriveFile(token: string): Promise<DriveFile | null> {
     q: `name = '${DRIVE_SNAPSHOT_FILE}' and trashed = false`
   })
 
-  const response = await driveFetch(
-    `${DRIVE_API_BASE}/files?${params.toString()}`,
-    token
-  )
+  const response = await driveFetch(`${DRIVE_API_BASE}/files?${params.toString()}`, token)
   const data = (await response.json()) as { files?: DriveFile[] }
 
   // Si quedan archivos duplicados, se usa el más reciente por `modifiedTime`.
-  const files = (data.files ?? []).filter(
-    (file) => file.name === DRIVE_SNAPSHOT_FILE
-  )
+  const files = (data.files ?? []).filter((file) => file.name === DRIVE_SNAPSHOT_FILE)
   files.sort((left, right) =>
     (right.modifiedTime ?? '').localeCompare(left.modifiedTime ?? '')
   )
@@ -134,24 +125,18 @@ export function parseSnapshot(
 
   return {
     series: record.series.filter(isSeries).map(normalizeSeries),
-    exportedAt:
-      typeof record.exportedAt === 'string' ? record.exportedAt : undefined
+    exportedAt: typeof record.exportedAt === 'string' ? record.exportedAt : undefined
   }
 }
 
-export async function pullFromDrive(
-  token: string
-): Promise<DriveSnapshot | null> {
+export async function pullFromDrive(token: string): Promise<DriveSnapshot | null> {
   const file = await findDriveFile(token)
   if (!file) return null
 
   let response: Response
 
   try {
-    response = await driveFetch(
-      `${DRIVE_API_BASE}/files/${file.id}?alt=media`,
-      token
-    )
+    response = await driveFetch(`${DRIVE_API_BASE}/files/${file.id}?alt=media`, token)
   } catch (error) {
     if (error instanceof DriveError && error.code === 'notfound') return null
     throw error
@@ -162,10 +147,7 @@ export async function pullFromDrive(
   try {
     raw = await response.json()
   } catch {
-    throw new DriveError(
-      'El archivo de Google Drive no contiene JSON válido.',
-      'format'
-    )
+    throw new DriveError('El archivo de Google Drive no contiene JSON válido.', 'format')
   }
 
   const parsed = parseSnapshot(raw)
@@ -198,41 +180,30 @@ export async function pushToDrive(
   }
 
   if (!id) {
-    const createResponse = await driveFetch(
-      `${DRIVE_API_BASE}/files?fields=id`,
-      token,
-      {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          name: DRIVE_SNAPSHOT_FILE,
-          parents: ['appDataFolder']
-        })
-      }
-    )
+    const createResponse = await driveFetch(`${DRIVE_API_BASE}/files?fields=id`, token, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        name: DRIVE_SNAPSHOT_FILE,
+        parents: ['appDataFolder']
+      })
+    })
 
     const created = (await createResponse.json()) as { id?: string }
 
     if (!created.id) {
-      throw new DriveError(
-        'Google Drive no devolvió el identificador del archivo.',
-        'format'
-      )
+      throw new DriveError('Google Drive no devolvió el identificador del archivo.', 'format')
     }
 
     id = created.id
   }
 
   try {
-    await driveFetch(
-      `${DRIVE_UPLOAD_API_BASE}/files/${id}?uploadType=media`,
-      token,
-      {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(buildSnapshot(series))
-      }
-    )
+    await driveFetch(`${DRIVE_UPLOAD_API_BASE}/files/${id}?uploadType=media`, token, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(buildSnapshot(series))
+    })
   } catch (error) {
     // El archivo pudo borrarse entre la lectura y la escritura: lo recreamos.
     if (error instanceof DriveError && error.code === 'notfound' && !retried) {
@@ -256,9 +227,7 @@ function canonicalSeries(series: Series) {
     status: series.status ?? null,
     discardedCandidates: [...(series.discardedCandidates ?? [])].sort(),
     removedParts: Object.fromEntries(
-      Object.entries(series.removedParts ?? {}).sort(([a], [b]) =>
-        a.localeCompare(b)
-      )
+      Object.entries(series.removedParts ?? {}).sort(([a], [b]) => a.localeCompare(b))
     ),
     createdAt: series.createdAt,
     updatedAt: series.updatedAt,
@@ -286,8 +255,6 @@ function canonicalSeries(series: Series) {
  */
 export function seriesSignature(series: Series[]): string {
   return JSON.stringify(
-    series
-      .map(canonicalSeries)
-      .sort((left, right) => left.id.localeCompare(right.id))
+    series.map(canonicalSeries).sort((left, right) => left.id.localeCompare(right.id))
   )
 }

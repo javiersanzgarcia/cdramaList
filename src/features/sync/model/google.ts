@@ -56,9 +56,7 @@ export function loadGoogleIdentity(): Promise<GoogleNamespace> {
       reject(new Error('Google no ha respondido a tiempo. Revisa tu conexión.'))
     }, GOOGLE_SCRIPT_TIMEOUT_MS)
 
-    const existing = document.querySelector<HTMLScriptElement>(
-      'script[data-google-identity]'
-    )
+    const existing = document.querySelector<HTMLScriptElement>('script[data-google-identity]')
 
     function finish() {
       window.clearTimeout(timeout)
@@ -114,10 +112,7 @@ export function loadStoredDriveToken(): AccessToken | null {
 
     const parsed = JSON.parse(raw) as { token?: unknown; expiresAt?: unknown }
 
-    if (
-      typeof parsed.token !== 'string' ||
-      typeof parsed.expiresAt !== 'number'
-    ) {
+    if (typeof parsed.token !== 'string' || typeof parsed.expiresAt !== 'number') {
       window.sessionStorage.removeItem(DRIVE_TOKEN_STORAGE_KEY)
       return null
     }
@@ -135,10 +130,7 @@ export function loadStoredDriveToken(): AccessToken | null {
 
 export function storeDriveToken(token: AccessToken) {
   try {
-    window.sessionStorage.setItem(
-      DRIVE_TOKEN_STORAGE_KEY,
-      JSON.stringify(token)
-    )
+    window.sessionStorage.setItem(DRIVE_TOKEN_STORAGE_KEY, JSON.stringify(token))
   } catch {
     // Sin acceso a sessionStorage: el token queda solo en memoria.
   }
@@ -191,10 +183,7 @@ export async function requestDriveToken(
 
         const expiresIn = Number(response.expires_in)
         const lifetime = Number.isFinite(expiresIn)
-          ? Math.max(
-              expiresIn - GOOGLE_TOKEN_EXPIRY_MARGIN_S,
-              GOOGLE_TOKEN_EXPIRY_MARGIN_S
-            )
+          ? Math.max(expiresIn - GOOGLE_TOKEN_EXPIRY_MARGIN_S, GOOGLE_TOKEN_EXPIRY_MARGIN_S)
           : GOOGLE_TOKEN_DEFAULT_LIFETIME_S
 
         resolve({
@@ -265,8 +254,7 @@ export function sanitizeGoogleUser(value: unknown): GoogleUser | null {
   if (!value || typeof value !== 'object') return null
   const item = value as Record<string, unknown>
 
-  if (typeof item.sub !== 'string' || typeof item.email !== 'string')
-    return null
+  if (typeof item.sub !== 'string' || typeof item.email !== 'string') return null
 
   return {
     sub: item.sub,

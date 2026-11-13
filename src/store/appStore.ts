@@ -1,15 +1,7 @@
 import { create } from 'zustand'
-import {
-  createJSONStorage,
-  persist,
-  type StateStorage
-} from 'zustand/middleware'
+import { createJSONStorage, persist, type StateStorage } from 'zustand/middleware'
 import { sanitizeGoogleUser } from '../features/sync/model/google'
-import {
-  isSeries,
-  normalizeSeries,
-  pruneDeletedSeries
-} from '../features/series/model/series'
+import { isSeries, normalizeSeries, pruneDeletedSeries } from '../features/series/model/series'
 import type { SynonymCacheEntry } from '../features/discovery/types'
 import type { Series } from '../features/series/types'
 import type { DrivePersistenceState } from '../features/sync/types'
@@ -37,14 +29,11 @@ function sanitizeDriveState(value: unknown): DrivePersistenceState {
     auto: record.auto !== false,
     email: typeof record.email === 'string' ? record.email : undefined,
     fileId: typeof record.fileId === 'string' ? record.fileId : undefined,
-    lastSyncedAt:
-      typeof record.lastSyncedAt === 'number' ? record.lastSyncedAt : undefined
+    lastSyncedAt: typeof record.lastSyncedAt === 'number' ? record.lastSyncedAt : undefined
   }
 }
 
-function sanitizeSynonymCache(
-  value: unknown
-): Record<string, SynonymCacheEntry> {
+function sanitizeSynonymCache(value: unknown): Record<string, SynonymCacheEntry> {
   if (!value || typeof value !== 'object' || Array.isArray(value)) return {}
 
   return Object.fromEntries(
@@ -160,11 +149,9 @@ export const useAppStore = create<AppStore>()(
         set((state) => ({
           drive:
             typeof next === 'function'
-              ? (
-                  next as (
-                    current: DrivePersistenceState
-                  ) => DrivePersistenceState
-                )(state.drive)
+              ? (next as (current: DrivePersistenceState) => DrivePersistenceState)(
+                  state.drive
+                )
               : next
         })),
       setSynonymCache: (synonymCache) => set({ synonymCache })
@@ -173,13 +160,13 @@ export const useAppStore = create<AppStore>()(
       name: STORE_KEY,
       version: STORE_VERSION,
       storage: createJSONStorage<PersistedAppState>(() => storage),
-      partialize: ({
+      partialize: ({ series, apiKeyOverride, googleUser, drive, synonymCache }) => ({
         series,
         apiKeyOverride,
         googleUser,
         drive,
         synonymCache
-      }) => ({ series, apiKeyOverride, googleUser, drive, synonymCache }),
+      }),
       merge: (persisted, current) => {
         const saved = (persisted ?? {}) as Partial<PersistedAppState>
         return {
@@ -190,13 +177,9 @@ export const useAppStore = create<AppStore>()(
               ? saved.apiKeyOverride
               : current.apiKeyOverride,
           googleUser:
-            'googleUser' in saved
-              ? sanitizeGoogleUser(saved.googleUser)
-              : current.googleUser,
+            'googleUser' in saved ? sanitizeGoogleUser(saved.googleUser) : current.googleUser,
           drive: sanitizeDriveState(saved.drive ?? current.drive),
-          synonymCache: sanitizeSynonymCache(
-            saved.synonymCache ?? current.synonymCache
-          )
+          synonymCache: sanitizeSynonymCache(saved.synonymCache ?? current.synonymCache)
         }
       }
     }

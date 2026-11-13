@@ -24,10 +24,7 @@ export function YouTubeLinkForm({
 
   return (
     <form onSubmit={onSubmit}>
-      <label
-        htmlFor="youtube-url"
-        className="text-xs font-medium text-ink-muted"
-      >
+      <label htmlFor="youtube-url" className="text-xs font-medium text-ink-muted">
         Enlace de YouTube
       </label>
       <div className="relative mt-1.5">
@@ -62,8 +59,8 @@ export function YouTubeLinkForm({
       {!apiKeyAvailable && (
         <div className="mt-3 rounded-2xl border border-warning/20 bg-warning/5 p-3">
           <p className="text-xs leading-relaxed text-warning-softer/85">
-            Sin clave de YouTube solo podemos añadir un vídeo cada vez.
-            Configura la clave para buscar todas las partes automáticamente.
+            Sin clave de YouTube solo podemos añadir un vídeo cada vez. Configura la clave para
+            buscar todas las partes automáticamente.
           </p>
           <button
             type="button"

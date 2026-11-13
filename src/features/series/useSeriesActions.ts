@@ -57,10 +57,7 @@ export function useSeriesActions({
   }
 
   function playSeries(item: Series, index: number) {
-    const safeIndex = Math.min(
-      Math.max(index, 0),
-      Math.max(item.parts.length - 1, 0)
-    )
+    const safeIndex = Math.min(Math.max(index, 0), Math.max(item.parts.length - 1, 0))
 
     setPlayer({ seriesId: item.id, index: safeIndex })
     // Reproducir no elige estado: «en curso»/«completada» se deducen del
@@ -77,9 +74,7 @@ export function useSeriesActions({
   function toggleFavorite(id: string) {
     updateSeries((current) =>
       current.map((item) =>
-        item.id === id
-          ? { ...item, favorite: !item.favorite, updatedAt: Date.now() }
-          : item
+        item.id === id ? { ...item, favorite: !item.favorite, updatedAt: Date.now() } : item
       )
     )
   }
@@ -100,8 +95,7 @@ export function useSeriesActions({
 
         const partIds = item.parts.map((part) => part.videoId)
         const watchedAll =
-          partIds.length > 0 &&
-          partIds.every((videoId) => item.watched.includes(videoId))
+          partIds.length > 0 && partIds.every((videoId) => item.watched.includes(videoId))
 
         // «Completada» da por vistas todas las partes; cualquier otro estado
         // deja de estarlo, para que el estado y el progreso no se contradigan
@@ -131,11 +125,7 @@ export function useSeriesActions({
     )
   }
 
-  function updatePartMeta(
-    seriesId: string,
-    videoId: string,
-    patch: PartMetaPatch
-  ) {
+  function updatePartMeta(seriesId: string, videoId: string, patch: PartMetaPatch) {
     updateSeries((current) =>
       current.map((item) =>
         item.id === seriesId ? applyPartMeta(item, videoId, patch) : item
@@ -147,9 +137,7 @@ export function useSeriesActions({
     if (!apiKey) return
 
     const missing = item.parts.filter(
-      (part) =>
-        part.durationSeconds == null &&
-        !durationAttemptsRef.current.has(part.videoId)
+      (part) => part.durationSeconds == null && !durationAttemptsRef.current.has(part.videoId)
     )
     if (missing.length === 0) return
 
@@ -164,9 +152,7 @@ export function useSeriesActions({
 
       updateSeries((current) =>
         current.map((existing) =>
-          existing.id === item.id
-            ? applyPartDurations(existing, metas)
-            : existing
+          existing.id === item.id ? applyPartDurations(existing, metas) : existing
         )
       )
     } catch {
@@ -217,8 +203,7 @@ export function useSeriesActions({
           // El estado se deduce del progreso: al cubrir (o dejar de cubrir)
           // todas las partes se descarta el estado manual para que no quede una
           // serie «completada» a medias. Otro estado manual se respeta.
-          status:
-            coversAll || item.status === 'completed' ? undefined : item.status,
+          status: coversAll || item.status === 'completed' ? undefined : item.status,
           updatedAt: Date.now()
         }
       })
@@ -259,9 +244,7 @@ export function useSeriesActions({
           // la parte se vuelve a añadir después.
           removedParts: { ...(item.removedParts ?? {}), [videoId]: removedAt },
           // Además no se vuelve a proponer en las búsquedas de capítulos.
-          discardedCandidates: [
-            ...new Set([...(item.discardedCandidates ?? []), videoId])
-          ],
+          discardedCandidates: [...new Set([...(item.discardedCandidates ?? []), videoId])],
           // Al cambiar las partes, un «completada» manual puede haber dejado de
           // cubrir la serie; el automático se recalcula solo con seriesStatus.
           status: reconcileCompletedStatus(item.status, watched, parts),
@@ -279,9 +262,7 @@ export function useSeriesActions({
     if (existing) {
       updateSeries((current) =>
         current.map((item) =>
-          item.id === existing.id
-            ? mergeSeries(item, draft, title, parts)
-            : item
+          item.id === existing.id ? mergeSeries(item, draft, title, parts) : item
         )
       )
       setSelectedSeriesId(existing.id)
@@ -300,9 +281,7 @@ export function useSeriesActions({
     // los demás dispositivos y no vuelve a subirse desde su copia local.
     updateSeries((current) =>
       current.map((item) =>
-        item.id === id
-          ? { ...item, deletedAt: Date.now(), updatedAt: Date.now() }
-          : item
+        item.id === id ? { ...item, deletedAt: Date.now(), updatedAt: Date.now() } : item
       )
     )
     setSelectedSeriesId((current) => (current === id ? null : current))
@@ -317,18 +296,13 @@ export function useSeriesActions({
     setAddOpen(true)
   }
 
-  async function handleRefreshSeries(
-    item: Series
-  ): Promise<SeriesRefreshResult> {
+  async function handleRefreshSeries(item: Series): Promise<SeriesRefreshResult> {
     if (!apiKey) {
-      throw new Error(
-        'Configura la clave de YouTube en Ajustes para buscar capítulos nuevos.'
-      )
+      throw new Error('Configura la clave de YouTube en Ajustes para buscar capítulos nuevos.')
     }
 
     const update = await discoverSeriesUpdates(item, apiKey, semanticEndpoint)
-    const learnedFingerprint =
-      !item.semanticFingerprint && Boolean(update.semanticFingerprint)
+    const learnedFingerprint = !item.semanticFingerprint && Boolean(update.semanticFingerprint)
 
     if (update.added.length === 0 && !learnedFingerprint) {
       return {
@@ -358,8 +332,7 @@ export function useSeriesActions({
           ...existing,
           channelId: existing.channelId ?? update.channelId,
           channelTitle:
-            existing.channelTitle === YOUTUBE_CHANNEL_FALLBACK &&
-            update.channelTitle
+            existing.channelTitle === YOUTUBE_CHANNEL_FALLBACK && update.channelTitle
               ? update.channelTitle
               : existing.channelTitle,
           channelUrl: existing.channelUrl ?? update.channelUrl,
@@ -368,14 +341,9 @@ export function useSeriesActions({
           // las partes se descarta y el estado vuelve a deducirse del progreso.
           status:
             update.added.length > 0
-              ? reconcileCompletedStatus(
-                  existing.status,
-                  existing.watched,
-                  parts
-                )
+              ? reconcileCompletedStatus(existing.status, existing.watched, parts)
               : existing.status,
-          semanticFingerprint:
-            update.semanticFingerprint ?? existing.semanticFingerprint,
+          semanticFingerprint: update.semanticFingerprint ?? existing.semanticFingerprint,
           updatedAt: Date.now()
         }
       })
@@ -392,9 +360,7 @@ export function useSeriesActions({
       candidates: update.candidates,
       // Se devuelven las partes realmente guardadas, incluidos los cambios
       // hechos mientras se buscaban capítulos.
-      parts:
-        nextSeries.find((existing) => existing.id === item.id)?.parts ??
-        update.parts,
+      parts: nextSeries.find((existing) => existing.id === item.id)?.parts ?? update.parts,
       warnings: update.warnings,
       synced
     }
@@ -442,9 +408,7 @@ export function useSeriesActions({
         )
       }
 
-      const favorites = series.filter(
-        (item) => item.favorite && !item.deletedAt
-      )
+      const favorites = series.filter((item) => item.favorite && !item.deletedAt)
       if (favorites.length === 0) {
         return {
           updatedIds: [],
@@ -466,16 +430,11 @@ export function useSeriesActions({
         const current = next.find((item) => item.id === favorite.id) ?? favorite
 
         try {
-          const update = await discoverSeriesUpdates(
-            current,
-            apiKey,
-            semanticEndpoint
-          )
+          const update = await discoverSeriesUpdates(current, apiKey, semanticEndpoint)
 
           for (const warning of update.warnings) warnings.add(warning)
 
-          const hasNews =
-            update.added.length > 0 || update.candidates.length > 0
+          const hasNews = update.added.length > 0 || update.candidates.length > 0
           // Aunque no haya novedades, un fingerprint semántico aprendido en
           // esta búsqueda debe guardarse para no repetir el trabajo.
           const learnedFingerprint =
@@ -495,22 +454,16 @@ export function useSeriesActions({
             ...current,
             channelId: current.channelId ?? update.channelId,
             channelTitle:
-              current.channelTitle === YOUTUBE_CHANNEL_FALLBACK &&
-              update.channelTitle
+              current.channelTitle === YOUTUBE_CHANNEL_FALLBACK && update.channelTitle
                 ? update.channelTitle
                 : current.channelTitle,
             channelUrl: current.channelUrl ?? update.channelUrl,
             parts,
             status:
               update.added.length > 0
-                ? reconcileCompletedStatus(
-                    current.status,
-                    current.watched,
-                    parts
-                  )
+                ? reconcileCompletedStatus(current.status, current.watched, parts)
                 : current.status,
-            semanticFingerprint:
-              update.semanticFingerprint ?? current.semanticFingerprint,
+            semanticFingerprint: update.semanticFingerprint ?? current.semanticFingerprint,
             updatedAt: Date.now()
           }
 
@@ -573,9 +526,7 @@ export function useSeriesActions({
       nextSeries = current.map((existing) => {
         if (existing.id !== item.id || existing.deletedAt) return existing
         // Si otra ruta ya añadió el capítulo, no se duplica ni se toca la serie.
-        if (
-          existing.parts.some((current) => current.videoId === part.videoId)
-        ) {
+        if (existing.parts.some((current) => current.videoId === part.videoId)) {
           return existing
         }
 
@@ -586,26 +537,15 @@ export function useSeriesActions({
           parts: nextParts,
           // Confirmar un candidato es una re-adición explícita: levanta la
           // lápida de la parte y la saca de los descartados.
-          removedParts: clearRemovedParts(existing.removedParts, [
-            part.videoId
-          ]),
+          removedParts: clearRemovedParts(existing.removedParts, [part.videoId]),
           discardedCandidates: (existing.discardedCandidates ?? []).filter(
             (videoId) => videoId !== part.videoId
           ),
-          status: reconcileCompletedStatus(
-            existing.status,
-            existing.watched,
-            nextParts
-          ),
-          keywordConfidence: learnKeywordConfidence(
-            existing.keywordConfidence,
-            [
-              candidate.title,
-              ...(candidate.descriptionTitle
-                ? [candidate.descriptionTitle]
-                : [])
-            ]
-          ),
+          status: reconcileCompletedStatus(existing.status, existing.watched, nextParts),
+          keywordConfidence: learnKeywordConfidence(existing.keywordConfidence, [
+            candidate.title,
+            ...(candidate.descriptionTitle ? [candidate.descriptionTitle] : [])
+          ]),
           updatedAt: Date.now()
         }
       })

@@ -90,11 +90,7 @@ function isRateLimited(ip) {
 }
 
 function safeEntries(value) {
-  if (
-    !Array.isArray(value) ||
-    value.length === 0 ||
-    value.length > MAX_ENTRIES
-  ) {
+  if (!Array.isArray(value) || value.length === 0 || value.length > MAX_ENTRIES) {
     return null
   }
 
@@ -159,31 +155,19 @@ async function handleFingerprint(request, env, origin) {
 
   const length = Number(request.headers.get('Content-Length') ?? 0)
   if (length > 50_000) {
-    return jsonResponse(
-      { error: 'La solicitud es demasiado grande.' },
-      413,
-      origin
-    )
+    return jsonResponse({ error: 'La solicitud es demasiado grande.' }, 413, origin)
   }
 
   let payload
   try {
     payload = await request.json()
   } catch {
-    return jsonResponse(
-      { error: 'El cuerpo debe ser JSON válido.' },
-      400,
-      origin
-    )
+    return jsonResponse({ error: 'El cuerpo debe ser JSON válido.' }, 400, origin)
   }
 
   const entries = safeEntries(payload?.entries)
   if (!entries) {
-    return jsonResponse(
-      { error: 'La lista de textos no es válida.' },
-      400,
-      origin
-    )
+    return jsonResponse({ error: 'La lista de textos no es válida.' }, 400, origin)
   }
 
   try {
@@ -227,10 +211,7 @@ async function handleFingerprint(request, env, origin) {
     }
     return jsonResponse({ items: results }, 200, origin)
   } catch (error) {
-    const message =
-      error instanceof Error
-        ? error.message
-        : 'Error desconocido de Workers AI.'
+    const message = error instanceof Error ? error.message : 'Error desconocido de Workers AI.'
     return jsonResponse({ error: message.slice(0, 300) }, 502, origin)
   }
 }

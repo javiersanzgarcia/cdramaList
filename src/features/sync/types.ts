@@ -21,8 +21,7 @@ export interface SyncMessage {
   text: string
 }
 
-export type DriveErrorCode =
-  'auth' | 'permission' | 'network' | 'format' | 'notfound'
+export type DriveErrorCode = 'auth' | 'permission' | 'network' | 'format' | 'notfound'
 
 /** Token OAuth2 de Google con su momento de caducidad. */
 export interface AccessToken {
@@ -45,8 +44,7 @@ export interface SnapshotPayload {
   series: Series[]
 }
 
-export type DriveSyncStatus =
-  'disconnected' | 'connecting' | 'syncing' | 'synced' | 'error'
+export type DriveSyncStatus = 'disconnected' | 'connecting' | 'syncing' | 'synced' | 'error'
 
 export interface DriveSync {
   configured: boolean

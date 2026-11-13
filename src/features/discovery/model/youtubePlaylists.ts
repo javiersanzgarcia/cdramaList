@@ -97,9 +97,7 @@ export async function fetchPlaylist(
   } while (pageToken && items.length < MAX_PLAYLIST_ITEMS)
 
   const videoIds = items
-    .map(
-      (item) => item.contentDetails?.videoId ?? item.snippet.resourceId?.videoId
-    )
+    .map((item) => item.contentDetails?.videoId ?? item.snippet.resourceId?.videoId)
     .filter((id): id is string => Boolean(id))
   const durations = await fetchVideosByIds(videoIds, apiKey).catch(
     () => new Map<string, VideoMeta>()
@@ -108,8 +106,7 @@ export async function fetchPlaylist(
 
   for (let index = 0; index < items.length; index += 1) {
     const item = items[index]
-    const videoId =
-      item.contentDetails?.videoId ?? item.snippet.resourceId?.videoId
+    const videoId = item.contentDetails?.videoId ?? item.snippet.resourceId?.videoId
     const title = item.snippet.title
 
     if (
@@ -128,8 +125,7 @@ export async function fetchPlaylist(
       isFinal: info.isFinal,
       durationSeconds: durations.get(videoId)?.durationSeconds,
       publishedAt: item.snippet.publishedAt,
-      thumbnail:
-        pickThumbnail(item.snippet.thumbnails) ?? youtubeThumbnail(videoId),
+      thumbnail: pickThumbnail(item.snippet.thumbnails) ?? youtubeThumbnail(videoId),
       addedAt: Date.now()
     })
   }
@@ -139,8 +135,7 @@ export async function fetchPlaylist(
     title: playlist.snippet.title,
     channelId: playlist.snippet.channelId,
     channelTitle: playlist.snippet.channelTitle,
-    thumbnail:
-      pickThumbnail(playlist.snippet.thumbnails) ?? parts[0]?.thumbnail,
+    thumbnail: pickThumbnail(playlist.snippet.thumbnails) ?? parts[0]?.thumbnail,
     parts,
     truncated: items.length >= MAX_PLAYLIST_ITEMS
   }
@@ -156,8 +151,7 @@ export async function fetchChannelUploads(
     { part: 'contentDetails', id: channelId },
     apiKey
   )
-  const uploads =
-    channelData.items?.[0]?.contentDetails?.relatedPlaylists?.uploads
+  const uploads = channelData.items?.[0]?.contentDetails?.relatedPlaylists?.uploads
   if (!uploads) return []
 
   const items: PlaylistItem[] = []
@@ -188,9 +182,7 @@ export async function fetchChannelUploads(
   } while (pageToken && items.length < limit)
 
   const videoIds = items
-    .map(
-      (item) => item.contentDetails?.videoId ?? item.snippet.resourceId?.videoId
-    )
+    .map((item) => item.contentDetails?.videoId ?? item.snippet.resourceId?.videoId)
     .filter((id): id is string => Boolean(id))
   const durations = await fetchVideosByIds(videoIds, apiKey).catch(
     () => new Map<string, VideoMeta>()
@@ -198,8 +190,7 @@ export async function fetchChannelUploads(
   const videos: VideoMeta[] = []
 
   for (const item of items) {
-    const videoId =
-      item.contentDetails?.videoId ?? item.snippet.resourceId?.videoId
+    const videoId = item.contentDetails?.videoId ?? item.snippet.resourceId?.videoId
     const title = item.snippet.title
 
     if (
@@ -209,20 +200,16 @@ export async function fetchChannelUploads(
     )
       continue
 
-    const ownerId =
-      item.snippet.videoOwnerChannelId ?? item.snippet.channelId ?? channelId
+    const ownerId = item.snippet.videoOwnerChannelId ?? item.snippet.channelId ?? channelId
     videos.push({
       videoId,
       title,
       channelId: ownerId,
-      channelTitle:
-        item.snippet.videoOwnerChannelTitle ?? item.snippet.channelTitle ?? '',
+      channelTitle: item.snippet.videoOwnerChannelTitle ?? item.snippet.channelTitle ?? '',
       channelUrl: ownerId ? channelUrlFor(ownerId) : undefined,
       publishedAt: item.snippet.publishedAt,
-      description:
-        durations.get(videoId)?.description ?? item.snippet.description,
-      thumbnail:
-        pickThumbnail(item.snippet.thumbnails) ?? youtubeThumbnail(videoId),
+      description: durations.get(videoId)?.description ?? item.snippet.description,
+      thumbnail: pickThumbnail(item.snippet.thumbnails) ?? youtubeThumbnail(videoId),
       durationSeconds: durations.get(videoId)?.durationSeconds
     })
   }

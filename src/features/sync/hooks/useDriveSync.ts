@@ -7,12 +7,7 @@ import {
   revokeGoogleToken,
   storeDriveToken
 } from '../model/google'
-import {
-  DriveError,
-  pullFromDrive,
-  pushToDrive,
-  seriesSignature
-} from '../model/drive'
+import { DriveError, pullFromDrive, pushToDrive, seriesSignature } from '../model/drive'
 import { mergeSeriesCollections } from '../../series/model/series'
 import { AUTO_SYNC_DEBOUNCE_MS } from '../model/constants'
 import type {
@@ -46,9 +41,7 @@ export function useDriveSync({
   const [status, setStatus] = useState<DriveSyncStatus>('disconnected')
   const [message, setMessage] = useState<SyncMessage | null>(null)
   const [busy, setBusy] = useState(false)
-  const [lastSyncedSignature, setLastSyncedSignature] = useState<string | null>(
-    null
-  )
+  const [lastSyncedSignature, setLastSyncedSignature] = useState<string | null>(null)
 
   const seriesRef = useRef(series)
   // Última copia sincronizada: sirve de base para combinar cambios de varios
@@ -71,10 +64,7 @@ export function useDriveSync({
   }, [onUser])
 
   const signature = useMemo(() => seriesSignature(series), [series])
-  const dirty =
-    connected &&
-    lastSyncedSignature !== null &&
-    signature !== lastSyncedSignature
+  const dirty = connected && lastSyncedSignature !== null && signature !== lastSyncedSignature
 
   const saveState = useCallback(
     (patch: Partial<DriveState>) => {
@@ -131,11 +121,7 @@ export function useDriveSync({
   }, [])
 
   const syncWithToken = useCallback(
-    async (
-      token: string,
-      silent = false,
-      seriesOverride?: Series[]
-    ): Promise<boolean> => {
+    async (token: string, silent = false, seriesOverride?: Series[]): Promise<boolean> => {
       if (runningRef.current) return false
 
       runningRef.current = true
@@ -156,10 +142,7 @@ export function useDriveSync({
 
         let fileId = remote?.fileId ?? null
 
-        if (
-          !remote ||
-          seriesSignature(merged) !== seriesSignature(remote.series)
-        ) {
+        if (!remote || seriesSignature(merged) !== seriesSignature(remote.series)) {
           fileId = await pushToDrive(token, merged, fileId)
         }
 
@@ -331,9 +314,7 @@ export function useDriveSync({
         return
       }
 
-      const localCount = seriesRef.current.filter(
-        (item) => !item.deletedAt
-      ).length
+      const localCount = seriesRef.current.filter((item) => !item.deletedAt).length
       const remoteCount = remote.series.filter((item) => !item.deletedAt).length
       const confirmed = window.confirm(
         `Se reemplazarán tus ${localCount} series locales por las ${remoteCount} de Google Drive. ¿Continuar?`
@@ -410,10 +391,7 @@ export function useDriveSync({
     onUserRef.current(null)
   }, [saveState])
 
-  const setAuto = useCallback(
-    (auto: boolean) => saveState({ auto }),
-    [saveState]
-  )
+  const setAuto = useCallback((auto: boolean) => saveState({ auto }), [saveState])
 
   // Intenta recuperar la sesión de Google al recargar la página usando el
   // token guardado en la sesión del navegador. No abre ningún popup.

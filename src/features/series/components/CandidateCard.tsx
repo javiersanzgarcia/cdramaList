@@ -80,9 +80,7 @@ export function CandidateCard({
                 inputMode="numeric"
                 min={1}
                 value={number}
-                onChange={(event) =>
-                  onNumberChange(event.target.value.replace(/[^\d]/g, ''))
-                }
+                onChange={(event) => onNumberChange(event.target.value.replace(/[^\d]/g, ''))}
                 aria-label={`Número de capítulo para ${candidate.title}`}
                 className="w-14 rounded-lg border border-line-strong bg-surface px-2 py-1 text-center text-xs font-semibold text-ink outline-none focus:border-brand"
               />

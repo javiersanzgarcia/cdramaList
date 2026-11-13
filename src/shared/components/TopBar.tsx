@@ -33,9 +33,7 @@ export function TopBar({
             <p className="truncate text-[10px] font-semibold uppercase tracking-[0.2em] text-brand-bright">
               {eyebrow}
             </p>
-            <h1 className="truncate text-lg font-bold tracking-tight">
-              {title}
-            </h1>
+            <h1 className="truncate text-lg font-bold tracking-tight">{title}</h1>
           </div>
         </div>
 

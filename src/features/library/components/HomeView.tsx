@@ -47,8 +47,7 @@ export function HomeView({
   onOpenSettings
 }: HomeViewProps) {
   const continueList = continueWatching(allSeries).slice(0, 8)
-  const showContinue =
-    query.trim().length === 0 && filter === 'all' && continueList.length > 0
+  const showContinue = query.trim().length === 0 && filter === 'all' && continueList.length > 0
   const continueScrollRef = useRef<HTMLDivElement>(null)
   const [favoritesBusy, setFavoritesBusy] = useState(false)
   const [favoritesMessage, setFavoritesMessage] = useState<{
@@ -70,8 +69,7 @@ export function HomeView({
       if (scroller.scrollWidth <= scroller.clientWidth) return
 
       const atStart = scroller.scrollLeft <= 0
-      const atEnd =
-        scroller.scrollLeft + scroller.clientWidth >= scroller.scrollWidth - 1
+      const atEnd = scroller.scrollLeft + scroller.clientWidth >= scroller.scrollWidth - 1
       if ((event.deltaY < 0 && atStart) || (event.deltaY > 0 && atEnd)) return
 
       event.preventDefault()
@@ -83,11 +81,7 @@ export function HomeView({
   }, [showContinue])
 
   const sectionTitle =
-    filter === 'favorites'
-      ? 'Tus favoritas'
-      : filter === 'all'
-        ? 'Tus series'
-        : 'Resultados'
+    filter === 'favorites' ? 'Tus favoritas' : filter === 'all' ? 'Tus series' : 'Resultados'
 
   function clearFilters() {
     onQueryChange('')
@@ -156,15 +150,13 @@ export function HomeView({
         <button
           type="button"
           onClick={onAdd}
-          className="group mt-4 flex w-full items-center gap-3 rounded-2xl border border-brand/25 bg-gradient-to-r from-brand/15 via-brand/5 to-warning/10 p-3.5 text-left transition active:scale-[0.99]"
+          className="group mt-4 flex w-full items-center gap-3 rounded-2xl border border-brand/25 bg-linear-to-r from-brand/15 via-brand/5 to-warning/10 p-3.5 text-left transition active:scale-[0.99]"
         >
-          <span className="grid size-11 shrink-0 place-items-center rounded-xl bg-gradient-to-br from-brand to-warning text-ink-bright shadow-lg shadow-brand/25">
+          <span className="grid size-11 shrink-0 place-items-center rounded-xl bg-linear-to-br from-brand to-warning text-ink-bright shadow-lg shadow-brand/25">
             <Icon.Plus className="size-5" />
           </span>
           <span className="min-w-0 flex-1">
-            <span className="block text-sm font-semibold text-ink">
-              Crear una serie nueva
-            </span>
+            <span className="block text-sm font-semibold text-ink">Crear una serie nueva</span>
             <span className="block text-xs text-ink-muted">
               Empieza una historia nueva desde un vídeo o una lista.
             </span>
@@ -180,8 +172,7 @@ export function HomeView({
           >
             <Icon.Key className="size-4 shrink-0" />
             <span className="flex-1">
-              Configura tu clave de YouTube para encontrar partes
-              automáticamente.
+              Configura tu clave de YouTube para encontrar partes automáticamente.
             </span>
             <Icon.ChevronRight className="size-4 shrink-0" />
           </button>
@@ -194,12 +185,9 @@ export function HomeView({
       {showContinue && (
         <section className="px-4 pt-5">
           <div className="flex items-baseline justify-between gap-3">
-            <h3 className="text-sm font-semibold text-ink-strong">
-              Continuar viendo
-            </h3>
+            <h3 className="text-sm font-semibold text-ink-strong">Continuar viendo</h3>
             <span className="shrink-0 text-xs text-ink-subtle">
-              {continueList.length}{' '}
-              {continueList.length === 1 ? 'serie' : 'series'}
+              {continueList.length} {continueList.length === 1 ? 'serie' : 'series'}
             </span>
           </div>
 
@@ -208,12 +196,7 @@ export function HomeView({
             className="no-scrollbar -mx-4 mt-3 flex gap-3 overflow-x-auto px-4 pb-1"
           >
             {continueList.map((item) => (
-              <ContinueCard
-                key={item.id}
-                series={item}
-                onPlay={onPlay}
-                onOpen={onOpen}
-              />
+              <ContinueCard key={item.id} series={item} onPlay={onPlay} onOpen={onOpen} />
             ))}
           </div>
         </section>
@@ -221,9 +204,7 @@ export function HomeView({
 
       <section className="px-4 pt-5">
         <div className="flex items-baseline justify-between gap-3">
-          <h3 className="text-sm font-semibold text-ink-strong">
-            {sectionTitle}
-          </h3>
+          <h3 className="text-sm font-semibold text-ink-strong">{sectionTitle}</h3>
           <span className="shrink-0 text-xs text-ink-subtle">
             {series.length} {series.length === 1 ? 'serie' : 'series'}
           </span>
@@ -237,12 +218,8 @@ export function HomeView({
               disabled={favoritesBusy}
               className="flex w-full items-center justify-center gap-2 rounded-2xl border border-brand/30 bg-brand/10 px-4 py-3 text-sm font-semibold text-brand-softer transition hover:border-brand/50 hover:bg-brand/15 hover:text-ink-bright active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-60"
             >
-              <Icon.RefreshCw
-                className={`size-4 ${favoritesBusy ? 'animate-spin' : ''}`}
-              />
-              {favoritesBusy
-                ? 'Buscando novedades…'
-                : 'Actualizar todas las favoritas'}
+              <Icon.RefreshCw className={`size-4 ${favoritesBusy ? 'animate-spin' : ''}`} />
+              {favoritesBusy ? 'Buscando novedades…' : 'Actualizar todas las favoritas'}
             </button>
 
             {favoritesMessage && (

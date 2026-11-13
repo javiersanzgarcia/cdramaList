@@ -49,12 +49,8 @@ export function AddSeriesSheet({
   const [title, setTitle] = useState('')
   const [suggestedSeries, setSuggestedSeries] = useState<Series | null>(null)
   const [candidates, setCandidates] = useState<ChapterCandidate[]>([])
-  const [candidateNumbers, setCandidateNumbers] = useState<
-    Record<string, string>
-  >({})
-  const [candidateFinal, setCandidateFinal] = useState<Record<string, boolean>>(
-    {}
-  )
+  const [candidateNumbers, setCandidateNumbers] = useState<Record<string, string>>({})
+  const [candidateFinal, setCandidateFinal] = useState<Record<string, boolean>>({})
   const [candidateMessage, setCandidateMessage] = useState<{
     kind: 'ok' | 'error'
     text: string
@@ -94,9 +90,7 @@ export function AddSeriesSheet({
 
     const parsed = parseYouTubeUrl(url)
     if (!parsed) {
-      setError(
-        'Pega un enlace válido de YouTube (vídeo, Short o lista de reproducción).'
-      )
+      setError('Pega un enlace válido de YouTube (vídeo, Short o lista de reproducción).')
       setPhase('error')
       return
     }
@@ -109,9 +103,7 @@ export function AddSeriesSheet({
 
       if (parsed.videoId) {
         if (apiKey) {
-          setMessage(
-            'Buscando el vídeo y los capítulos en el canal y en YouTube…'
-          )
+          setMessage('Buscando el vídeo y los capítulos en el canal y en YouTube…')
           result = await discoverVideoSeries(parsed.videoId, apiKey)
         } else {
           setMessage('Leyendo los datos del vídeo…')
@@ -132,12 +124,8 @@ export function AddSeriesSheet({
       // Desde una serie concreta siempre se añade a ella. Desde la portada no
       // se adjunta nada en silencio: como mucho se ofrece la coincidencia.
       const match = targetSeries
-      const suggestion = targetSeries
-        ? undefined
-        : findExistingSeries(series, result)
-      const finalDraft = match
-        ? { ...result, existingSeriesId: match.id }
-        : result
+      const suggestion = targetSeries ? undefined : findExistingSeries(series, result)
+      const finalDraft = match ? { ...result, existingSeriesId: match.id } : result
 
       const matchIds = new Set((match?.parts ?? []).map((part) => part.videoId))
       const nextCandidates = (finalDraft.candidates ?? []).filter(
@@ -149,11 +137,7 @@ export function AddSeriesSheet({
       ])
 
       setDraft(finalDraft)
-      setSelected(
-        new Set(
-          finalDraft.selectedIds.filter((videoId) => !matchIds.has(videoId))
-        )
-      )
+      setSelected(new Set(finalDraft.selectedIds.filter((videoId) => !matchIds.has(videoId))))
       setTitle(match ? match.title : finalDraft.title)
       setSuggestedSeries(suggestion ?? null)
       setCandidates(nextCandidates)
@@ -183,18 +167,14 @@ export function AddSeriesSheet({
 
   function toggleAll() {
     if (!draft) return
-    setSelected(
-      allSelected ? new Set() : new Set(newParts.map((part) => part.videoId))
-    )
+    setSelected(allSelected ? new Set() : new Set(newParts.map((part) => part.videoId)))
   }
 
   // Adjunta el borrador a la serie sugerida solo cuando el usuario lo pide.
   function attachSuggested() {
     if (!draft || !suggestedSeries) return
 
-    const suggestionIds = new Set(
-      suggestedSeries.parts.map((part) => part.videoId)
-    )
+    const suggestionIds = new Set(suggestedSeries.parts.map((part) => part.videoId))
     const candidateState = buildCandidateState(candidates, [
       ...draft.parts,
       ...suggestedSeries.parts
@@ -223,9 +203,7 @@ export function AddSeriesSheet({
     // Al desadjuntar, las partes que se habían excluido por estar en la serie
     // sugerida vuelven a estar seleccionables (y marcadas por defecto).
     if (suggestedSeries) {
-      const suggestionIds = new Set(
-        suggestedSeries.parts.map((part) => part.videoId)
-      )
+      const suggestionIds = new Set(suggestedSeries.parts.map((part) => part.videoId))
       setSelected((current) => {
         const next = new Set(current)
         draft.parts.forEach((part) => {
@@ -239,9 +217,7 @@ export function AddSeriesSheet({
   }
 
   function discardCandidate(videoId: string) {
-    setCandidates((current) =>
-      current.filter((candidate) => candidate.videoId !== videoId)
-    )
+    setCandidates((current) => current.filter((candidate) => candidate.videoId !== videoId))
     setCandidateNumbers((current) => {
       const next = { ...current }
       delete next[videoId]
@@ -284,9 +260,7 @@ export function AddSeriesSheet({
     })
 
     setDraft((current) =>
-      current
-        ? { ...current, parts: sortParts([...current.parts, part]) }
-        : current
+      current ? { ...current, parts: sortParts([...current.parts, part]) } : current
     )
     setSelected((current) => new Set([...current, candidate.videoId]))
     discardCandidate(candidate.videoId)
@@ -299,16 +273,13 @@ export function AddSeriesSheet({
   function handleSave() {
     if (!draft) return
     const parts = draft.parts.filter(
-      (part) =>
-        selected.has(part.videoId) && !existingVideoIds.has(part.videoId)
+      (part) => selected.has(part.videoId) && !existingVideoIds.has(part.videoId)
     )
     if (parts.length === 0) return
 
     // En modo añadir el título siempre es el de la serie destino: no se puede
     // renombrar una serie existente desde este flujo.
-    const finalTitle = attachedSeries
-      ? attachedSeries.title
-      : title.trim() || draft.title
+    const finalTitle = attachedSeries ? attachedSeries.title : title.trim() || draft.title
     onSave(draft, finalTitle, parts)
   }
 
@@ -333,7 +304,7 @@ export function AddSeriesSheet({
         className="absolute inset-0 animate-fade-in bg-overlay/70 backdrop-blur-sm"
       />
 
-      <div className="no-scrollbar relative max-h-[92dvh] w-full max-w-md animate-sheet-up overflow-y-auto overscroll-contain rounded-t-3xl border-t border-line bg-surface pb-[calc(env(safe-area-inset-bottom)_+_1rem)]">
+      <div className="no-scrollbar relative max-h-[92dvh] w-full max-w-md animate-sheet-up overflow-y-auto overscroll-contain rounded-t-3xl border-t border-line bg-surface pb-[calc(env(safe-area-inset-bottom)+1rem)]">
         <div className="sticky top-0 z-10 flex items-center justify-between gap-3 border-b border-line/80 bg-surface/95 px-4 py-3 backdrop-blur-xl">
           <div className="min-w-0">
             <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-brand-bright">
@@ -378,8 +349,7 @@ export function AddSeriesSheet({
                 </p>
                 <p className="mt-0.5 text-[11px] text-success-softer/70">
                   {attachedSeries.parts.length}{' '}
-                  {attachedSeries.parts.length === 1 ? 'parte' : 'partes'} en la
-                  serie
+                  {attachedSeries.parts.length === 1 ? 'parte' : 'partes'} en la serie
                 </p>
               </div>
             </div>
@@ -400,12 +370,8 @@ export function AddSeriesSheet({
           {phase === 'loading' && (
             <div className="flex flex-col items-center py-12 text-center">
               <div className="size-12 animate-spin rounded-full border-2 border-line-strong border-t-brand" />
-              <p className="mt-4 text-sm font-medium text-ink-strong">
-                {message}
-              </p>
-              <p className="mt-1 text-xs text-ink-subtle">
-                Esto puede tardar unos segundos.
-              </p>
+              <p className="mt-4 text-sm font-medium text-ink-strong">{message}</p>
+              <p className="mt-1 text-xs text-ink-subtle">Esto puede tardar unos segundos.</p>
               <button
                 type="button"
                 onClick={() => setPhase('input')}
@@ -424,9 +390,7 @@ export function AddSeriesSheet({
               <h3 className="mt-4 text-base font-semibold text-ink">
                 {isAddMode ? 'No se pudo añadir' : 'No se pudo crear la serie'}
               </h3>
-              <p className="mt-1.5 text-sm leading-relaxed text-ink-muted">
-                {error}
-              </p>
+              <p className="mt-1.5 text-sm leading-relaxed text-ink-muted">{error}</p>
               <div className="mt-5 flex gap-2">
                 <button
                   type="button"
@@ -468,13 +432,9 @@ export function AddSeriesSheet({
                         Puede que esta serie ya exista
                       </p>
                       <p className="mt-0.5 text-[11px] leading-relaxed text-warning-softer/75">
-                        «{suggestedSeries.title}» ya tiene{' '}
-                        {suggestedSeries.parts.length}{' '}
-                        {suggestedSeries.parts.length === 1
-                          ? 'parte'
-                          : 'partes'}
-                        . ¿Añadimos estas partes a esa serie o creamos una
-                        nueva?
+                        «{suggestedSeries.title}» ya tiene {suggestedSeries.parts.length}{' '}
+                        {suggestedSeries.parts.length === 1 ? 'parte' : 'partes'}. ¿Añadimos
+                        estas partes a esa serie o creamos una nueva?
                       </p>
                     </div>
                   </div>
@@ -527,8 +487,8 @@ export function AddSeriesSheet({
                     className="mt-1.5 w-full rounded-2xl border border-line bg-canvas/70 px-3.5 py-3 text-sm font-medium text-ink outline-none transition focus:border-brand/60 focus:ring-2 focus:ring-brand/20"
                   />
                   <p className="mt-1.5 text-[11px] leading-relaxed text-ink-subtle">
-                    Si escribes un título distinto al del vídeo, el título real
-                    de YouTube se guardará como alias de búsqueda.
+                    Si escribes un título distinto al del vídeo, el título real de YouTube se
+                    guardará como alias de búsqueda.
                   </p>
                 </>
               )}
@@ -585,9 +545,7 @@ export function AddSeriesSheet({
                     ...current,
                     [videoId]: !(
                       current[videoId] ??
-                      candidates.find(
-                        (candidate) => candidate.videoId === videoId
-                      )?.isFinal
+                      candidates.find((candidate) => candidate.videoId === videoId)?.isFinal
                     )
                   }))
                 }
@@ -611,9 +569,7 @@ export function AddSeriesSheet({
                 >
                   <Icon.Check className="size-4" />
                   {isAddMode
-                    ? `Añadir ${selected.size} ${
-                        selected.size === 1 ? 'parte' : 'partes'
-                      }`
+                    ? `Añadir ${selected.size} ${selected.size === 1 ? 'parte' : 'partes'}`
                     : 'Guardar serie'}
                 </button>
               </div>

@@ -10,10 +10,7 @@ export function useSheet(onClose: () => void) {
     sheetStack.push(currentId)
 
     function handleKey(event: KeyboardEvent) {
-      if (
-        event.key === 'Escape' &&
-        sheetStack[sheetStack.length - 1] === currentId
-      ) {
+      if (event.key === 'Escape' && sheetStack[sheetStack.length - 1] === currentId) {
         onClose()
       }
     }

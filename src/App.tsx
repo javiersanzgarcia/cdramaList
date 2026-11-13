@@ -31,19 +31,14 @@ import { APP_NAME, BUSY_HISTORY_KEY } from './shared/lib/constants'
 
 const ENV_CLIENT_ID = (import.meta.env.VITE_GOOGLE_CLIENT_ID ?? '').trim()
 const ENV_YOUTUBE_API_KEY = (import.meta.env.VITE_YOUTUBE_API_KEY ?? '').trim()
-const ENV_SEMANTIC_API_URL = (
-  import.meta.env.VITE_SEMANTIC_API_URL ?? ''
-).trim()
+const ENV_SEMANTIC_API_URL = (import.meta.env.VITE_SEMANTIC_API_URL ?? '').trim()
 
 export default function App() {
   const allSeries = useAppStore((state) => state.series)
   const setSeries = useAppStore((state) => state.setSeries)
   // Las series borradas se conservan marcadas con una lápida para que el
   // borrado se propague al sincronizar, pero no se muestran ni cuentan.
-  const series = useMemo(
-    () => allSeries.filter((item) => !item.deletedAt),
-    [allSeries]
-  )
+  const series = useMemo(() => allSeries.filter((item) => !item.deletedAt), [allSeries])
   const apiKeyOverride = useAppStore((state) => state.apiKeyOverride)
   const setApiKeyOverride = useAppStore((state) => state.setApiKeyOverride)
   const apiKey = ENV_YOUTUBE_API_KEY || apiKeyOverride
@@ -69,14 +64,12 @@ export default function App() {
   const [refreshing, setRefreshing] = useState(false)
   // Distingue si el bloqueo de pantalla viene de actualizar una serie o del
   // lote de favoritas, para mostrar el mensaje adecuado.
-  const [busyOperation, setBusyOperation] = useState<'series' | 'favorites'>(
-    'series'
-  )
+  const [busyOperation, setBusyOperation] = useState<'series' | 'favorites'>('series')
   // Series con novedades pendientes de revisar tras actualizar las favoritas.
   const [reviewQueue, setReviewQueue] = useState<string[]>([])
-  const [reviewCandidates, setReviewCandidates] = useState<
-    Record<string, ChapterCandidate[]>
-  >({})
+  const [reviewCandidates, setReviewCandidates] = useState<Record<string, ChapterCandidate[]>>(
+    {}
+  )
   // Bloqueo síncrono para que dos pulsaciones rápidas no lancen dos lotes
   // antes de que React aplique el estado de `refreshing`.
   const favoritesRefreshRef = useRef(false)
@@ -167,10 +160,7 @@ export default function App() {
     }
   }, [])
 
-  const filtered = useMemo(
-    () => filterSeries(series, query, filter),
-    [series, query, filter]
-  )
+  const filtered = useMemo(() => filterSeries(series, query, filter), [series, query, filter])
   const groups = useMemo(() => groupSeries(series), [series])
 
   const selectedSeries = selectedSeriesId
@@ -187,10 +177,7 @@ export default function App() {
     () => series.reduce((total, item) => total + watchedCount(item), 0),
     [series]
   )
-  const favoriteCount = useMemo(
-    () => series.filter((item) => item.favorite).length,
-    [series]
-  )
+  const favoriteCount = useMemo(() => series.filter((item) => item.favorite).length, [series])
 
   function openAdd() {
     setAddTargetId(null)
@@ -281,8 +268,7 @@ export default function App() {
 
   // El botón «Revisar siguiente serie» solo aparece en la ficha de la serie que
   // encabeza la cola y cuando queda alguna otra pendiente.
-  const reviewHead =
-    reviewQueue.length > 1 && reviewQueue[0] === selectedSeriesId
+  const reviewHead = reviewQueue.length > 1 && reviewQueue[0] === selectedSeriesId
 
   function handleReset() {
     updateSeries(() => [])
@@ -434,7 +420,7 @@ export default function App() {
         !selectedSeries &&
         !player &&
         !addOpen && (
-          <div className="pointer-events-none fixed inset-x-0 bottom-[calc(env(safe-area-inset-bottom)_+_5rem)] z-20 mx-auto flex w-full max-w-md flex-col items-end gap-3 px-4">
+          <div className="pointer-events-none fixed inset-x-0 bottom-[calc(env(safe-area-inset-bottom)+5rem)] z-20 mx-auto flex w-full max-w-md flex-col items-end gap-3 px-4">
             {reviewQueue.length > 0 && (
               <button
                 type="button"
@@ -527,9 +513,7 @@ export default function App() {
       <BusyOverlay
         open={refreshing}
         title={
-          busyOperation === 'favorites'
-            ? 'Actualizando favoritas…'
-            : 'Actualizando serie…'
+          busyOperation === 'favorites' ? 'Actualizando favoritas…' : 'Actualizando serie…'
         }
         message={
           busyOperation === 'favorites'

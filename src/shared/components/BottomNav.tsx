@@ -31,9 +31,7 @@ export function BottomNav({ tab, savedCount, onChange }: BottomNavProps) {
               onClick={() => onChange(item.value)}
               aria-current={active ? 'page' : undefined}
               className={`relative flex flex-col items-center gap-1 py-2.5 text-[11px] font-medium transition ${
-                active
-                  ? 'text-brand-bright'
-                  : 'text-ink-subtle hover:text-ink-soft'
+                active ? 'text-brand-bright' : 'text-ink-subtle hover:text-ink-soft'
               }`}
             >
               <span

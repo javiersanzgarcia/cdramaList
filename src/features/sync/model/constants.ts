@@ -1,10 +1,8 @@
 /** Endpoints y ajustes de la sincronización con Google Drive. */
 
 export const DRIVE_API_BASE = 'https://www.googleapis.com/drive/v3'
-export const DRIVE_UPLOAD_API_BASE =
-  'https://www.googleapis.com/upload/drive/v3'
-export const GOOGLE_USERINFO_URL =
-  'https://www.googleapis.com/oauth2/v3/userinfo'
+export const DRIVE_UPLOAD_API_BASE = 'https://www.googleapis.com/upload/drive/v3'
+export const GOOGLE_USERINFO_URL = 'https://www.googleapis.com/oauth2/v3/userinfo'
 
 /** Versión del formato del snapshot que se sube a Drive. */
 export const DRIVE_SNAPSHOT_VERSION = 2

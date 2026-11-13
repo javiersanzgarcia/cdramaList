@@ -38,18 +38,14 @@ export function SeriesDraftPartsReview({
   onAddCandidate,
   onDiscardCandidate
 }: SeriesDraftPartsReviewProps) {
-  const selectableParts = parts.filter(
-    (part) => !existingVideoIds.has(part.videoId)
-  )
+  const selectableParts = parts.filter((part) => !existingVideoIds.has(part.videoId))
 
   return (
     <>
       <div className="mt-4 flex items-center justify-between gap-3">
         <p className="text-sm font-semibold text-ink-strong">
           Partes encontradas
-          <span className="ml-1.5 text-xs font-normal text-ink-subtle">
-            {parts.length}
-          </span>
+          <span className="ml-1.5 text-xs font-normal text-ink-subtle">{parts.length}</span>
         </p>
         {selectableParts.length > 0 && (
           <button
@@ -113,9 +109,7 @@ export function SeriesDraftPartsReview({
                         </span>
                       )}
                       {duration && (
-                        <span className="font-normal text-ink-faint">
-                          · {duration}
-                        </span>
+                        <span className="font-normal text-ink-faint">· {duration}</span>
                       )}
                     </span>
                     <span className="mt-0.5 line-clamp-2 block text-xs leading-snug text-ink-strong">
@@ -145,9 +139,9 @@ export function SeriesDraftPartsReview({
                 Posibles capítulos ({candidates.length})
               </p>
               <p className="mt-0.5 text-[11px] leading-relaxed text-warning-softer/70">
-                Encontrados en el canal y en todo YouTube, también por los
-                alias, el título de la descripción y sus sinónimos. Revisa el
-                número y añade solo los que sean de esta serie.
+                Encontrados en el canal y en todo YouTube, también por los alias, el título de
+                la descripción y sus sinónimos. Revisa el número y añade solo los que sean de
+                esta serie.
               </p>
             </div>
           </div>
@@ -158,14 +152,10 @@ export function SeriesDraftPartsReview({
                 key={candidate.videoId}
                 candidate={candidate}
                 number={candidateNumbers[candidate.videoId] ?? ''}
-                isFinal={Boolean(
-                  candidateFinal[candidate.videoId] ?? candidate.isFinal
-                )}
+                isFinal={Boolean(candidateFinal[candidate.videoId] ?? candidate.isFinal)}
                 adding={false}
                 busy={false}
-                onNumberChange={(value) =>
-                  onCandidateNumberChange(candidate.videoId, value)
-                }
+                onNumberChange={(value) => onCandidateNumberChange(candidate.videoId, value)}
                 onToggleFinal={() => onToggleCandidateFinal(candidate.videoId)}
                 onAdd={() => onAddCandidate(candidate)}
                 onDiscard={() => onDiscardCandidate(candidate.videoId)}

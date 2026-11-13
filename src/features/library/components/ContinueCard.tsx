@@ -46,7 +46,7 @@ export function ContinueCard({ series, onPlay, onOpen }: ContinueCardProps) {
               className="absolute inset-0 size-full object-cover"
             />
           )}
-          <div className="absolute inset-0 bg-gradient-to-t from-overlay/85 via-overlay/20 to-transparent" />
+          <div className="absolute inset-0 bg-linear-to-t from-overlay/85 via-overlay/20 to-transparent" />
 
           <span className="absolute inset-0 grid place-items-center">
             <span className="grid size-12 place-items-center rounded-full bg-brand/90 text-ink-bright shadow-lg shadow-brand/30 backdrop-blur transition active:scale-90">
@@ -81,9 +81,7 @@ export function ContinueCard({ series, onPlay, onOpen }: ContinueCardProps) {
         onClick={() => onPlay(series, nextIndex)}
         className="mt-2 block w-full text-left"
       >
-        <h3 className="line-clamp-1 text-sm font-semibold text-ink">
-          {series.title}
-        </h3>
+        <h3 className="line-clamp-1 text-sm font-semibold text-ink">{series.title}</h3>
         <p className="mt-0.5 text-xs font-medium text-brand-bright">{label}</p>
       </button>
     </article>

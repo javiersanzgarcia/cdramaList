@@ -61,9 +61,7 @@ export function buildPlaylistDraft(playlist: PlaylistData): SeriesDraft {
   if (playlist.parts.length === 0) {
     warnings.push('La lista no contiene vídeos disponibles.')
   } else if (playlist.parts.length > 1) {
-    warnings.push(
-      'Revisa que todas las partes pertenezcan a la misma historia.'
-    )
+    warnings.push('Revisa que todas las partes pertenezcan a la misma historia.')
   }
 
   return {
