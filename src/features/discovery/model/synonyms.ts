@@ -2,15 +2,17 @@ import { normalizeText } from '../../series/model/parts'
 import { isStopword } from '../../series/model/titleMatching'
 import { useAppStore } from '../../../store/appStore'
 import type { SynonymCacheEntry } from '../types'
+import {
+  SYNONYM_SYNONYM_CACHE_TTL,
+  SYNONYM_MAX_PER_SENSE,
+  SYNONYM_MAX_PER_WORD,
+  SYNONYM_SYNONYM_MAX_QUERY_LENGTH,
+  SYNONYM_SYNONYM_MAX_QUERY_VARIANTS,
+  SYNONYM_SYNONYM_MAX_WORDS,
+  SYNONYM_SYNONYM_NOT_FOUND_TTL,
+  SYNONYM_SYNONYM_REQUEST_TIMEOUT_MS_MS
+} from './constants'
 
-const CACHE_TTL = 60 * 24 * 60 * 60 * 1000
-const NOT_FOUND_TTL = 7 * 24 * 60 * 60 * 1000
-const REQUEST_TIMEOUT = 2000
-const MAX_WORDS = 4
-const MAX_SYNONYMS_PER_WORD = 8
-const MAX_SYNONYMS_PER_SENSE = 3
-const MAX_QUERY_VARIANTS = 2
-const MAX_QUERY_LENGTH = 300
 const BLOCKED_LABEL =
   /coloquial|despectiv|regional|poco usado|vulgar|malsonante/i
 
@@ -44,7 +46,7 @@ let blockedUntil = 0
 function pruneCache(cache: SynonymCache) {
   const now = Date.now()
   for (const [key, entry] of Object.entries(cache)) {
-    const ttl = entry.notFound ? NOT_FOUND_TTL : CACHE_TTL
+    const ttl = entry.notFound ? SYNONYM_NOT_FOUND_TTL : SYNONYM_CACHE_TTL
     if (now - entry.at > ttl) delete cache[key]
   }
 }
@@ -71,7 +73,7 @@ export function normalizeWord(value: string): string {
  * palabras vacías ni números. Se priorizan las más largas (suelen ser las más
  * específicas del título).
  */
-export function pickSynonymWords(value: string, limit = MAX_WORDS): string[] {
+export function pickSynonymWords(value: string, limit = SYNONYM_MAX_WORDS): string[] {
   const cleaned = value
     .replace(/https?:\/\/\S+/gi, ' ')
     .replace(/#[\p{L}\p{N}_]+/gu, ' ')
@@ -103,7 +105,7 @@ export function pickSynonymWords(value: string, limit = MAX_WORDS): string[] {
  */
 export function pickSynonymWordsFromTexts(
   texts: Array<string | undefined>,
-  limit = MAX_WORDS
+  limit = SYNONYM_MAX_WORDS
 ): string[] {
   const result: string[] = []
   const seen = new Set<string>()
@@ -184,15 +186,15 @@ function extractSynonyms(data: ApiResponse, sourceWord: string): string[] {
         seen.add(key)
         result.push(word)
         added += 1
-        if (added >= MAX_SYNONYMS_PER_SENSE) break
+        if (added >= SYNONYM_MAX_PER_SENSE) break
       }
-      if (added >= MAX_SYNONYMS_PER_SENSE) break
+      if (added >= SYNONYM_MAX_PER_SENSE) break
     }
 
-    if (result.length >= MAX_SYNONYMS_PER_WORD) break
+    if (result.length >= SYNONYM_MAX_PER_WORD) break
   }
 
-  return result.slice(0, MAX_SYNONYMS_PER_WORD)
+  return result.slice(0, SYNONYM_MAX_PER_WORD)
 }
 
 async function requestSynonyms(
@@ -202,7 +204,7 @@ async function requestSynonyms(
   if (Date.now() < blockedUntil) return null
 
   const controller = new AbortController()
-  const timer = setTimeout(() => controller.abort(), REQUEST_TIMEOUT)
+  const timer = setTimeout(() => controller.abort(), SYNONYM_REQUEST_TIMEOUT_MS)
 
   try {
     const response = await fetch(
@@ -252,7 +254,7 @@ export async function fetchSynonyms(
     if (!key) continue
 
     const entry = cache[key]
-    const ttl = entry?.notFound ? NOT_FOUND_TTL : CACHE_TTL
+    const ttl = entry?.notFound ? SYNONYM_NOT_FOUND_TTL : SYNONYM_CACHE_TTL
     if (entry && Date.now() - entry.at < ttl) {
       result.set(key, entry.synonyms)
       continue
@@ -345,7 +347,7 @@ export function expandQueryWithSynonyms(
   // Solo variantes que cambian una palabra. Añadir demasiados OR hace que
   // YouTube pierda resultados, así que nos quedamos con las dos mejores
   // variantes (la original y una más).
-  for (let round = 0; variants.length < MAX_QUERY_VARIANTS - 1; round += 1) {
+  for (let round = 0; variants.length < SYNONYM_MAX_QUERY_VARIANTS - 1; round += 1) {
     let added = false
 
     for (const index of order) {
@@ -362,7 +364,7 @@ export function expandQueryWithSynonyms(
       variants.push(variant)
       added = true
 
-      if (variants.length >= MAX_QUERY_VARIANTS - 1) break
+      if (variants.length >= SYNONYM_MAX_QUERY_VARIANTS - 1) break
     }
 
     if (!added) break
@@ -371,7 +373,7 @@ export function expandQueryWithSynonyms(
   let expanded = query
   for (const variant of variants) {
     const next = `${expanded} | ${variant}`
-    if (next.length > MAX_QUERY_LENGTH) break
+    if (next.length > SYNONYM_MAX_QUERY_LENGTH) break
     expanded = next
   }
 

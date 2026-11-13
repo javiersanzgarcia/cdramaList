@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import type { FormEvent } from 'react'
-import { MAX_SERIES_ALIASES, normalizeAliases } from '../model/series'
+import { normalizeAliases } from '../model/series'
+import { MAX_SERIES_ALIASES } from '../model/constants'
 import type { Series } from '../types'
 import * as Icon from '../../../shared/components/Icons'
 

@@ -3,6 +3,12 @@ import { normalizeSemanticFingerprint } from '../../discovery/model/semanticAi'
 import { sortParts, stripPartMarkers } from './parts'
 import { extractKeywords, titleSimilarity } from './titleMatching'
 import { statusOrder } from './status'
+import {
+  DELETED_SERIES_TTL,
+  MAX_KEYWORD_CONFIDENCE,
+  MAX_KEYWORD_CONFIDENCE_ENTRIES,
+  MAX_SERIES_ALIASES
+} from './constants'
 
 export function watchedCount(series: Series): number {
   return series.parts.filter((part) => series.watched.includes(part.videoId))
@@ -446,10 +452,6 @@ export function reconcileCompletedStatus(
   return hasUnwatched ? undefined : status
 }
 
-export const MAX_SERIES_ALIASES = 12
-const MAX_KEYWORD_CONFIDENCE_ENTRIES = 100
-const MAX_KEYWORD_CONFIDENCE = 5
-
 export function normalizeKeywordConfidence(
   value: unknown
 ): Record<string, number> {
@@ -862,9 +864,6 @@ function earliest(
   if (incoming == null) return current
   return Math.min(current, incoming)
 }
-
-/** Tiempo que se conserva una serie borrada para propagar el borrado. */
-export const DELETED_SERIES_TTL = 30 * 24 * 60 * 60 * 1000
 
 /**
  * Elimina definitivamente las lápidas con más de `maxAgeMs`. Pasado ese plazo

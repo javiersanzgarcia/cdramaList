@@ -23,6 +23,7 @@ import {
   seriesSignature
 } from '../model/drive'
 import { mergeSeriesCollections } from '../../series/model/series'
+import { AUTO_SYNC_DEBOUNCE_MS } from '../model/constants'
 import type { DrivePersistenceState, GoogleUser, SyncMessage } from '../types'
 import type { Series } from '../../series/types'
 import { useAppStore } from '../../../store/appStore'
@@ -477,7 +478,7 @@ export function useDriveSync({
 
     const timer = window.setTimeout(() => {
       void pullAndPush()
-    }, 2_000)
+    }, AUTO_SYNC_DEBOUNCE_MS)
 
     return () => window.clearTimeout(timer)
   }, [connected, state.auto, busy, lastSyncedSignature, signature, pullAndPush])

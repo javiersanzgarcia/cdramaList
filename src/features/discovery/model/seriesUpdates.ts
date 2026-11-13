@@ -37,18 +37,13 @@ import {
   uniqueTitles
 } from './seriesCandidateRanking'
 import type { RankedCandidate } from './seriesCandidateRanking'
-
-const MAX_CANDIDATES = 12
-const MAX_SEMANTIC_CANDIDATES = 12
-// Ventana de re-subidas recientes del canal que se clasifica semánticamente.
-// Debe cubrir varios días: los canales de resúmenes suben muchos vídeos al día
-// y una re-subida puede quedar decenas de posiciones por debajo de la última.
-const MAX_RECENT_CHANNEL_CANDIDATES = 30
-const MAX_FINGERPRINT_CANDIDATES = 39
-// Consultas globales independientes por actualización: título, alias, título
-// real de la descripción y títulos de las partes. Cada una cuesta 100 unidades
-// de cuota, así que se limita para no agotar la cuota diaria.
-const MAX_GLOBAL_SEARCHES = 4
+import {
+  MAX_CANDIDATES,
+  MAX_FINGERPRINT_CANDIDATES,
+  MAX_GLOBAL_SEARCHES,
+  MAX_RECENT_CHANNEL_CANDIDATES,
+  MAX_SEMANTIC_CANDIDATES
+} from './constants'
 
 export interface SeriesUpdate {
   parts: Part[]

@@ -14,8 +14,8 @@ import {
 import type { SynonymCacheEntry } from '../features/discovery/types'
 import type { Series } from '../features/series/types'
 import type { DrivePersistenceState, GoogleUser } from '../features/sync/types'
+import { STORE_KEY } from '../shared/lib/constants'
 
-const STORE_KEY = 'cdramalist:zustand'
 const STORE_VERSION = 1
 const LEGACY_KEYS = [
   'cdramalist:series',

@@ -1,4 +1,10 @@
 import type { GoogleUser } from '../types'
+import { DRIVE_TOKEN_STORAGE_KEY } from '../../../shared/lib/constants'
+import {
+  GOOGLE_DRIVE_SCOPES,
+  GOOGLE_SCRIPT_SRC,
+  GOOGLE_SCRIPT_TIMEOUT_MS
+} from './constants'
 
 interface GoogleTokenResponse {
   access_token?: string
@@ -36,12 +42,6 @@ declare global {
   }
 }
 
-const SCRIPT_SRC = 'https://accounts.google.com/gsi/client'
-
-// `drive.appdata` da acceso únicamente a la carpeta privada de la app en Drive.
-const DRIVE_SCOPES =
-  'openid email profile https://www.googleapis.com/auth/drive.appdata'
-
 let scriptPromise: Promise<GoogleNamespace> | null = null
 
 export function loadGoogleIdentity(): Promise<GoogleNamespace> {
@@ -51,7 +51,7 @@ export function loadGoogleIdentity(): Promise<GoogleNamespace> {
   scriptPromise = new Promise<GoogleNamespace>((resolve, reject) => {
     const timeout = window.setTimeout(() => {
       reject(new Error('Google no ha respondido a tiempo. Revisa tu conexión.'))
-    }, 12_000)
+    }, GOOGLE_SCRIPT_TIMEOUT_MS)
 
     const existing = document.querySelector<HTMLScriptElement>(
       'script[data-google-identity]'
@@ -77,7 +77,7 @@ export function loadGoogleIdentity(): Promise<GoogleNamespace> {
     }
 
     const script = document.createElement('script')
-    script.src = SCRIPT_SRC
+    script.src = GOOGLE_SCRIPT_SRC
     script.async = true
     script.defer = true
     script.dataset.googleIdentity = 'true'
@@ -104,8 +104,6 @@ export interface AccessToken {
   expiresAt: number
 }
 
-const TOKEN_STORAGE_KEY = 'cdramalist:driveToken'
-
 /**
  * Guarda el token de Drive solo durante la sesión del navegador. Así una
  * recarga conserva la sincronización sin dejar el token en disco de forma
@@ -113,7 +111,7 @@ const TOKEN_STORAGE_KEY = 'cdramalist:driveToken'
  */
 export function loadStoredDriveToken(): AccessToken | null {
   try {
-    const raw = window.sessionStorage.getItem(TOKEN_STORAGE_KEY)
+    const raw = window.sessionStorage.getItem(DRIVE_TOKEN_STORAGE_KEY)
     if (!raw) return null
 
     const parsed = JSON.parse(raw) as { token?: unknown; expiresAt?: unknown }
@@ -122,12 +120,12 @@ export function loadStoredDriveToken(): AccessToken | null {
       typeof parsed.token !== 'string' ||
       typeof parsed.expiresAt !== 'number'
     ) {
-      window.sessionStorage.removeItem(TOKEN_STORAGE_KEY)
+      window.sessionStorage.removeItem(DRIVE_TOKEN_STORAGE_KEY)
       return null
     }
 
     if (Date.now() >= parsed.expiresAt) {
-      window.sessionStorage.removeItem(TOKEN_STORAGE_KEY)
+      window.sessionStorage.removeItem(DRIVE_TOKEN_STORAGE_KEY)
       return null
     }
 
@@ -139,7 +137,7 @@ export function loadStoredDriveToken(): AccessToken | null {
 
 export function storeDriveToken(token: AccessToken) {
   try {
-    window.sessionStorage.setItem(TOKEN_STORAGE_KEY, JSON.stringify(token))
+    window.sessionStorage.setItem(DRIVE_TOKEN_STORAGE_KEY, JSON.stringify(token))
   } catch {
     // Sin acceso a sessionStorage: el token queda solo en memoria.
   }
@@ -147,7 +145,7 @@ export function storeDriveToken(token: AccessToken) {
 
 export function clearStoredDriveToken() {
   try {
-    window.sessionStorage.removeItem(TOKEN_STORAGE_KEY)
+    window.sessionStorage.removeItem(DRIVE_TOKEN_STORAGE_KEY)
   } catch {
     // Sin acceso a sessionStorage: no hay nada que borrar.
   }

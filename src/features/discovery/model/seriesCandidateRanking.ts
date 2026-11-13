@@ -7,9 +7,7 @@ import {
 } from '../../series/model/titleMatching'
 import { channelUrlFor, youtubeThumbnail } from './youtubeApi'
 import type { VideoMeta } from './youtubeApi'
-
-export const MAX_SEARCH_TERMS = 14
-export const MAX_SEARCH_QUERY_LENGTH = 500
+import { MAX_SEARCH_QUERY_LENGTH, MAX_SEARCH_TERMS } from './constants'
 
 export interface RankedCandidate {
   video: VideoMeta

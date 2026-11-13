@@ -1,4 +1,9 @@
 import type { SemanticFingerprint } from '../../series/types'
+import {
+  SEMANTIC_MAX_ENTRIES_PER_REQUEST,
+  SEMANTIC_MAX_TEXT_LENGTH,
+  SEMANTIC_REQUEST_TIMEOUT_MS
+} from './constants'
 
 export interface FingerprintInput {
   id: string
@@ -9,13 +14,6 @@ interface SemanticResponse {
   items?: unknown
   error?: unknown
 }
-
-const REQUEST_TIMEOUT_MS = 60_000
-const MAX_TEXT_LENGTH = 1200
-// El Worker acepta como máximo 25 entradas por petición, pero con lotes
-// pequeños responde mucho antes. Se envían varios lotes en paralelo para
-// cubrir una ventana amplia de re-subidas sin alargar la actualización.
-const MAX_ENTRIES_PER_REQUEST = 10
 
 const FINGERPRINT_CATEGORIES: Array<keyof SemanticFingerprint> = [
   'genres',
@@ -99,7 +97,7 @@ async function requestFingerprints(
       body: JSON.stringify({
         entries: entries.map((entry) => ({
           id: entry.id,
-          text: entry.text.slice(0, MAX_TEXT_LENGTH)
+          text: entry.text.slice(0, SEMANTIC_MAX_TEXT_LENGTH)
         }))
       }),
       signal: controller.signal
@@ -134,14 +132,14 @@ export async function generateSemanticFingerprints(
   const url = endpoint.trim()
   if (!url || entries.length === 0) return new Map()
 
-  const deadline = Date.now() + REQUEST_TIMEOUT_MS
+  const deadline = Date.now() + SEMANTIC_REQUEST_TIMEOUT_MS
   const chunks: FingerprintInput[][] = []
   for (
     let index = 0;
     index < entries.length;
-    index += MAX_ENTRIES_PER_REQUEST
+    index += SEMANTIC_MAX_ENTRIES_PER_REQUEST
   ) {
-    chunks.push(entries.slice(index, index + MAX_ENTRIES_PER_REQUEST))
+    chunks.push(entries.slice(index, index + SEMANTIC_MAX_ENTRIES_PER_REQUEST))
   }
 
   const settled = await Promise.allSettled(

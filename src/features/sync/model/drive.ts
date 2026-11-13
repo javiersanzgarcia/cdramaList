@@ -1,9 +1,7 @@
 import type { Series } from '../../series/types'
 import { isSeries, normalizeSeries } from '../../series/model/series'
-
-const DRIVE_API = 'https://www.googleapis.com/drive/v3'
-const UPLOAD_API = 'https://www.googleapis.com/upload/drive/v3'
-const FILE_NAME = 'cdramalist.json'
+import { APP_NAME, DRIVE_SNAPSHOT_FILE } from '../../../shared/lib/constants'
+import { DRIVE_API_BASE, DRIVE_UPLOAD_API_BASE } from './constants'
 
 export type DriveErrorCode =
   'auth' | 'permission' | 'network' | 'format' | 'notfound'
@@ -98,17 +96,19 @@ async function findDriveFile(token: string): Promise<DriveFile | null> {
     spaces: 'appDataFolder',
     fields: 'files(id,name,modifiedTime)',
     pageSize: '100',
-    q: `name = '${FILE_NAME}' and trashed = false`
+    q: `name = '${DRIVE_SNAPSHOT_FILE}' and trashed = false`
   })
 
   const response = await driveFetch(
-    `${DRIVE_API}/files?${params.toString()}`,
+    `${DRIVE_API_BASE}/files?${params.toString()}`,
     token
   )
   const data = (await response.json()) as { files?: DriveFile[] }
 
   // Si quedan archivos duplicados, se usa el más reciente por `modifiedTime`.
-  const files = (data.files ?? []).filter((file) => file.name === FILE_NAME)
+  const files = (data.files ?? []).filter(
+    (file) => file.name === DRIVE_SNAPSHOT_FILE
+  )
   files.sort((left, right) =>
     (right.modifiedTime ?? '').localeCompare(left.modifiedTime ?? '')
   )
@@ -125,8 +125,6 @@ export function buildSnapshot(series: Series[]) {
   }
 }
 
-const SNAPSHOT_APP = 'cdramalist'
-
 export function parseSnapshot(
   value: unknown
 ): { series: Series[]; exportedAt?: string } | null {
@@ -135,7 +133,7 @@ export function parseSnapshot(
   if (!value || typeof value !== 'object' || Array.isArray(value)) return null
 
   const record = value as Record<string, unknown>
-  if (record.app !== SNAPSHOT_APP || !Array.isArray(record.series)) return null
+  if (record.app !== APP_NAME || !Array.isArray(record.series)) return null
 
   return {
     series: record.series.filter(isSeries).map(normalizeSeries),
@@ -154,7 +152,7 @@ export async function pullFromDrive(
 
   try {
     response = await driveFetch(
-      `${DRIVE_API}/files/${file.id}?alt=media`,
+      `${DRIVE_API_BASE}/files/${file.id}?alt=media`,
       token
     )
   } catch (error) {
@@ -204,12 +202,15 @@ export async function pushToDrive(
 
   if (!id) {
     const createResponse = await driveFetch(
-      `${DRIVE_API}/files?fields=id`,
+      `${DRIVE_API_BASE}/files?fields=id`,
       token,
       {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name: FILE_NAME, parents: ['appDataFolder'] })
+        body: JSON.stringify({
+          name: DRIVE_SNAPSHOT_FILE,
+          parents: ['appDataFolder']
+        })
       }
     )
 
@@ -226,11 +227,15 @@ export async function pushToDrive(
   }
 
   try {
-    await driveFetch(`${UPLOAD_API}/files/${id}?uploadType=media`, token, {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(buildSnapshot(series))
-    })
+    await driveFetch(
+      `${DRIVE_UPLOAD_API_BASE}/files/${id}?uploadType=media`,
+      token,
+      {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(buildSnapshot(series))
+      }
+    )
   } catch (error) {
     // El archivo pudo borrarse entre la lectura y la escritura: lo recreamos.
     if (error instanceof DriveError && error.code === 'notfound' && !retried) {
