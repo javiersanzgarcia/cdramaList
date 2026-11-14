@@ -1,26 +1,54 @@
 import type { ReactNode } from 'react'
-import { statusMeta, statusOrder } from '../../series/model/status'
-import type { Series, SeriesStatus } from '../../series/types'
+import { filterSeries, sortSeriesByRecent } from '../../series/model/series'
+import type { Filter, Series } from '../../series/types'
+import type { Tag } from '../../tags/types'
 import { EmptyState } from './EmptyState'
+import { FilterChips } from './FilterChips'
+import { TagFilterBar } from '../../tags/components/TagFilterBar'
 import * as Icon from '../../../shared/components/Icons'
 import { SeriesCard } from './SeriesCard'
 
 interface ListViewProps {
   header: ReactNode
-  groups: Record<SeriesStatus, Series[]>
+  series: Series[]
+  tags: Tag[]
+  /** Id de la etiqueta activa, o `'all'`. */
+  tagFilter: string
+  /** Filtro extra por estado o favoritas. */
+  listFilter: Filter
+  onTagFilterChange: (value: string) => void
+  onListFilterChange: (filter: Filter) => void
+  onManageTags: () => void
   onOpen: (series: Series) => void
   onToggleFavorite: (id: string) => void
   onAdd: () => void
 }
 
-export function ListView({ header, groups, onOpen, onToggleFavorite, onAdd }: ListViewProps) {
-  const savedCount = statusOrder.reduce((total, status) => total + groups[status].length, 0)
+export function ListView({
+  header,
+  series,
+  tags,
+  tagFilter,
+  listFilter,
+  onTagFilterChange,
+  onListFilterChange,
+  onManageTags,
+  onOpen,
+  onToggleFavorite,
+  onAdd
+}: ListViewProps) {
+  const tagged =
+    tagFilter === 'all'
+      ? series
+      : series.filter((item) => (item.tagIds ?? []).includes(tagFilter))
+  const visible = sortSeriesByRecent(filterSeries(tagged, '', listFilter))
+  const activeTag = tags.find((tag) => tag.id === tagFilter && !tag.deletedAt)
 
   return (
     <>
       {header}
 
-      {savedCount === 0 ? (
+      {series.length === 0 ? (
         <div className="px-4 pt-5">
           <EmptyState
             icon={<Icon.Bookmark className="size-6" />}
@@ -31,33 +59,44 @@ export function ListView({ header, groups, onOpen, onToggleFavorite, onAdd }: Li
           />
         </div>
       ) : (
-        <div className="space-y-6 px-4 pt-5">
-          {statusOrder.map((status) => {
-            const list = groups[status]
-            if (list.length === 0) return null
-            const meta = statusMeta[status]
+        <div className="px-4 pt-5">
+          <TagFilterBar
+            tags={tags}
+            value={tagFilter}
+            onChange={onTagFilterChange}
+            onManage={onManageTags}
+          />
 
-            return (
-              <section key={status} className="animate-rise">
-                <div className="mb-2.5 flex items-center gap-2 px-0.5">
-                  <span className={`size-2 rounded-full ${meta.dot}`} />
-                  <h2 className="text-sm font-semibold text-ink-strong">{meta.label}</h2>
-                  <span className="text-xs text-ink-subtle">{list.length}</span>
-                </div>
+          <FilterChips value={listFilter} onChange={onListFilterChange} />
 
-                <div className="grid grid-cols-2 gap-3">
-                  {list.map((item) => (
-                    <SeriesCard
-                      key={item.id}
-                      series={item}
-                      onOpen={onOpen}
-                      onToggleFavorite={onToggleFavorite}
-                    />
-                  ))}
-                </div>
-              </section>
-            )
-          })}
+          {visible.length === 0 ? (
+            <EmptyState
+              icon={<Icon.Tag className="size-6" />}
+              title="Ninguna serie coincide"
+              description={
+                activeTag
+                  ? `No hay series con la etiqueta «${activeTag.name}» que cumplan el filtro seleccionado.`
+                  : 'No hay series que cumplan el filtro seleccionado.'
+              }
+              actionLabel="Ver todas"
+              onAction={() => {
+                onTagFilterChange('all')
+                onListFilterChange('all')
+              }}
+            />
+          ) : (
+            <div className="mt-4 grid grid-cols-2 gap-3">
+              {visible.map((item) => (
+                <SeriesCard
+                  key={item.id}
+                  series={item}
+                  tags={tags}
+                  onOpen={onOpen}
+                  onToggleFavorite={onToggleFavorite}
+                />
+              ))}
+            </div>
+          )}
         </div>
       )}
     </>

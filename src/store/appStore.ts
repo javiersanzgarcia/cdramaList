@@ -2,8 +2,10 @@ import { create } from 'zustand'
 import { createJSONStorage, persist, type StateStorage } from 'zustand/middleware'
 import { sanitizeGoogleUser } from '../features/sync/model/google'
 import { isSeries, normalizeSeries, pruneDeletedSeries } from '../features/series/model/series'
+import { normalizeTags, pruneDeletedTags } from '../features/tags/model/tags'
 import type { SynonymCacheEntry } from '../features/discovery/types'
 import type { Series } from '../features/series/types'
+import type { Tag } from '../features/tags/types'
 import type { DrivePersistenceState } from '../features/sync/types'
 import { STORE_KEY } from '../shared/lib/constants'
 import { LEGACY_STORAGE, LEGACY_STORAGE_KEYS, STORE_VERSION } from './constants'
@@ -18,6 +20,10 @@ function sanitizeSeries(value: unknown): Series[] {
   return Array.isArray(value)
     ? pruneDeletedSeries(value.filter(isSeries).map(normalizeSeries))
     : []
+}
+
+function sanitizeTags(value: unknown): Tag[] {
+  return pruneDeletedTags(normalizeTags(value))
 }
 
 function sanitizeDriveState(value: unknown): DrivePersistenceState {
@@ -85,6 +91,7 @@ function migrateLegacyStorage(): PersistedAppState | undefined {
   const apiKey = readLegacyValue(LEGACY_STORAGE.apiKey)
   return {
     series: sanitizeSeries(readLegacyValue(LEGACY_STORAGE.series)),
+    tags: [],
     apiKeyOverride: typeof apiKey === 'string' ? apiKey : '',
     googleUser: sanitizeGoogleUser(readLegacyValue(LEGACY_STORAGE.googleUser)),
     drive: sanitizeDriveState(readLegacyValue(LEGACY_STORAGE.drive)),
@@ -132,6 +139,7 @@ export const useAppStore = create<AppStore>()(
   persist<AppStore, [], [], PersistedAppState>(
     (set) => ({
       series: [],
+      tags: [],
       apiKeyOverride: '',
       googleUser: null,
       drive: DEFAULT_DRIVE_STATE,
@@ -142,6 +150,11 @@ export const useAppStore = create<AppStore>()(
             typeof next === 'function'
               ? (next as (current: Series[]) => Series[])(state.series)
               : next
+        })),
+      setTags: (next) =>
+        set((state) => ({
+          tags:
+            typeof next === 'function' ? (next as (current: Tag[]) => Tag[])(state.tags) : next
         })),
       setApiKeyOverride: (apiKeyOverride) => set({ apiKeyOverride }),
       setGoogleUser: (googleUser) => set({ googleUser }),
@@ -160,8 +173,9 @@ export const useAppStore = create<AppStore>()(
       name: STORE_KEY,
       version: STORE_VERSION,
       storage: createJSONStorage<PersistedAppState>(() => storage),
-      partialize: ({ series, apiKeyOverride, googleUser, drive, synonymCache }) => ({
+      partialize: ({ series, tags, apiKeyOverride, googleUser, drive, synonymCache }) => ({
         series,
+        tags,
         apiKeyOverride,
         googleUser,
         drive,
@@ -172,6 +186,7 @@ export const useAppStore = create<AppStore>()(
         return {
           ...current,
           series: sanitizeSeries(saved.series ?? current.series),
+          tags: sanitizeTags(saved.tags ?? current.tags),
           apiKeyOverride:
             typeof saved.apiKeyOverride === 'string'
               ? saved.apiKeyOverride

@@ -12,6 +12,8 @@ import { statusMeta, statusOrder } from '../model/status'
 import { channelUrlFor, youtubeThumbnail } from '../../discovery/model/youtube'
 import type { ChapterCandidate, SeriesRefreshResult } from '../../discovery/types'
 import type { Series, SeriesStatus } from '../types'
+import type { Tag } from '../../tags/types'
+import { TagPicker } from '../../tags/components/TagPicker'
 import { useSheet } from '../../../shared/hooks/useSheet'
 import { SeriesAliasesEditor } from './SeriesAliasesEditor'
 import { SeriesPartsList } from './SeriesPartsList'
@@ -42,6 +44,9 @@ interface SeriesSheetProps {
   onDiscardCandidate: (series: Series, videoId: string) => void
   onUpdateAliases: (seriesId: string, aliases: string[]) => void
   onUpdateTitle: (seriesId: string, title: string) => void
+  tags: Tag[]
+  onToggleTag: (seriesId: string, tagId: string) => void
+  onCreateTag: (name: string) => string | null
   onFillDurations: (series: Series) => Promise<void>
   onDelete: (id: string) => void
   /** Series con novedades que quedan por revisar después de esta. */
@@ -72,6 +77,9 @@ export function SeriesSheet({
   onDiscardCandidate,
   onUpdateAliases,
   onUpdateTitle,
+  tags,
+  onToggleTag,
+  onCreateTag,
   onFillDurations,
   onDelete,
   reviewRemaining,
@@ -387,6 +395,13 @@ export function SeriesSheet({
               </p>
             )}
           </div>
+
+          <TagPicker
+            series={series}
+            tags={tags}
+            onToggle={onToggleTag}
+            onCreate={onCreateTag}
+          />
 
           <div className="mt-3 grid grid-cols-3 gap-2">
             <div className="rounded-2xl bg-canvas/60 p-3 ring-1 ring-line">

@@ -57,6 +57,8 @@ export interface Series {
   parts: Part[]
   watched: string[]
   favorite: boolean
+  /** Etiquetas globales asignadas a la serie (referencias por id). */
+  tagIds?: string[]
   /**
    * Estado elegido manualmente. Manda sobre el automático mientras no
    * contradiga al progreso: una serie con todas las partes vistas se muestra

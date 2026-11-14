@@ -1,5 +1,8 @@
 import { isSeriesComplete, progressPercent, progressLabel } from '../../series/model/series'
+import { resolveSeriesTags } from '../../tags/model/tags'
 import type { Series } from '../../series/types'
+import type { Tag } from '../../tags/types'
+import { TagChips } from '../../tags/components/TagChips'
 import * as Icon from '../../../shared/components/Icons'
 
 const gradients = [
@@ -21,14 +24,16 @@ function gradientFor(id: string) {
 
 interface SeriesCardProps {
   series: Series
+  tags?: Tag[]
   onOpen: (series: Series) => void
   onToggleFavorite: (id: string) => void
 }
 
-export function SeriesCard({ series, onOpen, onToggleFavorite }: SeriesCardProps) {
+export function SeriesCard({ series, tags = [], onOpen, onToggleFavorite }: SeriesCardProps) {
   const complete = isSeriesComplete(series)
   const progress = progressPercent(series)
   const total = series.parts.length
+  const seriesTags = resolveSeriesTags(series, tags)
 
   return (
     <article className="relative">
@@ -81,6 +86,8 @@ export function SeriesCard({ series, onOpen, onToggleFavorite }: SeriesCardProps
           <p className="mt-0.5 line-clamp-1 text-xs text-ink-subtle">{series.channelTitle}</p>
         </div>
       </button>
+
+      <TagChips tags={seriesTags} max={2} className="mt-1.5 px-0.5" />
 
       <button
         type="button"

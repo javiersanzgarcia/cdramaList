@@ -4,6 +4,14 @@ PWA para reunir las partes de una historia de YouTube, guardar el progreso y ver
 
 **Demo:** <https://javiersanzgarcia.github.io/cdramaList/>
 
+## Novedades de la 1.3
+
+- **Etiquetas en «Mi lista».** Sustituyen al agrupado por estado: crea etiquetas como «Transmigrar» o «Venganza» y asígnalas a varias series. Al elegir una etiqueta se filtran esas series con independencia de su estado.
+- **El estado pasa a ser un filtro extra.** En «Mi lista» puedes combinar la etiqueta activa con **Pendientes**, **En curso**, **Completadas** o **Favoritas**. La lista se muestra como una cuadrícula plana ordenada por actividad reciente.
+- **Gestión completa de etiquetas.** Desde **Gestionar** puedes crear, renombrar y borrar etiquetas. Renombrar una etiqueta actualiza al instante todas las series que la usan, porque las series guardan su id y no el texto. Borrar una etiqueta la quita de todas las series y deja una lápida para propagar el borrado al sincronizar.
+- **Visibles en las fichas y tarjetas.** Cada ficha permite marcar o desmarcar etiquetas y crear una nueva sin salir de ella; las tarjetas muestran hasta dos etiquetas.
+- **Sincronizadas con Drive y en el JSON.** Las etiquetas viajan en el archivo `cdramalist.json` y en las copias exportadas, con mezcla a tres bandas para no perder asignaciones entre dispositivos.
+
 ## Novedades de la 1.2
 
 - **Crear una serie ya no se confunde con añadir partes.** Desde la portada, la app ya no adjunta en silencio una serie nueva a otra parecida: si detecta una coincidencia, muestra una tarjeta para elegir entre **Añadir a la existente** o **Crear serie nueva**, sin adjuntar nada por defecto.
@@ -33,6 +41,7 @@ Primera versión estable. Lo más destacado:
 - **Importa listas de reproducción completas.** Si el canal agrupa las partes en una playlist, se importan todas en orden.
 - **Guarda tu progreso.** Marca partes como vistas, continúa donde lo dejaste y consulta el porcentaje de cada serie.
 - **Estados claros por serie.** Cada serie es **Pendiente**, está **En curso** o **Completada**, según su progreso o tu elección manual en la ficha. Puedes filtrar por estado; marcar una serie como completada da por vistas todas sus partes.
+- **Etiquetas para organizar.** Crea etiquetas propias y asígnalas a las series desde su ficha. En **Mi lista** eliges una etiqueta y ves todas sus series sin importar el estado; el estado y las favoritas quedan como filtros adicionales. Las etiquetas se pueden renombrar y borrar, se sincronizan con Drive y aparecen en las tarjetas.
 - **Favoritas.** Marca series como favoritas para tenerlas a mano y actualízalas todas de una vez buscando capítulos nuevos.
 - **Duración por parte y total.** La ficha muestra la duración de cada parte y la suma de la serie; si falta el metadato de algún vídeo, el total se marca como parcial.
 - **Reorganiza los capítulos.** Usa las flechas de la ficha para cambiar el orden de reproducción; el orden manual se conserva al recargar y sincronizar. También puedes quitar una parte concreta de la serie con la papelera de su fila.
@@ -50,6 +59,16 @@ Desde la ficha de una serie puedes fijar su estado a mano: **Pendientes**, **En 
 - **Dejar de estar completada borra el progreso.** Si marcas como «En curso» o «Pendiente» una serie que estaba al 100 %, se reinicia su progreso para que pueda volver a verse desde el principio. La app pide confirmación antes de borrarlo.
 - **Reproducir no cambia lo que hayas elegido.** Ver una parte no pisa un estado manual: una serie marcada como «Pendiente» sigue en «Pendientes» hasta que la completes o cambies el estado tú.
 - **«Continuar viendo»** muestra las series en curso con alguna parte pendiente, y el filtro de cada lista se basa tanto en el estado elegido como en el progreso.
+- **El estado es un filtro, no una agrupación.** En «Mi lista» las series se ordenan por actividad reciente y el estado se combina con la etiqueta activa y con **Favoritas**.
+
+## Etiquetas
+
+Las etiquetas son globales: cada serie guarda solo el id de las que tiene asignadas, así que renombrar una etiqueta actualiza todas sus series sin reescribirlas.
+
+- **Crear y asignar.** Desde **Mi lista → Gestionar** o desde la propia ficha de una serie. En la ficha, los chips de etiqueta se marcan y desmarcan con un toque.
+- **Filtrar.** La barra de etiquetas de «Mi lista» muestra **Todas** y cada etiqueta. El filtro de estado (**Pendientes**, **En curso**, **Completadas**, **Favoritas**) se aplica encima.
+- **Renombrar y borrar.** Renombrar cambia el nombre en todas las series al instante. Borrar pide confirmación, quita la etiqueta de las series y deja una lápida que se propaga al sincronizar; las lápidas se purgan a los 30 días.
+- **Sincronización.** Las etiquetas viajan en `cdramalist.json` y en la exportación. La primera mezcla entre dispositivos une las asignaciones para no perder ninguna.
 
 ## Favoritas y novedades
 
@@ -157,13 +176,13 @@ El Client ID se lee solo de `VITE_GOOGLE_CLIENT_ID` (en local desde `.env`, en P
 
 ### Cómo funciona la sincronización
 
-| Acción                        | Qué hace                                                                                            |
-| ----------------------------- | --------------------------------------------------------------------------------------------------- |
-| **Conectar con Google Drive** | Pide permiso `drive.appdata` y crea o lee `cdramalist.json` en la carpeta privada de la app.        |
-| **Sincronizar y combinar**    | Lee el archivo de Drive, une las series y el progreso de ambos lados y vuelve a subir el resultado. |
-| **Subir**                     | Reemplaza el archivo de Drive con las series de este dispositivo.                                   |
-| **Bajar**                     | Reemplaza las series de este dispositivo con las de Drive.                                          |
-| **Sincronización automática** | Sube los cambios unos 2 segundos después de cada edición.                                           |
+| Acción                        | Qué hace                                                                                                           |
+| ----------------------------- | ------------------------------------------------------------------------------------------------------------------ |
+| **Conectar con Google Drive** | Pide permiso `drive.appdata` y crea o lee `cdramalist.json` en la carpeta privada de la app.                       |
+| **Sincronizar y combinar**    | Lee el archivo de Drive, une las series, el progreso y las etiquetas de ambos lados y vuelve a subir el resultado. |
+| **Subir**                     | Reemplaza el archivo de Drive con las series y etiquetas de este dispositivo.                                      |
+| **Bajar**                     | Reemplaza las series y etiquetas de este dispositivo con las de Drive.                                             |
+| **Sincronización automática** | Sube los cambios unos 2 segundos después de cada edición.                                                          |
 
 - Cada cuenta de Google tiene su propio archivo en su propio Drive.
 - El token de acceso se mantiene en memoria y no se guarda en `localStorage`. Al recargar, la app intenta renovarlo sin mostrar ventanas; si Google lo requiere, pulsa **Reconectar**.
@@ -171,6 +190,7 @@ El Client ID se lee solo de `VITE_GOOGLE_CLIENT_ID` (en local desde `.env`, en P
 - Borrar una serie o pulsar **Borrar series y progreso** con la sincronización automática activa también borra esos datos en Drive.
 - **Sincronizar y combinar** usa la unión de series y progreso. No resucita una serie borrada si el borrado ya se ha subido, pero si se combina con una copia antigua de Drive puede reaparecer.
 - Al borrar una serie se guarda una **lápida** para propagar el borrado a los demás dispositivos. Pasados **30 días** esa lápida se purga sola, de modo que la lista y el archivo de Drive no crecen sin control ni acumulan duplicados al volver a añadir la misma serie.
+- Las **etiquetas** se sincronizan en el mismo archivo. Al borrar una etiqueta también se guarda una lápida de 30 días y se quita de todas las series; la primera mezcla entre dispositivos une las asignaciones para no perder ninguna.
 
 > **Privacidad:** el permiso `drive.appdata` solo da acceso a la carpeta privada de CdramaList. La app no puede leer ni modificar el resto de archivos de tu Google Drive. Si quieres revocar el acceso, hazlo desde [la configuración de tu cuenta de Google](https://myaccount.google.com/permissions).
 
@@ -218,13 +238,13 @@ Todos los colores viven en `src/styles/colors.css`, que tiene dos capas: `--pale
 
 ## Datos guardados
 
-| Clave                | Contenido                                                                                        |
-| -------------------- | ------------------------------------------------------------------------------------------------ |
-| `cdramalist:zustand` | Series, partes, progreso, clave de YouTube, usuario de Google, preferencias de Drive y caché RAE |
+| Clave                | Contenido                                                                                                   |
+| -------------------- | ----------------------------------------------------------------------------------------------------------- |
+| `cdramalist:zustand` | Series, etiquetas, partes, progreso, clave de YouTube, usuario de Google, preferencias de Drive y caché RAE |
 
 Las claves anteriores de series, configuración y caché se migran automáticamente a `cdramalist:zustand`. El token de acceso de Drive se guarda temporalmente en `sessionStorage` (`cdramalist:driveToken`) para que la sincronización siga activa al recargar la página. Caduca en aproximadamente una hora; después hay que pulsar **Reconectar Google Drive**. Nunca se guarda de forma permanente.
 
-Puedes exportar una copia en JSON desde **Ajustes → Mis datos** e importarla en otro dispositivo. La clave de YouTube y el token de Drive nunca se incluyen en esa exportación.
+Puedes exportar una copia en JSON desde **Ajustes → Mis datos** e importarla en otro dispositivo. La copia incluye las series, sus etiquetas y las asignaciones entre ambas. La clave de YouTube y el token de Drive nunca se incluyen en esa exportación.
 
 ## Instalar en Android
 

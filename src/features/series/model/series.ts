@@ -7,6 +7,7 @@ import {
 import { sortParts, stripPartMarkers } from './parts'
 import { extractKeywords, titleSimilarity } from './titleMatching'
 import { statusOrder } from './status'
+import { normalizeTagIds } from '../../tags/model/tags'
 import {
   DELETED_SERIES_TTL,
   MAX_ALIAS_LENGTH,
@@ -112,9 +113,14 @@ export function groupSeries(series: Series[]): Record<SeriesStatus, Series[]> {
 }
 
 export function continueWatching(series: Series[]): Series[] {
-  return series
-    .filter((item) => seriesStatus(item) === 'watching')
-    .sort((a, b) => (b.lastOpenedAt ?? b.updatedAt) - (a.lastOpenedAt ?? a.updatedAt))
+  return sortSeriesByRecent(series.filter((item) => seriesStatus(item) === 'watching'))
+}
+
+/** Ordena por la última vez que se abrió o modificó la serie. */
+export function sortSeriesByRecent(series: Series[]): Series[] {
+  return [...series].sort(
+    (a, b) => (b.lastOpenedAt ?? b.updatedAt) - (a.lastOpenedAt ?? a.updatedAt)
+  )
 }
 
 export function findExistingSeries(series: Series[], draft: SeriesDraft): Series | undefined {
@@ -189,6 +195,7 @@ export function createSeries(draft: SeriesDraft, title: string, parts: Part[]): 
     parts: sortParts(parts),
     watched: [],
     favorite: false,
+    tagIds: [],
     createdAt: now,
     updatedAt: now
   }
@@ -602,6 +609,7 @@ export function normalizeSeries(value: Series): Series {
       })),
     watched: value.watched.filter((id) => typeof id === 'string'),
     favorite: Boolean(value.favorite),
+    tagIds: normalizeTagIds(value.tagIds),
     status:
       value.status === 'watching' || value.status === 'planned' || value.status === 'completed'
         ? value.status
@@ -674,6 +682,26 @@ function mergeStatus(
   return newer.status
 }
 
+/**
+ * Combina las etiquetas asignadas a una serie. Sin base se usa la unión: una
+ * primera sincronización no debe perder las etiquetas de ninguno de los dos
+ * dispositivos.
+ */
+function mergeTagIds(
+  base: Series | undefined,
+  current: Series,
+  incoming: Series,
+  newer: Series
+): string[] {
+  if (!base) {
+    return normalizeTagIds([...(current.tagIds ?? []), ...(incoming.tagIds ?? [])])
+  }
+
+  return normalizeTagIds(
+    mergeField(base, current, incoming, newer, (item) => item.tagIds ?? [], sameStringSet)
+  )
+}
+
 export function combineSeries(current: Series, incoming: Series, base?: Series): Series {
   // En caso de empate gana la copia local: así un cambio hecho en este
   // dispositivo (por ejemplo el estado) no lo borra la copia de Drive, que
@@ -701,6 +729,7 @@ export function combineSeries(current: Series, incoming: Series, base?: Series):
   )
   const title = mergeField(base, current, incoming, newer, (item) => item.title)
   const favorite = mergeField(base, current, incoming, newer, (item) => item.favorite)
+  const tagIds = mergeTagIds(base, current, incoming, newer)
   const mergedStatus = mergeStatus(base, current, incoming, newer)
 
   return {
@@ -710,6 +739,7 @@ export function combineSeries(current: Series, incoming: Series, base?: Series):
     title,
     createdAt: Math.min(current.createdAt, incoming.createdAt),
     favorite,
+    tagIds,
     aliases,
     keywordConfidence: combineKeywordConfidence(
       current.keywordConfidence,

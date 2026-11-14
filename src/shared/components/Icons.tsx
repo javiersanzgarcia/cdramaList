@@ -346,3 +346,12 @@ export function Shield(props: IconProps) {
     </Svg>
   )
 }
+
+export function Tag(props: IconProps) {
+  return (
+    <Svg {...props}>
+      <path d="M20.6 13.4 13.4 20.6a2 2 0 0 1-2.8 0l-7.2-7.2a2 2 0 0 1-.6-1.4V5a2 2 0 0 1 2-2h7a2 2 0 0 1 1.4.6l7.2 7.2a2 2 0 0 1 .2 2.6Z" />
+      <circle cx="7.5" cy="7.5" r="1.3" fill="currentColor" stroke="none" />
+    </Svg>
+  )
+}

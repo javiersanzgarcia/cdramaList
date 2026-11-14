@@ -7,8 +7,9 @@ import {
   revokeGoogleToken,
   storeDriveToken
 } from '../model/google'
-import { DriveError, pullFromDrive, pushToDrive, seriesSignature } from '../model/drive'
+import { DriveError, pullFromDrive, pushToDrive, syncSignature } from '../model/drive'
 import { mergeSeriesCollections } from '../../series/model/series'
+import { mergeTagCollections, pruneSeriesTags } from '../../tags/model/tags'
 import { AUTO_SYNC_DEBOUNCE_MS } from '../model/constants'
 import type {
   AccessToken,
@@ -19,6 +20,7 @@ import type {
   UseDriveSyncOptions
 } from '../types'
 import type { Series } from '../../series/types'
+import type { Tag } from '../../tags/types'
 import { useAppStore } from '../../../store/appStore'
 
 type DriveState = DrivePersistenceState
@@ -33,6 +35,8 @@ export function useDriveSync({
   clientId,
   series,
   setSeries,
+  tags,
+  setTags,
   onUser
 }: UseDriveSyncOptions): DriveSync {
   const state = useAppStore((store) => store.drive)
@@ -44,9 +48,11 @@ export function useDriveSync({
   const [lastSyncedSignature, setLastSyncedSignature] = useState<string | null>(null)
 
   const seriesRef = useRef(series)
+  const tagsRef = useRef(tags)
   // Última copia sincronizada: sirve de base para combinar cambios de varios
   // dispositivos sin que un campo pise los cambios del otro.
   const lastSyncedSeriesRef = useRef<Series[] | null>(null)
+  const lastSyncedTagsRef = useRef<Tag[] | null>(null)
   const tokenRef = useRef<AccessToken | null>(null)
   const fileIdRef = useRef<string | null>(state.fileId ?? null)
   const connectedRef = useRef(false)
@@ -60,10 +66,14 @@ export function useDriveSync({
   }, [series])
 
   useEffect(() => {
+    tagsRef.current = tags
+  }, [tags])
+
+  useEffect(() => {
     onUserRef.current = onUser
   }, [onUser])
 
-  const signature = useMemo(() => seriesSignature(series), [series])
+  const signature = useMemo(() => syncSignature(series, tags), [series, tags])
   const dirty = connected && lastSyncedSignature !== null && signature !== lastSyncedSignature
 
   const saveState = useCallback(
@@ -121,7 +131,12 @@ export function useDriveSync({
   }, [])
 
   const syncWithToken = useCallback(
-    async (token: string, silent = false, seriesOverride?: Series[]): Promise<boolean> => {
+    async (
+      token: string,
+      silent = false,
+      seriesOverride?: Series[],
+      tagsOverride?: Tag[]
+    ): Promise<boolean> => {
       if (runningRef.current) return false
 
       runningRef.current = true
@@ -132,26 +147,40 @@ export function useDriveSync({
       try {
         const remote = await pullFromDrive(token)
         const local = seriesOverride ?? seriesRef.current
-        const merged = remote
-          ? mergeSeriesCollections(
-              local,
-              remote.series,
-              lastSyncedSeriesRef.current ?? undefined
-            )
-          : local
+        const localTags = tagsOverride ?? tagsRef.current
+        const mergedTags = remote
+          ? mergeTagCollections(localTags, remote.tags, lastSyncedTagsRef.current ?? undefined)
+          : localTags
+        const merged = pruneSeriesTags(
+          remote
+            ? mergeSeriesCollections(
+                local,
+                remote.series,
+                lastSyncedSeriesRef.current ?? undefined
+              )
+            : local,
+          mergedTags
+        )
 
         let fileId = remote?.fileId ?? null
 
-        if (!remote || seriesSignature(merged) !== seriesSignature(remote.series)) {
-          fileId = await pushToDrive(token, merged, fileId)
+        if (
+          !remote ||
+          syncSignature(merged, mergedTags) !== syncSignature(remote.series, remote.tags)
+        ) {
+          fileId = await pushToDrive(token, merged, mergedTags, fileId)
         }
 
         fileIdRef.current = fileId
         lastSyncedSeriesRef.current = merged
-        setLastSyncedSignature(seriesSignature(merged))
+        lastSyncedTagsRef.current = mergedTags
+        setLastSyncedSignature(syncSignature(merged, mergedTags))
         // Si el usuario ha cambiado algo mientras se descargaba Drive, esos
         // cambios se combinan en lugar de quedar pisados por la copia remota.
-        setSeries((current) => mergeSeriesCollections(current, merged, local))
+        setSeries((current) =>
+          pruneSeriesTags(mergeSeriesCollections(current, merged, local), mergedTags)
+        )
+        setTags((current) => mergeTagCollections(current, mergedTags, localTags))
         saveState({
           fileId: fileId ?? undefined,
           lastSyncedAt: Date.now(),
@@ -179,7 +208,7 @@ export function useDriveSync({
         setBusy(false)
       }
     },
-    [handleDriveError, saveState, setSeries]
+    [handleDriveError, saveState, setSeries, setTags]
   )
 
   const connect = useCallback(async (): Promise<boolean> => {
@@ -225,7 +254,7 @@ export function useDriveSync({
   }, [clientId, getToken, handleDriveError, saveState, syncWithToken])
 
   const syncNow = useCallback(
-    async (seriesOverride?: Series[]) => {
+    async (seriesOverride?: Series[], tagsOverride?: Tag[]) => {
       if (!connectedRef.current) {
         return connect()
       }
@@ -236,7 +265,7 @@ export function useDriveSync({
         // un popup que el navegador puede bloquear, así que solo se usa el
         // token vigente y, si caducó, se pide reconectar.
         const token = await getToken('none')
-        return await syncWithToken(token, false, seriesOverride)
+        return await syncWithToken(token, false, seriesOverride, tagsOverride)
       } catch (cause) {
         handleDriveError(cause)
         return false
@@ -269,11 +298,13 @@ export function useDriveSync({
     try {
       const token = await getToken('')
       const current = seriesRef.current
-      const fileId = await pushToDrive(token, current, fileIdRef.current)
+      const currentTags = tagsRef.current
+      const fileId = await pushToDrive(token, current, currentTags, fileIdRef.current)
 
       fileIdRef.current = fileId
       lastSyncedSeriesRef.current = current
-      setLastSyncedSignature(seriesSignature(current))
+      lastSyncedTagsRef.current = currentTags
+      setLastSyncedSignature(syncSignature(current, currentTags))
       saveState({ fileId, lastSyncedAt: Date.now(), enabled: true })
       setStatus('synced')
       setMessage({
@@ -327,8 +358,10 @@ export function useDriveSync({
 
       fileIdRef.current = remote.fileId
       lastSyncedSeriesRef.current = remote.series
-      setSeries(remote.series)
-      setLastSyncedSignature(seriesSignature(remote.series))
+      lastSyncedTagsRef.current = remote.tags
+      setSeries(pruneSeriesTags(remote.series, remote.tags))
+      setTags(remote.tags)
+      setLastSyncedSignature(syncSignature(remote.series, remote.tags))
       saveState({
         fileId: remote.fileId,
         lastSyncedAt: Date.now(),
@@ -345,7 +378,7 @@ export function useDriveSync({
       runningRef.current = false
       setBusy(false)
     }
-  }, [connect, getToken, handleDriveError, saveState, setSeries])
+  }, [connect, getToken, handleDriveError, saveState, setSeries, setTags])
 
   const pullAndPush = useCallback(async () => {
     if (!connectedRef.current || runningRef.current) return
@@ -374,6 +407,7 @@ export function useDriveSync({
     clearStoredDriveToken()
     fileIdRef.current = null
     lastSyncedSeriesRef.current = null
+    lastSyncedTagsRef.current = null
     connectedRef.current = false
     setConnected(false)
     setLastSyncedSignature(null)

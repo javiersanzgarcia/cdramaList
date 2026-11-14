@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react'
 import { continueWatching } from '../../series/model/series'
 import type { Filter, Series } from '../../series/types'
+import type { Tag } from '../../tags/types'
 import { ContinueCard } from './ContinueCard'
 import { EmptyState } from './EmptyState'
 import { FilterChips } from './FilterChips'
@@ -12,6 +13,7 @@ interface HomeViewProps {
   header: ReactNode
   series: Series[]
   allSeries: Series[]
+  tags: Tag[]
   query: string
   filter: Filter
   apiKeyConfigured: boolean
@@ -34,6 +36,7 @@ export function HomeView({
   header,
   series,
   allSeries,
+  tags,
   query,
   filter,
   apiKeyConfigured,
@@ -242,6 +245,7 @@ export function HomeView({
               <SeriesCard
                 key={item.id}
                 series={item}
+                tags={tags}
                 onOpen={onOpen}
                 onToggleFavorite={onToggleFavorite}
               />

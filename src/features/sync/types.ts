@@ -1,5 +1,6 @@
 import type { Dispatch, SetStateAction } from 'react'
 import type { Series } from '../series/types'
+import type { Tag } from '../tags/types'
 
 export interface GoogleUser {
   sub: string
@@ -33,6 +34,7 @@ export interface AccessToken {
 export interface DriveSnapshot {
   fileId: string
   series: Series[]
+  tags: Tag[]
   exportedAt?: string
 }
 
@@ -42,6 +44,7 @@ export interface SnapshotPayload {
   version: number
   exportedAt: string
   series: Series[]
+  tags: Tag[]
 }
 
 export type DriveSyncStatus = 'disconnected' | 'connecting' | 'syncing' | 'synced' | 'error'
@@ -58,7 +61,7 @@ export interface DriveSync {
   message: SyncMessage | null
   connect: () => Promise<boolean>
   disconnect: () => void
-  syncNow: (seriesOverride?: Series[]) => Promise<boolean>
+  syncNow: (seriesOverride?: Series[], tagsOverride?: Tag[]) => Promise<boolean>
   upload: () => Promise<void>
   download: () => Promise<void>
   setAuto: (auto: boolean) => void
@@ -68,5 +71,7 @@ export interface UseDriveSyncOptions {
   clientId: string
   series: Series[]
   setSeries: Dispatch<SetStateAction<Series[]>>
+  tags: Tag[]
+  setTags: Dispatch<SetStateAction<Tag[]>>
   onUser: (user: GoogleUser | null) => void
 }

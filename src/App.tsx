@@ -15,12 +15,14 @@ import { buildSnapshot } from './features/sync/model/drive'
 import { useInstallPrompt } from './app/hooks/useInstallPrompt'
 import {
   filterSeries,
-  groupSeries,
   isSeries,
   mergeSeriesCollections,
   normalizeSeries,
   watchedCount
 } from './features/series/model/series'
+import { mergeTagCollections, normalizeTags } from './features/tags/model/tags'
+import { useTagActions } from './features/tags/useTagActions'
+import { TagManagerSheet } from './features/tags/components/TagManagerSheet'
 import { useAppStore } from './store/appStore'
 import { LEGACY_CLEANUP_KEYS } from './store/constants'
 import { useSeriesActions } from './features/series/useSeriesActions'
@@ -41,6 +43,9 @@ export default function App() {
   const series = useMemo(() => allSeries.filter((item) => !item.deletedAt), [allSeries])
   const apiKeyOverride = useAppStore((state) => state.apiKeyOverride)
   const setApiKeyOverride = useAppStore((state) => state.setApiKeyOverride)
+  const allTags = useAppStore((state) => state.tags)
+  const setTags = useAppStore((state) => state.setTags)
+  const tags = useMemo(() => allTags.filter((tag) => !tag.deletedAt), [allTags])
   const apiKey = ENV_YOUTUBE_API_KEY || apiKeyOverride
   const googleUser = useAppStore((state) => state.googleUser)
   const setGoogleUser = useAppStore((state) => state.setGoogleUser)
@@ -50,12 +55,17 @@ export default function App() {
     clientId: ENV_CLIENT_ID,
     series: allSeries,
     setSeries,
+    tags: allTags,
+    setTags,
     onUser: setGoogleUser
   })
   const [accountOpen, setAccountOpen] = useState(false)
 
   const [query, setQuery] = useState('')
   const [filter, setFilter] = useState<Filter>('all')
+  const [listFilter, setListFilter] = useState<Filter>('all')
+  const [tagFilter, setTagFilter] = useState<string>('all')
+  const [tagManagerOpen, setTagManagerOpen] = useState(false)
   const [tab, setTab] = useState<Tab>('home')
   const [selectedSeriesId, setSelectedSeriesId] = useState<string | null>(null)
   const [player, setPlayer] = useState<PlayerState | null>(null)
@@ -107,6 +117,12 @@ export default function App() {
     setPlayer,
     setAddTargetId,
     setAddOpen
+  })
+
+  const { createTag, renameTag, deleteTag, toggleSeriesTag } = useTagActions({
+    tags: allTags,
+    setTags,
+    setSeries
   })
 
   useEffect(() => {
@@ -161,7 +177,19 @@ export default function App() {
   }, [])
 
   const filtered = useMemo(() => filterSeries(series, query, filter), [series, query, filter])
-  const groups = useMemo(() => groupSeries(series), [series])
+
+  // Si se borra la etiqueta activa, el filtro vuelve a «Todas» sin guardar un
+  // estado transitorio: se deriva en cada render.
+  const activeTagFilter =
+    tagFilter !== 'all' && tags.some((tag) => tag.id === tagFilter) ? tagFilter : 'all'
+
+  const tagCounts = useMemo(() => {
+    const counts: Record<string, number> = {}
+    for (const item of series) {
+      for (const id of item.tagIds ?? []) counts[id] = (counts[id] ?? 0) + 1
+    }
+    return counts
+  }, [series])
 
   const selectedSeries = selectedSeriesId
     ? (series.find((item) => item.id === selectedSeriesId) ?? null)
@@ -272,6 +300,10 @@ export default function App() {
 
   function handleReset() {
     updateSeries(() => [])
+    setTags([])
+    setTagFilter('all')
+    setListFilter('all')
+    setTagManagerOpen(false)
     setSelectedSeriesId(null)
     setPlayer(null)
     setReviewQueue([])
@@ -282,8 +314,8 @@ export default function App() {
 
   function handleExport() {
     // Se exporta también lo borrado (con lápida) para que al importar en otro
-    // dispositivo no reaparezca.
-    const payload = buildSnapshot(allSeries)
+    // dispositivo no reaparezca. Las etiquetas viajan con las series.
+    const payload = buildSnapshot(allSeries, allTags)
 
     const blob = new Blob([JSON.stringify(payload, null, 2)], {
       type: 'application/json'
@@ -304,6 +336,8 @@ export default function App() {
       const parsed = JSON.parse(text) as unknown
 
       let raw: unknown[] | null = null
+      let rawTags: unknown[] = []
+
       if (Array.isArray(parsed)) {
         raw = parsed
       } else if (
@@ -311,7 +345,9 @@ export default function App() {
         typeof parsed === 'object' &&
         Array.isArray((parsed as { series?: unknown }).series)
       ) {
-        raw = (parsed as { series: unknown[] }).series
+        const record = parsed as { series: unknown[]; tags?: unknown }
+        raw = record.series
+        rawTags = Array.isArray(record.tags) ? record.tags : []
       }
 
       if (!raw) throw new Error('Formato no reconocido')
@@ -319,7 +355,11 @@ export default function App() {
       const imported = raw.filter(isSeries).map(normalizeSeries)
       if (imported.length === 0) throw new Error('Sin series válidas')
 
+      const importedTags = normalizeTags(rawTags)
       updateSeries((current) => mergeSeriesCollections(current, imported))
+      if (importedTags.length > 0) {
+        setTags((current) => mergeTagCollections(current, importedTags))
+      }
 
       const importedCount = imported.filter((item) => !item.deletedAt).length
       window.alert(
@@ -357,6 +397,7 @@ export default function App() {
             }
             series={filtered}
             allSeries={series}
+            tags={tags}
             query={query}
             filter={filter}
             apiKeyConfigured={apiKey.length > 0}
@@ -385,7 +426,13 @@ export default function App() {
                 onOpenAccount={() => setAccountOpen(true)}
               />
             }
-            groups={groups}
+            series={series}
+            tags={tags}
+            tagFilter={activeTagFilter}
+            listFilter={listFilter}
+            onTagFilterChange={setTagFilter}
+            onListFilterChange={setListFilter}
+            onManageTags={() => setTagManagerOpen(true)}
             onOpen={openSeries}
             onToggleFavorite={toggleFavorite}
             onAdd={openAdd}
@@ -469,6 +516,9 @@ export default function App() {
           onDiscardCandidate={discardCandidate}
           onUpdateAliases={updateAliases}
           onUpdateTitle={updateTitle}
+          tags={tags}
+          onToggleTag={toggleSeriesTag}
+          onCreateTag={createTag}
           onFillDurations={fillMissingDurations}
           onDelete={handleDeleteSeries}
           reviewRemaining={reviewHead ? reviewQueue.length - 1 : 0}
@@ -507,6 +557,17 @@ export default function App() {
           clientId={ENV_CLIENT_ID}
           drive={drive}
           onClose={() => setAccountOpen(false)}
+        />
+      )}
+
+      {tagManagerOpen && (
+        <TagManagerSheet
+          tags={allTags}
+          counts={tagCounts}
+          onClose={() => setTagManagerOpen(false)}
+          onCreate={createTag}
+          onRename={renameTag}
+          onDelete={deleteTag}
         />
       )}
 

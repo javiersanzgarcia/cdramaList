@@ -1,6 +1,8 @@
 import type { Series } from '../../series/types'
+import type { Tag } from '../../tags/types'
 import type { DriveErrorCode, DriveSnapshot, SnapshotPayload } from '../types'
 import { isSeries, normalizeSeries } from '../../series/model/series'
+import { normalizeTags, pruneDeletedTags } from '../../tags/model/tags'
 import { APP_NAME, DRIVE_SNAPSHOT_FILE } from '../../../shared/lib/constants'
 import {
   DRIVE_API_BASE,
@@ -104,18 +106,19 @@ async function findDriveFile(token: string): Promise<DriveFile | null> {
   return files[0] ?? null
 }
 
-export function buildSnapshot(series: Series[]): SnapshotPayload {
+export function buildSnapshot(series: Series[], tags: Tag[] = []): SnapshotPayload {
   return {
     app: APP_NAME,
     version: DRIVE_SNAPSHOT_VERSION,
     exportedAt: new Date().toISOString(),
-    series
+    series,
+    tags
   }
 }
 
 export function parseSnapshot(
   value: unknown
-): { series: Series[]; exportedAt?: string } | null {
+): { series: Series[]; tags: Tag[]; exportedAt?: string } | null {
   // Se exige el identificador de la app para no aceptar cualquier JSON que
   // contenga una lista «series» (archivos ajenos o corruptos).
   if (!value || typeof value !== 'object' || Array.isArray(value)) return null
@@ -125,6 +128,8 @@ export function parseSnapshot(
 
   return {
     series: record.series.filter(isSeries).map(normalizeSeries),
+    // Los JSON anteriores a las etiquetas no las incluyen: se leen como vacías.
+    tags: pruneDeletedTags(normalizeTags(record.tags)),
     exportedAt: typeof record.exportedAt === 'string' ? record.exportedAt : undefined
   }
 }
@@ -162,6 +167,7 @@ export async function pullFromDrive(token: string): Promise<DriveSnapshot | null
   return {
     fileId: file.id,
     series: parsed.series,
+    tags: parsed.tags,
     exportedAt: parsed.exportedAt
   }
 }
@@ -169,6 +175,7 @@ export async function pullFromDrive(token: string): Promise<DriveSnapshot | null
 export async function pushToDrive(
   token: string,
   series: Series[],
+  tags: Tag[] = [],
   fileId?: string | null,
   retried = false
 ): Promise<string> {
@@ -202,12 +209,12 @@ export async function pushToDrive(
     await driveFetch(`${DRIVE_UPLOAD_API_BASE}/files/${id}?uploadType=media`, token, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(buildSnapshot(series))
+      body: JSON.stringify(buildSnapshot(series, tags))
     })
   } catch (error) {
-    // El archivo pudo borrarse entre la lectura y la escritura: lo recreamos.
+    // El archivo pudo borrarse entre la lectura y la escritura: se recrea.
     if (error instanceof DriveError && error.code === 'notfound' && !retried) {
-      return pushToDrive(token, series, null, true)
+      return pushToDrive(token, series, tags, null, true)
     }
     throw error
   }
@@ -224,6 +231,7 @@ function canonicalSeries(series: Series) {
     channelUrl: series.channelUrl ?? null,
     thumbnail: series.thumbnail ?? null,
     favorite: series.favorite,
+    tagIds: [...(series.tagIds ?? [])].sort(),
     status: series.status ?? null,
     discardedCandidates: [...(series.discardedCandidates ?? [])].sort(),
     removedParts: Object.fromEntries(
@@ -249,12 +257,24 @@ function canonicalSeries(series: Series) {
   }
 }
 
+function canonicalTag(tag: Tag) {
+  return {
+    id: tag.id,
+    name: tag.name,
+    createdAt: tag.createdAt,
+    updatedAt: tag.updatedAt,
+    deletedAt: tag.deletedAt ?? null
+  }
+}
+
 /**
  * Firma estable del contenido sincronizable. Excluye `lastOpenedAt` para que
- * abrir una serie no dispare una subida automática.
+ * abrir una serie no dispare una subida automática. Incluye las etiquetas para
+ * que crear, renombrar o borrar una etiqueta también sincronice.
  */
-export function seriesSignature(series: Series[]): string {
-  return JSON.stringify(
-    series.map(canonicalSeries).sort((left, right) => left.id.localeCompare(right.id))
-  )
+export function syncSignature(series: Series[], tags: Tag[] = []): string {
+  return JSON.stringify({
+    series: series.map(canonicalSeries).sort((left, right) => left.id.localeCompare(right.id)),
+    tags: tags.map(canonicalTag).sort((left, right) => left.id.localeCompare(right.id))
+  })
 }
