@@ -4,7 +4,7 @@ import {
   YOUTUBE_CHANNEL_FALLBACK,
   YOUTUBE_VIDEO_FALLBACK_TITLE
 } from '../../discovery/model/constants'
-import { sortParts, stripPartMarkers } from './parts'
+import { keepOnlyLastFinal, sortParts, stripPartMarkers } from './parts'
 import { extractKeywords, titleSimilarity } from './titleMatching'
 import { statusOrder } from './status'
 import { normalizeTagIds } from '../../tags/model/tags'
@@ -580,33 +580,35 @@ export function normalizeSeries(value: Series): Series {
     channelTitle: value.channelTitle || YOUTUBE_CHANNEL_FALLBACK,
     channelUrl: value.channelUrl,
     thumbnail: value.thumbnail,
-    parts: value.parts
-      .filter((part) => part && typeof part.videoId === 'string' && part.videoId.length > 0)
-      .map((part) => ({
-        videoId: part.videoId,
-        title:
-          typeof part.title === 'string' && part.title.length > 0
-            ? part.title
-            : YOUTUBE_VIDEO_FALLBACK_TITLE,
-        description:
-          typeof part.description === 'string'
-            ? part.description.slice(0, MAX_PART_DESCRIPTION_LENGTH)
-            : undefined,
-        partNumber: typeof part.partNumber === 'number' ? part.partNumber : undefined,
-        totalParts: typeof part.totalParts === 'number' ? part.totalParts : undefined,
-        sortOrder:
-          typeof part.sortOrder === 'number' &&
-          Number.isFinite(part.sortOrder) &&
-          part.sortOrder >= 0
-            ? part.sortOrder
-            : undefined,
-        isFinal: Boolean(part.isFinal),
-        durationSeconds:
-          typeof part.durationSeconds === 'number' ? part.durationSeconds : undefined,
-        publishedAt: typeof part.publishedAt === 'string' ? part.publishedAt : undefined,
-        thumbnail: typeof part.thumbnail === 'string' ? part.thumbnail : undefined,
-        addedAt: typeof part.addedAt === 'number' ? part.addedAt : now
-      })),
+    parts: keepOnlyLastFinal(
+      value.parts
+        .filter((part) => part && typeof part.videoId === 'string' && part.videoId.length > 0)
+        .map((part) => ({
+          videoId: part.videoId,
+          title:
+            typeof part.title === 'string' && part.title.length > 0
+              ? part.title
+              : YOUTUBE_VIDEO_FALLBACK_TITLE,
+          description:
+            typeof part.description === 'string'
+              ? part.description.slice(0, MAX_PART_DESCRIPTION_LENGTH)
+              : undefined,
+          partNumber: typeof part.partNumber === 'number' ? part.partNumber : undefined,
+          totalParts: typeof part.totalParts === 'number' ? part.totalParts : undefined,
+          sortOrder:
+            typeof part.sortOrder === 'number' &&
+            Number.isFinite(part.sortOrder) &&
+            part.sortOrder >= 0
+              ? part.sortOrder
+              : undefined,
+          isFinal: Boolean(part.isFinal),
+          durationSeconds:
+            typeof part.durationSeconds === 'number' ? part.durationSeconds : undefined,
+          publishedAt: typeof part.publishedAt === 'string' ? part.publishedAt : undefined,
+          thumbnail: typeof part.thumbnail === 'string' ? part.thumbnail : undefined,
+          addedAt: typeof part.addedAt === 'number' ? part.addedAt : now
+        }))
+    ),
     watched: value.watched.filter((id) => typeof id === 'string'),
     favorite: Boolean(value.favorite),
     tagIds: normalizeTagIds(value.tagIds),

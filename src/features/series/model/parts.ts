@@ -300,8 +300,27 @@ export function normalizeText(value: string): string {
     .toLowerCase()
 }
 
+/**
+ * Solo la última parte de la lista puede conservar la marca de final. Los
+ * títulos de algunos canales repiten «Final» en varios capítulos (por ejemplo,
+ * cuando parten el desenlace en dos vídeos) y la marca se detecta por título,
+ * así que se limpia en cualquier parte que no sea la última.
+ */
+export function keepOnlyLastFinal(parts: Part[]): Part[] {
+  const lastIndex = parts.length - 1
+  let changed = false
+
+  const next = parts.map((part, index) => {
+    if (index === lastIndex || !part.isFinal) return part
+    changed = true
+    return { ...part, isFinal: false }
+  })
+
+  return changed ? next : parts
+}
+
 export function sortParts(parts: Part[]): Part[] {
-  return [...parts].sort((a, b) => {
+  const sorted = [...parts].sort((a, b) => {
     if (a.sortOrder != null || b.sortOrder != null) {
       const firstOrder = a.sortOrder ?? Number.MAX_SAFE_INTEGER
       const secondOrder = b.sortOrder ?? Number.MAX_SAFE_INTEGER
@@ -324,6 +343,8 @@ export function sortParts(parts: Part[]): Part[] {
 
     return a.addedAt - b.addedAt
   })
+
+  return keepOnlyLastFinal(sorted)
 }
 
 export function reorderParts(parts: Part[], fromIndex: number, toIndex: number): Part[] {
@@ -341,7 +362,7 @@ export function reorderParts(parts: Part[], fromIndex: number, toIndex: number):
   const [moved] = reordered.splice(fromIndex, 1)
   reordered.splice(toIndex, 0, moved)
 
-  return reordered.map((part, sortOrder) => ({ ...part, sortOrder }))
+  return keepOnlyLastFinal(reordered.map((part, sortOrder) => ({ ...part, sortOrder })))
 }
 
 export function partLabel(part: Part, index: number): string {
