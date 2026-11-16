@@ -4,6 +4,8 @@ PWA para reunir las partes de una historia de YouTube, guardar el progreso y ver
 
 **Demo:** <https://javiersanzgarcia.github.io/cdramaList/>
 
+**Fire TV:** se puede usar con el navegador TV Bro; consulta [Instalar en Fire TV](#instalar-en-fire-tv-tv-bro).
+
 ## Novedades de la 1.3
 
 - **Etiquetas en «Mi lista».** Sustituyen al agrupado por estado: crea etiquetas como «Transmigrar» o «Venganza» y asígnalas a varias series. Al elegir una etiqueta se filtran esas series con independencia de su estado.
@@ -253,6 +255,76 @@ La PWA necesita HTTPS (o `localhost`) para registrarse:
 1. Abre la app en Chrome para Android.
 2. Toca el menú **⋮** y elige **«Añadir a pantalla de inicio»** o **«Instalar aplicación»**.
 3. También puedes usar el botón de descarga que aparece en la cabecera de la app.
+
+## Instalar en Fire TV (TV Bro)
+
+Fire TV usa Fire OS, basado en Android, pero no incluye Chrome ni la tienda de Google. Por eso no aparece el flujo habitual de **Instalar aplicación** de una PWA: la forma práctica de usar CdramaList en el televisor es un navegador para Android TV y un marcador. [TV Bro](https://github.com/truefedex/tv-bro) es un navegador open source pensado para manejarse con el mando, con pestañas, marcadores, historial, descargas, modo escritorio y pantalla completa.
+
+### Instalar TV Bro con Downloader
+
+1. Activa las opciones de desarrollador: **Ajustes → Mi Fire TV → Información** y pulsa 7 veces sobre el nombre del dispositivo.
+2. Entra en **Ajustes → Mi Fire TV → Opciones de desarrollador** y activa **Instalar apps desconocidas** (o **Depuración ADB** si vas a instalar por red).
+3. Instala **Downloader** desde la Appstore de Amazon (busca «Downloader», de AFTVnews).
+4. Abre Downloader, acepta el acceso al almacenamiento y escribe la página de versiones de TV Bro:
+
+   ```text
+   https://github.com/truefedex/tv-bro/releases
+   ```
+
+5. Descarga el APK de la última versión (`tvbro-...apk`) e instálalo. Si Fire OS pregunta, permite instalar desde Downloader.
+6. Abre TV Bro.
+
+> Descarga el APK solo desde el repositorio oficial de TV Bro. No uses webs de APK alternativas.
+
+### Instalar TV Bro por ADB (alternativa)
+
+Si prefieres instalar desde el ordenador:
+
+1. Activa **Depuración ADB** en **Opciones de desarrollador**.
+2. Conecta al Fire TV por la red local e instala el APK:
+
+   ```bash
+   adb connect 192.168.1.XX:5555
+   adb install -r tvbro.apk
+   ```
+
+3. Cuando termines, desactiva **Depuración ADB**.
+
+### Abrir CdramaList en el televisor
+
+1. En TV Bro, escribe la dirección de la app en la barra de direcciones:
+
+   ```text
+   https://javiersanzgarcia.github.io/cdramaList/
+   ```
+
+2. Abre el menú de TV Bro y guarda la página en **Marcadores**; si quieres, fija esa dirección como página de inicio.
+3. Si la app o el reproductor se comportan de forma extraña, prueba a activar el **modo escritorio** en el menú del navegador.
+
+TV Bro no instala PWA: el equivalente es el marcador. Los datos se guardan en el almacenamiento del propio navegador, separados del móvil. Para compartir la lista entre el televisor y el teléfono, activa la **sincronización con Google Drive** en ambos. Si el navegador del televisor no permite completar el login de Google, puedes gestionar la lista desde el móvil y usar el televisor solo para reproducir, o exportar/importar el JSON desde **Ajustes → Mis datos**.
+
+### Cómo funciona TV Bro con el mando
+
+- **Flechas del mando:** mueven el foco entre enlaces, botones y campos.
+- **OK:** activa el elemento enfocado.
+- **Atrás:** vuelve atrás, cierra una hoja o sale de pantalla completa.
+- **Menú de TV Bro:** pestañas, marcadores, historial, descargas, modo escritorio y pantalla completa.
+- **Barra de direcciones:** al seleccionarla aparece el teclado en pantalla del Fire TV.
+
+Para tareas de gestión (ordenar capítulos, escribir etiquetas, usar las hojas de la ficha) un **ratón Bluetooth/USB** o un mando **air-mouse** resulta mucho más cómodo que el D-pad. Para ver capítulos, el mando normal basta.
+
+### La limitación de 1080p
+
+El reproductor de la app usa el iframe de YouTube dentro del WebView de TV Bro. En ese contexto, YouTube puede limitar la calidad a 720p o no usar la decodificación por hardware del Fire TV con la misma eficiencia que su app nativa; el síntoma típico es que la opción 1080p no aparece, se queda en «Automática» o el vídeo da tirones. No es un fallo de la app: es una limitación del reproductor embebido en el navegador del televisor.
+
+Para ver en 1080p:
+
+1. **Abre el capítulo en la app de YouTube.** En el reproductor de CdramaList, pulsa **Abrir en YouTube** (el icono de enlace de la cabecera o el enlace del aviso de error). En Fire TV ese enlace suele abrir la app nativa de YouTube, que reproduce 1080p y 4K con decodificación por hardware y se controla con el mando. Si se abre en una pestaña de TV Bro, abre la app de YouTube y busca el título.
+2. Si quieres intentarlo dentro de TV Bro, activa el **modo escritorio** y elige **1080p** a mano en los ajustes del reproductor. Si sigue dando tirones, baja a 720p.
+3. Los modelos más recientes (Fire TV Stick 4K / 4K Max) van mejor con 1080p que los Fire TV Stick antiguos o el Lite.
+4. Cierra otras apps antes de reproducir si el televisor tiene poca memoria.
+
+> Al reproducir en la app de YouTube, CdramaList no puede detectar cuándo termina el vídeo. Marca la parte como vista a mano al terminar; el resto de la app (orden, etiquetas, progreso y sincronización) funciona igual.
 
 ## Despliegue en GitHub Pages
 
