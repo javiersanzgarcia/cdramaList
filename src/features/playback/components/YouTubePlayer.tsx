@@ -7,7 +7,7 @@ import {
 } from '../constants'
 
 interface YTPlayer {
-  loadVideoById: (options: { videoId: string; startSeconds?: number }) => void
+  cueVideoById: (options: { videoId: string; startSeconds?: number }) => void
   playVideo: () => void
   pauseVideo: () => void
   destroy: () => void
@@ -104,7 +104,9 @@ export function YouTubePlayer({ videoId, onEnded, onError }: YouTubePlayerProps)
         player = new YT.Player(containerRef.current, {
           videoId: initialVideo,
           playerVars: {
-            autoplay: 1,
+            // Sin autoplay: el vídeo (y su publicidad) espera a que el usuario
+            // pulse reproducir.
+            autoplay: 0,
             playsinline: 1,
             rel: 0,
             modestbranding: 1,
@@ -153,7 +155,8 @@ export function YouTubePlayer({ videoId, onEnded, onError }: YouTubePlayerProps)
 
     currentVideoRef.current = videoId
     try {
-      player.loadVideoById({ videoId })
+      // Carga el vídeo en pausa; nunca inicia la reproducción ni la publicidad.
+      player.cueVideoById({ videoId })
     } catch {
       setMode('fallback')
     }
@@ -172,7 +175,7 @@ export function YouTubePlayer({ videoId, onEnded, onError }: YouTubePlayerProps)
       {mode === 'fallback' && (
         <iframe
           key={videoId}
-          src={`${YOUTUBE_EMBED_BASE}/${videoId}?autoplay=1&playsinline=1&rel=0`}
+          src={`${YOUTUBE_EMBED_BASE}/${videoId}?autoplay=0&playsinline=1&rel=0`}
           title="Reproductor de YouTube"
           allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
           allowFullScreen
