@@ -9,13 +9,19 @@ interface TagFilterBarProps {
   onManage: () => void
 }
 
-/** Filtro horizontal por etiqueta para «Mi lista». */
+/**
+ * Filtro por etiqueta para «Mi lista». En pantallas táctiles las etiquetas van
+ * en una fila con scroll horizontal (se desliza con el dedo). Sin puntero
+ * táctil no hay gesto de arrastre y la barra de scroll está oculta, así que se
+ * reparten en varias filas para que se vean todas: ratón, trackpad y mandos de
+ * TV.
+ */
 export function TagFilterBar({ tags, value, onChange, onManage }: TagFilterBarProps) {
   const activeTags = tags.filter((tag) => !tag.deletedAt)
 
   return (
-    <div className="no-scrollbar -mx-4 mt-3 overflow-x-auto px-4">
-      <div className="flex w-max items-center gap-1.5 pb-0.5">
+    <div className="no-scrollbar -mx-4 mt-3 px-4 pointer-coarse:overflow-x-auto">
+      <div className="flex flex-wrap items-center gap-1.5 pb-0.5 pointer-coarse:w-max pointer-coarse:flex-nowrap">
         <button
           type="button"
           onClick={() => onChange('all')}
