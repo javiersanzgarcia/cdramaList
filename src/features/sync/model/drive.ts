@@ -226,6 +226,19 @@ function canonicalSeries(series: Series) {
   return {
     id: series.id,
     title: series.title,
+    aliases: [...(series.aliases ?? [])],
+    keywordConfidence: Object.fromEntries(
+      Object.entries(series.keywordConfidence ?? {}).sort(([a], [b]) => a.localeCompare(b))
+    ),
+    semanticFingerprint: series.semanticFingerprint
+      ? {
+          genres: [...series.semanticFingerprint.genres].sort(),
+          tropes: [...series.semanticFingerprint.tropes].sort(),
+          roles: [...series.semanticFingerprint.roles].sort(),
+          settings: [...series.semanticFingerprint.settings].sort(),
+          plotElements: [...series.semanticFingerprint.plotElements].sort()
+        }
+      : null,
     channelId: series.channelId ?? null,
     channelTitle: series.channelTitle,
     channelUrl: series.channelUrl ?? null,
@@ -239,14 +252,17 @@ function canonicalSeries(series: Series) {
     ),
     createdAt: series.createdAt,
     updatedAt: series.updatedAt,
+    lastOpenedAt: series.lastOpenedAt ?? null,
     deletedAt: series.deletedAt ?? null,
     watched: [...series.watched].sort(),
     parts: series.parts
       .map((part) => ({
         videoId: part.videoId,
         title: part.title,
+        description: part.description ?? null,
         partNumber: part.partNumber ?? null,
         totalParts: part.totalParts ?? null,
+        sortOrder: part.sortOrder ?? null,
         isFinal: Boolean(part.isFinal),
         durationSeconds: part.durationSeconds ?? null,
         publishedAt: part.publishedAt ?? null,
@@ -268,9 +284,10 @@ function canonicalTag(tag: Tag) {
 }
 
 /**
- * Firma estable del contenido sincronizable. Excluye `lastOpenedAt` para que
- * abrir una serie no dispare una subida automática. Incluye las etiquetas para
- * que crear, renombrar o borrar una etiqueta también sincronice.
+ * Firma estable del contenido sincronizable: incluye todos los campos que se
+ * guardan en Drive (alias, confianza de palabras, huella semántica, orden y
+ * descripción de las partes, última apertura…). Así cualquier edición cambia la
+ * firma y el archivo de Drive se actualiza, aunque no cambie `updatedAt`.
  */
 export function syncSignature(series: Series[], tags: Tag[] = []): string {
   return JSON.stringify({

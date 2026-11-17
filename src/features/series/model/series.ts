@@ -704,6 +704,43 @@ function mergeTagIds(
   )
 }
 
+/**
+ * Combina las partes quedándose con los campos de la copia preferida (la de
+ * `updatedAt` más reciente) y conservando las partes que solo existan en la
+ * otra. `mergeParts` hace que la segunda lista pise a la primera, así que se
+ * pasa como preferida la copia más nueva; de lo contrario, una descarga de
+ * Drive podría revertir un cambio local reciente en el título, la descripción
+ * o el orden de una parte.
+ */
+function mergePartsForSync(
+  current: Part[],
+  incoming: Part[],
+  preferIncoming: boolean
+): Part[] {
+  const preferred = preferIncoming ? incoming : current
+  const fallback = preferIncoming ? current : incoming
+  const merged = mergeParts(fallback, preferred)
+
+  // `addedAt` se conserva con el valor más reciente de las dos copias: una
+  // parte reañadida después de borrarse debe mantener la marca que levanta su
+  // lápida, venga de la copia que venga.
+  const addedById = new Map<string, number>()
+  for (const part of [...current, ...incoming]) {
+    const previous = addedById.get(part.videoId)
+    addedById.set(
+      part.videoId,
+      previous == null ? part.addedAt : Math.max(previous, part.addedAt)
+    )
+  }
+
+  return sortParts(
+    merged.map((part) => ({
+      ...part,
+      addedAt: addedById.get(part.videoId) ?? part.addedAt
+    }))
+  )
+}
+
 export function combineSeries(current: Series, incoming: Series, base?: Series): Series {
   // En caso de empate gana la copia local: así un cambio hecho en este
   // dispositivo (por ejemplo el estado) no lo borra la copia de Drive, que
@@ -715,7 +752,7 @@ export function combineSeries(current: Series, incoming: Series, base?: Series):
   const parts = filterRemovedParts(
     // Un vídeo quitado a mano no vuelve desde la copia que aún lo tiene: la
     // lápida de la parte solo la levanta una re-adición posterior.
-    mergeParts(current.parts, incoming.parts),
+    mergePartsForSync(current.parts, incoming.parts, newer === incoming),
     removedParts
   )
   // Con la base se evita que un cambio en un campo (por ejemplo, marcar una
@@ -733,6 +770,13 @@ export function combineSeries(current: Series, incoming: Series, base?: Series):
   const favorite = mergeField(base, current, incoming, newer, (item) => item.favorite)
   const tagIds = mergeTagIds(base, current, incoming, newer)
   const mergedStatus = mergeStatus(base, current, incoming, newer)
+  const thumbnail =
+    mergeField(base, current, incoming, newer, (item) => item.thumbnail) ?? older.thumbnail
+  const channelId =
+    mergeField(base, current, incoming, newer, (item) => item.channelId) ?? older.channelId
+  const channelTitle = mergeField(base, current, incoming, newer, (item) => item.channelTitle)
+  const channelUrl =
+    mergeField(base, current, incoming, newer, (item) => item.channelUrl) ?? older.channelUrl
 
   return {
     ...older,
@@ -750,9 +794,10 @@ export function combineSeries(current: Series, incoming: Series, base?: Series):
     semanticFingerprint: newer.semanticFingerprint ?? older.semanticFingerprint,
     // Los campos opcionales no deben perderse si la copia más nueva no los
     // trae (por ejemplo, un archivo de Drive creado antes de que existieran).
-    channelId: newer.channelId ?? older.channelId,
-    channelUrl: newer.channelUrl ?? older.channelUrl,
-    thumbnail: newer.thumbnail ?? older.thumbnail,
+    channelId,
+    channelUrl,
+    channelTitle,
+    thumbnail,
     parts,
     watched,
     // Se descarta un «completada» que ya no cubra todas las partes, para no
