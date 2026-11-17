@@ -6,6 +6,14 @@ PWA para reunir las partes de una historia de YouTube, guardar el progreso y ver
 
 **Fire TV:** se puede usar con el navegador TV Bro; consulta [Instalar en Fire TV](#instalar-en-fire-tv-tv-bro).
 
+## Novedades de la 1.3.1 a la 1.3.4
+
+- **1.3.4 · Todas las etiquetas visibles en escritorio.** El filtro de «Mi lista» reparte las etiquetas en varias filas cuando no hay puntero táctil (ratón, trackpad o mando de TV). Antes quedaban en una sola fila con scroll horizontal oculto y solo se alcanzaban las primeras; en móvil se mantiene el deslizamiento con el dedo.
+- **1.3.3 · Cualquier edición actualiza el archivo de Drive.** La sincronización automática detecta cambios en todos los campos de `cdramalist.json` —alias, confianza de palabras, huella semántica, descripción y orden de las partes, última apertura y etiquetas—, no solo en `updatedAt`. La mezcla conserva los cambios de la copia más reciente sin perder partes, portada ni canal.
+- **1.3.2 · Los capítulos se abren en pausa.** El reproductor carga el vídeo con autoplay desactivado, también al cambiar de parte, así que no arranca solo ni reproduce la publicidad previa; empieza cuando pulsas reproducir.
+- **1.3.1 · Solo la última parte puede ser final.** Si varios títulos incluyen «Final», la marca se queda únicamente en la última parte, también al cargar datos ya guardados, combinar con Drive o reordenar los capítulos a mano.
+- **1.3.1 · Fire TV.** Nueva guía para instalar TV Bro con Downloader o ADB, manejarla con el mando y ver en 1080p abriendo el capítulo en la app nativa de YouTube. Ver [Instalar en Fire TV](#instalar-en-fire-tv-tv-bro).
+
 ## Novedades de la 1.3
 
 - **Etiquetas en «Mi lista».** Sustituyen al agrupado por estado: crea etiquetas como «Transmigrar» o «Venganza» y asígnalas a varias series. Al elegir una etiqueta se filtran esas series con independencia de su estado.
@@ -37,7 +45,7 @@ Primera versión estable. Lo más destacado:
 ## Qué hace
 
 - **Encuentra las partes automáticamente.** Pega un enlace de vídeo y la app busca en el canal los vídeos de la misma historia. Reconoce formatos como `Parte 2`, `P2`, `EP2`, `Episode 2`, `E02`, `Vol. 2`, `Pt. 2`, `Part Two`, `第二集`, `第2集`, `2화`, `2/5`, `(2)` y `#2`.
-- **Detecta los capítulos finales.** Identifica marcadores como `Final`, `The End`, `Ending`, `Última Parte`, `Cap Final`, `Episodio Final`, `完结` y `结局`, y marca la parte como final automáticamente.
+- **Detecta los capítulos finales.** Identifica marcadores como `Final`, `The End`, `Ending`, `Última Parte`, `Cap Final`, `Episodio Final`, `完结` y `结局`, y marca la parte como final automáticamente. Si varios títulos repiten la marca, solo la última parte queda como final.
 - **Relaciona títulos por conceptos.** Ignora emojis, hashtags, caracteres decorativos y diferencias de mayúsculas; compara palabras significativas y reconoce algunas variantes de género, plural y conjugación. Por ejemplo, puede relacionar «CEO millonario enamorado» con «Secretaria pobre enamora al CEO millonario».
 - **Aprende de tus confirmaciones.** Al añadir una sugerencia, sus palabras clave ganan confianza para esa serie; las coincidencias relacionadas se priorizan en próximas búsquedas. La señal se guarda con la serie, se sincroniza con Drive y tiene límites para evitar que crezca sin control.
 - **Importa listas de reproducción completas.** Si el canal agrupa las partes en una playlist, se importan todas en orden.
@@ -48,7 +56,7 @@ Primera versión estable. Lo más destacado:
 - **Duración por parte y total.** La ficha muestra la duración de cada parte y la suma de la serie; si falta el metadato de algún vídeo, el total se marca como parcial.
 - **Reorganiza los capítulos.** Usa las flechas de la ficha para cambiar el orden de reproducción; el orden manual se conserva al recargar y sincronizar. También puedes quitar una parte concreta de la serie con la papelera de su fila.
 - **Portada personalizable.** Cambia la portada de la serie por la de cualquiera de sus partes.
-- **Reproductor integrado.** Las partes se reproducen dentro de la app y avanzan solas al terminar el vídeo.
+- **Reproductor integrado.** Las partes se reproducen dentro de la app y avanzan solas al terminar el vídeo. El vídeo se carga en pausa, también al cambiar de parte, y empieza al pulsar reproducir.
 - **Sincronización con Google Drive.** Inicia sesión con Google y guarda tus series en un archivo privado de tu Drive (`appDataFolder`). Funciona entre móvil y ordenador sin servidor propio.
 - **Todo sigue siendo local por defecto.** Sin cuenta de Google, las series y la clave de API se guardan en `localStorage`.
 - **Estado persistente con Zustand.** Series, preferencias de Drive, clave de YouTube y caché de sinónimos se guardan en un store Zustand con persistencia. Los datos de instalaciones anteriores se migran automáticamente.
@@ -68,7 +76,7 @@ Desde la ficha de una serie puedes fijar su estado a mano: **Pendientes**, **En 
 Las etiquetas son globales: cada serie guarda solo el id de las que tiene asignadas, así que renombrar una etiqueta actualiza todas sus series sin reescribirlas.
 
 - **Crear y asignar.** Desde **Mi lista → Gestionar** o desde la propia ficha de una serie. En la ficha, los chips de etiqueta se marcan y desmarcan con un toque.
-- **Filtrar.** La barra de etiquetas de «Mi lista» muestra **Todas** y cada etiqueta. El filtro de estado (**Pendientes**, **En curso**, **Completadas**, **Favoritas**) se aplica encima.
+- **Filtrar.** La barra de etiquetas de «Mi lista» muestra **Todas** y cada etiqueta. El filtro de estado (**Pendientes**, **En curso**, **Completadas**, **Favoritas**) se aplica encima. Con ratón o trackpad las etiquetas se reparten en varias filas para que se vean todas; en móvil se deslizan en horizontal.
 - **Renombrar y borrar.** Renombrar cambia el nombre en todas las series al instante. Borrar pide confirmación, quita la etiqueta de las series y deja una lápida que se propaga al sincronizar; las lápidas se purgan a los 30 días.
 - **Sincronización.** Las etiquetas viajan en `cdramalist.json` y en la exportación. La primera mezcla entre dispositivos une las asignaciones para no perder ninguna.
 
@@ -178,13 +186,13 @@ El Client ID se lee solo de `VITE_GOOGLE_CLIENT_ID` (en local desde `.env`, en P
 
 ### Cómo funciona la sincronización
 
-| Acción                        | Qué hace                                                                                                           |
-| ----------------------------- | ------------------------------------------------------------------------------------------------------------------ |
-| **Conectar con Google Drive** | Pide permiso `drive.appdata` y crea o lee `cdramalist.json` en la carpeta privada de la app.                       |
-| **Sincronizar y combinar**    | Lee el archivo de Drive, une las series, el progreso y las etiquetas de ambos lados y vuelve a subir el resultado. |
-| **Subir**                     | Reemplaza el archivo de Drive con las series y etiquetas de este dispositivo.                                      |
-| **Bajar**                     | Reemplaza las series y etiquetas de este dispositivo con las de Drive.                                             |
-| **Sincronización automática** | Sube los cambios unos 2 segundos después de cada edición.                                                          |
+| Acción                        | Qué hace                                                                                                            |
+| ----------------------------- | ------------------------------------------------------------------------------------------------------------------- |
+| **Conectar con Google Drive** | Pide permiso `drive.appdata` y crea o lee `cdramalist.json` en la carpeta privada de la app.                        |
+| **Sincronizar y combinar**    | Lee el archivo de Drive, une las series, el progreso y las etiquetas de ambos lados y vuelve a subir el resultado.  |
+| **Subir**                     | Reemplaza el archivo de Drive con las series y etiquetas de este dispositivo.                                       |
+| **Bajar**                     | Reemplaza las series y etiquetas de este dispositivo con las de Drive.                                              |
+| **Sincronización automática** | Sube los cambios unos 2 segundos después de cualquier edición: series, progreso, etiquetas, alias, orden de partes… |
 
 - Cada cuenta de Google tiene su propio archivo en su propio Drive.
 - El token de acceso se mantiene en memoria y no se guarda en `localStorage`. Al recargar, la app intenta renovarlo sin mostrar ventanas; si Google lo requiere, pulsa **Reconectar**.
@@ -336,7 +344,7 @@ El repositorio incluye el workflow `.github/workflows/deploy.yml`, que compila y
 4. Ve a la pestaña **Actions** y espera a que termine el workflow **Deploy to GitHub Pages**.
 5. La app quedará disponible en:
 
-```~~txt~~
+```text
 https://TU_USUARIO.github.io/cdramaList/
 ```
 
