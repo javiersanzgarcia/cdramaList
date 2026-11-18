@@ -362,7 +362,16 @@ export function reorderParts(parts: Part[], fromIndex: number, toIndex: number):
   const [moved] = reordered.splice(fromIndex, 1)
   reordered.splice(toIndex, 0, moved)
 
-  return keepOnlyLastFinal(reordered.map((part, sortOrder) => ({ ...part, sortOrder })))
+  // Al reordenar a mano, la posición pasa a ser el número de parte: las
+  // etiquetas «Parte N» siguen el nuevo orden en vez de quedarse con el número
+  // detectado en el título del vídeo (que puede repetirse o no existir).
+  return keepOnlyLastFinal(
+    reordered.map((part, index) => ({
+      ...part,
+      partNumber: index + 1,
+      sortOrder: index
+    }))
+  )
 }
 
 export function partLabel(part: Part, index: number): string {

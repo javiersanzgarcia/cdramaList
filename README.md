@@ -54,7 +54,7 @@ Primera versión estable. Lo más destacado:
 - **Etiquetas para organizar.** Crea etiquetas propias y asígnalas a las series desde su ficha. En **Mi lista** eliges una etiqueta y ves todas sus series sin importar el estado; el estado y las favoritas quedan como filtros adicionales. Las etiquetas se pueden renombrar y borrar, se sincronizan con Drive y aparecen en las tarjetas.
 - **Favoritas.** Marca series como favoritas para tenerlas a mano y actualízalas todas de una vez buscando capítulos nuevos.
 - **Duración por parte y total.** La ficha muestra la duración de cada parte y la suma de la serie; si falta el metadato de algún vídeo, el total se marca como parcial.
-- **Reorganiza los capítulos.** Usa las flechas de la ficha para cambiar el orden de reproducción; el orden manual se conserva al recargar y sincronizar. También puedes quitar una parte concreta de la serie con la papelera de su fila.
+- **Reorganiza los capítulos.** Usa las flechas de la ficha para cambiar el orden de reproducción; el orden manual se conserva al recargar y sincronizar y las partes se renumeran como **Parte 1**, **Parte 2**… También puedes quitar una parte concreta de la serie con la papelera de su fila.
 - **Portada personalizable.** Cambia la portada de la serie por la de cualquiera de sus partes.
 - **Reproductor integrado.** Las partes se reproducen dentro de la app y avanzan solas al terminar el vídeo. El vídeo se carga en pausa, también al cambiar de parte, y empieza al pulsar reproducir.
 - **Sincronización con Google Drive.** Inicia sesión con Google y guarda tus series en un archivo privado de tu Drive (`appDataFolder`). Funciona entre móvil y ordenador sin servidor propio.
