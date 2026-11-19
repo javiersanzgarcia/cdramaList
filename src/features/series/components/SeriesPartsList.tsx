@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { formatDuration } from '../../../shared/lib/format'
+import { formatDate, formatDuration } from '../../../shared/lib/format'
 import { partLabel } from '../model/parts'
 import type { Series } from '../types'
 import * as Icon from '../../../shared/components/Icons'
@@ -60,6 +60,7 @@ export function SeriesPartsList({
             {series.parts.map((part, index) => {
               const isWatched = series.watched.includes(part.videoId)
               const duration = formatDuration(part.durationSeconds)
+              const published = formatDate(part.publishedAt)
 
               return (
                 <li
@@ -89,10 +90,13 @@ export function SeriesPartsList({
                     </span>
 
                     <span className="min-w-0 flex-1">
-                      <span className="flex items-center gap-1.5 text-[11px] font-semibold text-brand-soft">
+                      <span className="flex flex-wrap items-center gap-x-1.5 gap-y-0.5 text-[11px] font-semibold text-brand-soft">
                         {partLabel(part, index)}
                         {duration && (
                           <span className="font-normal text-ink-faint">· {duration}</span>
+                        )}
+                        {published && (
+                          <span className="font-normal text-ink-faint">· {published}</span>
                         )}
                       </span>
                       <span className="mt-0.5 line-clamp-2 block text-xs leading-snug text-ink-soft">

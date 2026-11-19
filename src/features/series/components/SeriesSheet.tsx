@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { formatDuration } from '../../../shared/lib/format'
+import { formatDate, formatDuration } from '../../../shared/lib/format'
 import { partLabel } from '../model/parts'
 import {
   isSeriesComplete,
@@ -131,6 +131,17 @@ export function SeriesSheet({
       : missingDurations === series.parts.length
         ? 'Sin datos'
         : 'Duración parcial'
+
+  const expectedTotal = series.parts.reduce(
+    (max, part) => Math.max(max, part.totalParts ?? 0),
+    0
+  )
+  const publishedLabel = formatDate(
+    series.parts
+      .map((part) => part.publishedAt)
+      .filter((date): date is string => Boolean(date))
+      .sort()[0]
+  )
 
   // Al crear la serie la portada es la de la parte 1; desde aquí se puede
   // cambiar por la de cualquier otra parte.
@@ -364,6 +375,10 @@ export function SeriesSheet({
             )}
           </div>
 
+          {publishedLabel && (
+            <p className="mt-1.5 text-[11px] text-ink-subtle">Publicada el {publishedLabel}</p>
+          )}
+
           <div className="mt-3">
             <p className="text-[11px] font-semibold uppercase tracking-wide text-ink-subtle">
               Estado
@@ -409,8 +424,17 @@ export function SeriesSheet({
 
           <div className="mt-3 grid grid-cols-3 gap-2">
             <div className="rounded-2xl bg-canvas/60 p-3 ring-1 ring-line">
-              <p className="text-lg font-bold text-ink">{total}</p>
-              <p className="mt-0.5 text-[11px] text-ink-subtle">Partes</p>
+              <p className="text-lg font-bold text-ink">
+                {total}
+                {expectedTotal > 0 && (
+                  <span className="text-sm font-semibold text-ink-subtle">
+                    /{expectedTotal}
+                  </span>
+                )}
+              </p>
+              <p className="mt-0.5 text-[11px] text-ink-subtle">
+                {expectedTotal > 0 ? 'Partes (de total)' : 'Partes'}
+              </p>
             </div>
             <div className="rounded-2xl bg-canvas/60 p-3 ring-1 ring-line">
               <p className="text-lg font-bold text-ink">{watched}</p>

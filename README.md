@@ -10,6 +10,7 @@ PWA para reunir las partes de una historia de YouTube, guardar el progreso y ver
 
 - **Reanuda cada vídeo donde lo dejaste.** El reproductor guarda la posición real de la parte que estás viendo (cada 30 segundos, al pausar, al cambiar de parte y al cerrar) y la recupera al volver a abrirla. «Continuar viendo» y la ficha muestran **Reanudar Parte N · 12:34**, y abren el vídeo en ese punto **sin autoplay**, así que sigues sin ver la publicidad previa. La posición se guarda en el dispositivo y se sincroniza con Drive; se borra al marcar la parte como vista, al terminarla o al reiniciar el progreso de la serie.
 - **1.6.1 · El reproductor de reserva también guarda y avanza.** Cuando la app usa el iframe de reserva (sin la API oficial de YouTube), ahora se comunica con él para detectar el fin del vídeo, la pausa y la posición actual. Así puede pasar a la siguiente parte al terminar y guardar dónde te quedaste al pausar, cambiar de parte o cerrar, igual que en el modo principal y sin autoplay.
+- **1.6.2 · Más datos en la ficha y texto corregido.** La ficha de la serie muestra el total declarado de partes (cuando se conoce) y la fecha de publicación, y cada parte indica su fecha en la lista. Se corrige además el mensaje de confirmación al borrar una etiqueta («Pulsa la papelera otra vez»).
 
 ## Novedades de la 1.5
 

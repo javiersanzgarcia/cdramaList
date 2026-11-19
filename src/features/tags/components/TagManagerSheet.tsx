@@ -244,8 +244,8 @@ export function TagManagerSheet({
                     {confirming && !editing && (
                       <p className="mt-2 rounded-xl border border-brand/20 bg-brand/5 px-3 py-2 text-[11px] leading-relaxed text-brand-softest/80">
                         Se quitará la etiqueta «{tag.name}» de{' '}
-                        {count === 1 ? '1 serie' : `${count} series`}. Pulsa el cubo otra vez
-                        para confirmar.
+                        {count === 1 ? '1 serie' : `${count} series`}. Pulsa la papelera otra
+                        vez para confirmar.
                       </p>
                     )}
                   </li>
