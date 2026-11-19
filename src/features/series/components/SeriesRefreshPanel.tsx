@@ -143,13 +143,16 @@ export function SeriesRefreshPanel({
       prepareCandidates(result.candidates, result.parts)
       const warningText = result.warnings.length > 0 ? ` ${result.warnings.join(' ')}` : ''
 
+      // Sin candidatos no queda nada que validar, tanto si la búsqueda añadió
+      // capítulos exactos como si no: la serie debe salir de la cola para que
+      // el contador «Revisar novedades» no se quede atascado.
+      if (result.candidates.length === 0) onNewsHandled?.(series.id)
+
       if (result.added === 0 && result.candidates.length === 0) {
         setRefreshMessage({
           kind: 'info',
           text: `No se han encontrado capítulos nuevos ni candidatos.${warningText}`
         })
-        // La serie no tiene nada nuevo: se retira de la cola de revisión.
-        onNewsHandled?.(series.id)
         return
       }
 

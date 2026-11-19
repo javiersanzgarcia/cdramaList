@@ -26,7 +26,7 @@ import { TagManagerSheet } from './features/tags/components/TagManagerSheet'
 import { useAppStore } from './store/appStore'
 import { LEGACY_CLEANUP_KEYS } from './store/constants'
 import { useSeriesActions } from './features/series/useSeriesActions'
-import type { Filter } from './features/series/types'
+import type { Filter, Series } from './features/series/types'
 import type { ChapterCandidate } from './features/discovery/types'
 import type { PlayerState, Tab } from './app/types'
 import { APP_NAME, BUSY_HISTORY_KEY } from './shared/lib/constants'
@@ -80,6 +80,10 @@ export default function App() {
   const [reviewCandidates, setReviewCandidates] = useState<Record<string, ChapterCandidate[]>>(
     {}
   )
+  // Serie que se está revisando ahora. Se conserva aunque ya haya salido de la
+  // cola al revisar sus candidatos, para que «Revisar siguiente serie» siga
+  // disponible hasta que el usuario decida pasar a la siguiente.
+  const [reviewActiveId, setReviewActiveId] = useState<string | null>(null)
   // Bloqueo síncrono para que dos pulsaciones rápidas no lancen dos lotes
   // antes de que React aplique el estado de `refreshing`.
   const favoritesRefreshRef = useRef(false)
@@ -217,6 +221,24 @@ export default function App() {
     setAddTargetId(null)
   }
 
+  function openReviewSeries(id: string, candidates?: ChapterCandidate[]) {
+    setReviewActiveId(id)
+    setSelectedSeriesId(id)
+    // Un lote puede añadir capítulos exactos sin dejar candidatos que validar.
+    // Abrir esa ficha cuenta como revisión: así el contador no se queda
+    // atascado con una serie en la que no hay nada que hacer.
+    if (candidates && candidates.length === 0) handleNewsHandled(id)
+  }
+
+  // Al abrir una serie desde una tarjeta también se atiende su entrada en la
+  // cola si no quedaban candidatos por revisar.
+  function openSeriesFromUi(item: Series) {
+    openSeries(item)
+    if (reviewQueue.includes(item.id) && (reviewCandidates[item.id] ?? []).length === 0) {
+      handleNewsHandled(item.id)
+    }
+  }
+
   // Cerrar la ficha no descarta la cola de revisión: se conserva para poder
   // reabrirla con el botón flotante «Revisar novedades» sin recalcular todo.
   function closeSeries() {
@@ -241,7 +263,7 @@ export default function App() {
         // Se autoabre la primera serie con novedades y el resto espera en la cola.
         setReviewCandidates(result.candidatesById)
         setReviewQueue(result.updatedIds)
-        setSelectedSeriesId(result.updatedIds[0])
+        openReviewSeries(result.updatedIds[0], result.candidatesById[result.updatedIds[0]])
       }
       return {
         updated: result.updatedIds.length,
@@ -256,9 +278,12 @@ export default function App() {
   }
 
   function reviewNext() {
-    const [, ...rest] = reviewQueue
+    const current = selectedSeriesId
+    // La serie abierta puede haber salido ya de la cola al revisar todos sus
+    // candidatos: en ese caso solo queda abrir la primera pendiente.
+    const rest = current ? reviewQueue.filter((item) => item !== current) : reviewQueue
     setReviewQueue(rest)
-    if (rest.length > 0) setSelectedSeriesId(rest[0])
+    if (rest.length > 0) openReviewSeries(rest[0], reviewCandidates[rest[0]] ?? [])
   }
 
   // Una serie sale de la cola cuando ya no le quedan novedades pendientes: la
@@ -275,7 +300,7 @@ export default function App() {
   }
 
   function handleDeleteSeries(id: string) {
-    const wasReviewHead = reviewQueue[0] === id
+    const wasReviewActive = reviewActiveId === id || reviewQueue[0] === id
     const rest = reviewQueue.filter((item) => item !== id)
 
     setReviewQueue(rest)
@@ -287,16 +312,21 @@ export default function App() {
     })
     deleteSeries(id)
 
-    // Si se borra la serie que encabezaba la cola, se abre la siguiente para
+    // Si se borra la serie que se estaba revisando, se abre la siguiente para
     // que la revisión no se quede atascada esperando a que se abra a mano.
-    if (wasReviewHead && rest.length > 0) {
-      setSelectedSeriesId(rest[0])
+    if (wasReviewActive) {
+      if (rest.length > 0) openReviewSeries(rest[0], reviewCandidates[rest[0]] ?? [])
+      else setReviewActiveId(null)
     }
   }
 
-  // El botón «Revisar siguiente serie» solo aparece en la ficha de la serie que
-  // encabeza la cola y cuando queda alguna otra pendiente.
-  const reviewHead = reviewQueue.length > 1 && reviewQueue[0] === selectedSeriesId
+  // El botón «Revisar siguiente serie» aparece mientras la ficha abierta
+  // pertenezca a la revisión en curso y queden otras series pendientes, aunque
+  // la actual ya haya salido de la cola al revisar todos sus candidatos.
+  const reviewRemaining =
+    reviewActiveId === selectedSeriesId
+      ? reviewQueue.filter((item) => item !== selectedSeriesId).length
+      : 0
 
   function handleReset() {
     updateSeries(() => [])
@@ -308,6 +338,7 @@ export default function App() {
     setPlayer(null)
     setReviewQueue([])
     setReviewCandidates({})
+    setReviewActiveId(null)
     setAddOpen(false)
     setAddTargetId(null)
   }
@@ -403,7 +434,7 @@ export default function App() {
             apiKeyConfigured={apiKey.length > 0}
             onQueryChange={setQuery}
             onFilterChange={setFilter}
-            onOpen={openSeries}
+            onOpen={openSeriesFromUi}
             onPlay={playSeries}
             onToggleFavorite={toggleFavorite}
             onAdd={openAdd}
@@ -433,7 +464,7 @@ export default function App() {
             onTagFilterChange={setTagFilter}
             onListFilterChange={setListFilter}
             onManageTags={() => setTagManagerOpen(true)}
-            onOpen={openSeries}
+            onOpen={openSeriesFromUi}
             onToggleFavorite={toggleFavorite}
             onAdd={openAdd}
           />
@@ -471,7 +502,9 @@ export default function App() {
             {reviewQueue.length > 0 && (
               <button
                 type="button"
-                onClick={() => setSelectedSeriesId(reviewQueue[0])}
+                onClick={() =>
+                  openReviewSeries(reviewQueue[0], reviewCandidates[reviewQueue[0]] ?? [])
+                }
                 className="pointer-events-auto flex items-center gap-2 self-center rounded-full bg-brand px-4 py-2.5 text-sm font-semibold text-ink-bright shadow-xl shadow-brand/30 transition hover:bg-brand-bright active:scale-95"
               >
                 <Icon.Sparkles className="size-4" />
@@ -521,7 +554,7 @@ export default function App() {
           onCreateTag={createTag}
           onFillDurations={fillMissingDurations}
           onDelete={handleDeleteSeries}
-          reviewRemaining={reviewHead ? reviewQueue.length - 1 : 0}
+          reviewRemaining={reviewRemaining}
           onReviewNext={reviewNext}
           initialCandidates={reviewCandidates[selectedSeries.id] ?? []}
           onNewsHandled={handleNewsHandled}

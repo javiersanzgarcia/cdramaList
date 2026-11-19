@@ -6,8 +6,9 @@ PWA para reunir las partes de una historia de YouTube, guardar el progreso y ver
 
 **Fire TV:** se puede usar con el navegador TV Bro; consulta [Instalar en Fire TV](#instalar-en-fire-tv-tv-bro).
 
-## Novedades de la 1.3.1 a la 1.3.5
+## Novedades de la 1.3.1 a la 1.3.6
 
+- **1.3.6 · Cola de novedades sin atascarse.** Al actualizar las favoritas, una serie con capítulos añadidos automáticamente y sin candidatos que validar se da por revisada al abrirla, así que deja de contarse en **Revisar novedades**. Si se descartan todos los candidatos de una serie, el botón **Revisar siguiente serie** sigue disponible hasta pasar a la siguiente.
 - **1.3.5 · Renumeración al reordenar.** Al mover un capítulo con las flechas de la ficha, las partes se renumeran según su nueva posición (**Parte 1**, **Parte 2**…) en lugar de conservar el número detectado en el título del vídeo, que podía repetirse o faltar. La renumeración se guarda y se sincroniza con Drive.
 - **1.3.4 · Todas las etiquetas visibles en escritorio.** El filtro de «Mi lista» reparte las etiquetas en varias filas cuando no hay puntero táctil (ratón, trackpad o mando de TV). Antes quedaban en una sola fila con scroll horizontal oculto y solo se alcanzaban las primeras; en móvil se mantiene el deslizamiento con el dedo.
 - **1.3.3 · Cualquier edición actualiza el archivo de Drive.** La sincronización automática detecta cambios en todos los campos de `cdramalist.json` —alias, confianza de palabras, huella semántica, descripción y orden de las partes, última apertura y etiquetas—, no solo en `updatedAt`. La mezcla conserva los cambios de la copia más reciente sin perder partes, portada ni canal.
