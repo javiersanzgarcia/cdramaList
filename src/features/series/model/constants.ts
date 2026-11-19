@@ -15,6 +15,8 @@ export const MIN_ALIAS_LENGTH = 2
 export const MAX_ALIAS_LENGTH = 120
 /** Longitud máxima de la descripción de una parte que se persiste. */
 export const MAX_PART_DESCRIPTION_LENGTH = 5_000
+/** Tope de la posición guardada de un vídeo (un día entero). */
+export const MAX_PLAYBACK_POSITION_SECONDS = 86_400
 /** Longitud mínima del título de una serie editado a mano. */
 export const MIN_SERIES_TITLE_LENGTH = 2
 

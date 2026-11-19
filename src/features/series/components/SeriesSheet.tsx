@@ -5,6 +5,7 @@ import {
   isSeriesComplete,
   nextPartIndex,
   progressPercent,
+  resumeSeconds,
   seriesStatus,
   watchedCount
 } from '../model/series'
@@ -139,13 +140,16 @@ export function SeriesSheet({
     thumbnail: part.thumbnail ?? youtubeThumbnail(part.videoId)
   }))
 
+  const resume = formatDuration(resumeSeconds(series, nextIndex))
   const continueLabel = complete
     ? 'Volver a ver desde el principio'
-    : watched === 0
-      ? 'Empezar la serie'
-      : nextPart
-        ? `Continuar en ${partLabel(nextPart, nextIndex)}`
-        : 'Empezar la serie'
+    : nextPart && resume
+      ? `Reanudar ${partLabel(nextPart, nextIndex)} en ${resume}`
+      : watched === 0
+        ? 'Empezar la serie'
+        : nextPart
+          ? `Continuar en ${partLabel(nextPart, nextIndex)}`
+          : 'Empezar la serie'
 
   function handleDelete() {
     if (!confirmingDelete) {

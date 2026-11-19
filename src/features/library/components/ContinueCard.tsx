@@ -1,7 +1,9 @@
+import { formatDuration } from '../../../shared/lib/format'
 import {
   isSeriesComplete,
   nextPartIndex,
   progressPercent,
+  resumeSeconds,
   watchedCount
 } from '../../series/model/series'
 import { partLabel } from '../../series/model/parts'
@@ -21,11 +23,14 @@ export function ContinueCard({ series, onPlay, onOpen }: ContinueCardProps) {
 
   const complete = isSeriesComplete(series)
   const watched = watchedCount(series)
+  const resume = formatDuration(resumeSeconds(series, nextIndex))
   const label = complete
     ? 'Volver a ver desde el principio'
-    : watched === 0
-      ? 'Empezar'
-      : partLabel(nextPart, nextIndex)
+    : resume
+      ? `Reanudar ${partLabel(nextPart, nextIndex)} · ${resume}`
+      : watched === 0
+        ? 'Empezar'
+        : partLabel(nextPart, nextIndex)
 
   return (
     <article className="w-64 shrink-0">
@@ -82,7 +87,7 @@ export function ContinueCard({ series, onPlay, onOpen }: ContinueCardProps) {
         className="mt-2 block w-full text-left"
       >
         <h3 className="line-clamp-1 text-sm font-semibold text-ink">{series.title}</h3>
-        <p className="mt-0.5 text-xs font-medium text-brand-bright">{label}</p>
+        <p className="mt-0.5 truncate text-xs font-medium text-brand-bright">{label}</p>
       </button>
     </article>
   )

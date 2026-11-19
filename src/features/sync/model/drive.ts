@@ -267,6 +267,9 @@ function canonicalSeries(series: Series) {
         durationSeconds: part.durationSeconds ?? null,
         publishedAt: part.publishedAt ?? null,
         thumbnail: part.thumbnail ?? null,
+        playback: part.playback
+          ? { seconds: part.playback.seconds, updatedAt: part.playback.updatedAt }
+          : null,
         addedAt: part.addedAt
       }))
       .sort((a, b) => a.videoId.localeCompare(b.videoId))

@@ -96,6 +96,7 @@ export default function App() {
     updateSeries,
     openSeries,
     playSeries,
+    savePosition,
     toggleFavorite,
     setSeriesThumbnail,
     setSeriesStatus,
@@ -578,6 +579,7 @@ export default function App() {
           apiKey={apiKey}
           onClose={() => setPlayer(null)}
           onSetWatched={setWatched}
+          onSavePosition={savePosition}
           onUpdatePartMeta={updatePartMeta}
           onFillDurations={fillMissingDurations}
         />

@@ -1,13 +1,13 @@
 import { useEffect, useRef, useState } from 'react'
 import { formatDuration } from '../../../shared/lib/format'
 import { partLabel } from '../../series/model/parts'
-import { progressPercent, watchedCount } from '../../series/model/series'
+import { progressPercent, resumeSeconds, watchedCount } from '../../series/model/series'
 import { fetchVideoMeta } from '../../discovery/model/youtubeApi'
 import type { PartMetaPatch, Series } from '../../series/types'
 import { useSheet } from '../../../shared/hooks/useSheet'
 import * as Icon from '../../../shared/components/Icons'
 import { YOUTUBE_WATCH_URL } from '../constants'
-import { YouTubePlayer } from './YouTubePlayer'
+import { YouTubePlayer, type YouTubePlayerHandle } from './YouTubePlayer'
 
 interface PlayerSheetProps {
   series: Series
@@ -15,6 +15,7 @@ interface PlayerSheetProps {
   apiKey: string
   onClose: () => void
   onSetWatched: (seriesId: string, videoId: string, watched: boolean) => void
+  onSavePosition: (seriesId: string, videoId: string, seconds: number) => void
   onUpdatePartMeta: (seriesId: string, videoId: string, patch: PartMetaPatch) => void
   onFillDurations: (series: Series) => Promise<void>
 }
@@ -25,6 +26,7 @@ export function PlayerSheet({
   apiKey,
   onClose,
   onSetWatched,
+  onSavePosition,
   onUpdatePartMeta,
   onFillDurations
 }: PlayerSheetProps) {
@@ -39,8 +41,9 @@ export function PlayerSheet({
     seconds: number
   } | null>(null)
   const descriptionRef = useRef<HTMLParagraphElement>(null)
+  const playerRef = useRef<YouTubePlayerHandle>(null)
 
-  useSheet(onClose)
+  useSheet(handleClose)
 
   // Completa las duraciones que falten para mostrarlas también en la lista de
   // partes de la serie.
@@ -138,13 +141,25 @@ export function PlayerSheet({
   const hasNext = safeIndex < total - 1
   const watchUrl = `${YOUTUBE_WATCH_URL}${part.videoId}`
 
-  function goTo(nextIndex: number) {
+  function saveCurrent() {
+    const seconds = playerRef.current?.getTime()
+    if (seconds && seconds > 0) onSavePosition(series.id, part.videoId, seconds)
+  }
+
+  function handleClose() {
+    saveCurrent()
+    onClose()
+  }
+
+  function goTo(nextIndex: number, save = true) {
     if (nextIndex < 0 || nextIndex >= total) return
+    if (save) saveCurrent()
     setPlayerError(false)
     setIndex(nextIndex)
   }
 
   function handleEnded() {
+    // Marcar como vista ya borra su posición: no la guardamos de nuevo.
     onSetWatched(series.id, part.videoId, true)
     if (hasNext) {
       setPlayerError(false)
@@ -163,7 +178,7 @@ export function PlayerSheet({
         <header className="sticky top-0 z-10 flex items-center gap-2 border-b border-line-soft bg-canvas/95 px-3 pb-2.5 pt-[calc(env(safe-area-inset-top)+0.6rem)] backdrop-blur-xl">
           <button
             type="button"
-            onClick={onClose}
+            onClick={handleClose}
             aria-label="Cerrar reproductor"
             className="grid size-9 shrink-0 place-items-center rounded-full bg-surface text-ink-soft transition hover:text-ink-bright active:scale-90"
           >
@@ -189,9 +204,12 @@ export function PlayerSheet({
         </header>
 
         <YouTubePlayer
+          ref={playerRef}
           videoId={part.videoId}
+          startSeconds={resumeSeconds(series, safeIndex)}
           onEnded={handleEnded}
           onError={() => setPlayerError(true)}
+          onProgress={(seconds) => onSavePosition(series.id, part.videoId, seconds)}
         />
 
         <div className="px-4 pt-3">
@@ -321,7 +339,7 @@ export function PlayerSheet({
               type="button"
               onClick={() => {
                 onSetWatched(series.id, part.videoId, true)
-                if (hasNext) goTo(safeIndex + 1)
+                if (hasNext) goTo(safeIndex + 1, false)
               }}
               disabled={!hasNext}
               className="flex w-full items-center justify-center gap-2 rounded-2xl bg-brand px-4 py-3 text-sm font-semibold text-ink-bright shadow-lg shadow-brand/25 transition hover:bg-brand-bright active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-30"

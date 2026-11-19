@@ -8,6 +8,7 @@ import { reorderParts, sortParts } from './model/parts'
 import {
   applyPartDurations,
   applyPartMeta,
+  clearPlaybackPositions,
   clearRemovedParts,
   createSeries,
   filterRemovedParts,
@@ -15,7 +16,8 @@ import {
   mergeAliasesWithParts,
   mergeParts,
   mergeSeries,
-  reconcileCompletedStatus
+  reconcileCompletedStatus,
+  setPlaybackPosition
 } from './model/series'
 import type {
   Part,
@@ -71,6 +73,19 @@ export function useSeriesActions({
     )
   }
 
+  /** Guarda la posición real de un vídeo para reanudarla después. */
+  function savePosition(seriesId: string, videoId: string, seconds: number) {
+    updateSeries((current) =>
+      current.map((item) => {
+        // Una parte ya vista empieza siempre desde cero: evita que un evento
+        // tardío del reproductor reescriba la posición que acabamos de borrar.
+        if (item.id !== seriesId || item.watched.includes(videoId) || item.deletedAt)
+          return item
+        return setPlaybackPosition(item, videoId, seconds)
+      })
+    )
+  }
+
   function toggleFavorite(id: string) {
     updateSeries((current) =>
       current.map((item) =>
@@ -112,7 +127,10 @@ export function useSeriesActions({
           watched.every((videoId) => item.watched.includes(videoId))
         if (status === item.status && sameWatched) return item
 
-        return { ...item, status, watched, updatedAt: Date.now() }
+        const changed: Series = { ...item, status, watched, updatedAt: Date.now() }
+        // Cambiar el progreso desde cero (completar o reiniciar) descarta los
+        // puntos de reanudación: la serie debe verse desde el principio.
+        return sameWatched ? changed : clearPlaybackPositions(changed)
       })
     )
   }
@@ -197,7 +215,7 @@ export function useSeriesActions({
           item.parts.length > 0 &&
           item.parts.every((part) => nextWatched.includes(part.videoId))
 
-        return {
+        const changed: Series = {
           ...item,
           watched: nextWatched,
           // El estado se deduce del progreso: al cubrir (o dejar de cubrir)
@@ -206,6 +224,8 @@ export function useSeriesActions({
           status: coversAll || item.status === 'completed' ? undefined : item.status,
           updatedAt: Date.now()
         }
+        // Marcar una parte como vista descarta su punto de reanudación.
+        return watched ? clearPlaybackPositions(changed, [videoId]) : changed
       })
     )
   }
@@ -564,6 +584,7 @@ export function useSeriesActions({
     updateSeries,
     openSeries,
     playSeries,
+    savePosition,
     toggleFavorite,
     setSeriesThumbnail,
     setSeriesStatus,

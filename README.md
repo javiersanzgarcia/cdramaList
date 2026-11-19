@@ -6,6 +6,10 @@ PWA para reunir las partes de una historia de YouTube, guardar el progreso y ver
 
 **Fire TV:** se puede usar con el navegador TV Bro; consulta [Instalar en Fire TV](#instalar-en-fire-tv-tv-bro).
 
+## Novedades de la 1.6
+
+- **Reanuda cada vídeo donde lo dejaste.** El reproductor guarda la posición real de la parte que estás viendo (cada 30 segundos, al pausar, al cambiar de parte y al cerrar) y la recupera al volver a abrirla. «Continuar viendo» y la ficha muestran **Reanudar Parte N · 12:34**, y abren el vídeo en ese punto **sin autoplay**, así que sigues sin ver la publicidad previa. La posición se guarda en el dispositivo y se sincroniza con Drive; se borra al marcar la parte como vista, al terminarla o al reiniciar el progreso de la serie.
+
 ## Novedades de la 1.5
 
 - **Ordenación en «Mi lista».** Junto al filtro de estado hay un selector con cinco criterios: **Recientes** (el de siempre), **Creadas** (fecha de creación, de la más nueva a la más antigua), **Título A–Z**, **Progreso** (más avanzadas primero) y **Favoritas** (primero las marcadas como favoritas). Los empates se resuelven por actividad reciente y el criterio se conserva al cambiar de pestaña.
@@ -59,7 +63,7 @@ Primera versión estable. Lo más destacado:
 - **Relaciona títulos por conceptos.** Ignora emojis, hashtags, caracteres decorativos y diferencias de mayúsculas; compara palabras significativas y reconoce algunas variantes de género, plural y conjugación. Por ejemplo, puede relacionar «CEO millonario enamorado» con «Secretaria pobre enamora al CEO millonario».
 - **Aprende de tus confirmaciones.** Al añadir una sugerencia, sus palabras clave ganan confianza para esa serie; las coincidencias relacionadas se priorizan en próximas búsquedas. La señal se guarda con la serie, se sincroniza con Drive y tiene límites para evitar que crezca sin control.
 - **Importa listas de reproducción completas.** Si el canal agrupa las partes en una playlist, se importan todas en orden.
-- **Guarda tu progreso.** Marca partes como vistas, continúa donde lo dejaste y consulta el porcentaje de cada serie.
+- **Guarda tu progreso.** Marca partes como vistas, continúa donde lo dejaste y consulta el porcentaje de cada serie. Cada parte recuerda el segundo exacto en que la dejaste y vuelve a abrirse desde ahí, en pausa.
 - **Estados claros por serie.** Cada serie es **Pendiente**, está **En curso** o **Completada**, según su progreso o tu elección manual en la ficha. Puedes filtrar por estado; marcar una serie como completada da por vistas todas sus partes.
 - **Etiquetas para organizar.** Crea etiquetas propias y asígnalas a las series desde su ficha. En **Mi lista** eliges una etiqueta y ves todas sus series sin importar el estado; el estado y las favoritas quedan como filtros adicionales. Las etiquetas se pueden renombrar y borrar, se sincronizan con Drive y aparecen en las tarjetas.
 - **Busca en «Mi lista».** Escribe en el buscador de la pestaña para encontrar una serie por título, alias o canal, con la etiqueta y el estado que ya tengas seleccionados. No comparte texto con el buscador de Inicio.
@@ -68,7 +72,7 @@ Primera versión estable. Lo más destacado:
 - **Duración por parte y total.** La ficha muestra la duración de cada parte y la suma de la serie; si falta el metadato de algún vídeo, el total se marca como parcial.
 - **Reorganiza los capítulos.** Usa las flechas de la ficha para cambiar el orden de reproducción; el orden manual se conserva al recargar y sincronizar y las partes se renumeran como **Parte 1**, **Parte 2**… También puedes quitar una parte concreta de la serie con la papelera de su fila.
 - **Portada personalizable.** Cambia la portada de la serie por la de cualquiera de sus partes.
-- **Reproductor integrado.** Las partes se reproducen dentro de la app y avanzan solas al terminar el vídeo. El vídeo se carga en pausa, también al cambiar de parte, y empieza al pulsar reproducir.
+- **Reproductor integrado.** Las partes se reproducen dentro de la app y avanzan solas al terminar el vídeo. El vídeo se carga en pausa, también al cambiar de parte, y empieza al pulsar reproducir. Si ya habías empezado esa parte, se sitúa en el punto guardado sin iniciarla.
 - **Sincronización con Google Drive.** Inicia sesión con Google y guarda tus series en un archivo privado de tu Drive (`appDataFolder`). Funciona entre móvil y ordenador sin servidor propio.
 - **Todo sigue siendo local por defecto.** Sin cuenta de Google, las series y la clave de API se guardan en `localStorage`.
 - **Estado persistente con Zustand.** Series, preferencias de Drive, clave de YouTube y caché de sinónimos se guardan en un store Zustand con persistencia. Los datos de instalaciones anteriores se migran automáticamente.
@@ -80,7 +84,7 @@ Desde la ficha de una serie puedes fijar su estado a mano: **Pendientes**, **En 
 - **Completada ⇒ todas las partes vistas.** Marcar una serie como completada marca todas sus partes como vistas, y cualquier serie con todas las partes vistas se muestra siempre como completada. Así el porcentaje y el estado nunca se contradicen.
 - **Dejar de estar completada borra el progreso.** Si marcas como «En curso» o «Pendiente» una serie que estaba al 100 %, se reinicia su progreso para que pueda volver a verse desde el principio. La app pide confirmación antes de borrarlo.
 - **Reproducir no cambia lo que hayas elegido.** Ver una parte no pisa un estado manual: una serie marcada como «Pendiente» sigue en «Pendientes» hasta que la completes o cambies el estado tú.
-- **«Continuar viendo»** muestra las series en curso con alguna parte pendiente, y el filtro de cada lista se basa tanto en el estado elegido como en el progreso.
+- **«Continuar viendo»** muestra las series en curso con alguna parte pendiente, y el filtro de cada lista se basa tanto en el estado elegido como en el progreso. Si una parte tiene una posición guardada, esa es la que se ofrece primero, con la etiqueta **Reanudar** y el tiempo dejado.
 - **El estado es un filtro, no una agrupación.** En «Mi lista» el estado se combina con la etiqueta activa y con **Favoritas**, y la cuadrícula se ordena por actividad reciente, fecha de creación, título, progreso o favoritas, según elijas.
 
 ## Etiquetas
@@ -213,6 +217,7 @@ El Client ID se lee solo de `VITE_GOOGLE_CLIENT_ID` (en local desde `.env`, en P
 - **Sincronizar y combinar** usa la unión de series y progreso. No resucita una serie borrada si el borrado ya se ha subido, pero si se combina con una copia antigua de Drive puede reaparecer.
 - Al borrar una serie se guarda una **lápida** para propagar el borrado a los demás dispositivos. Pasados **30 días** esa lápida se purga sola, de modo que la lista y el archivo de Drive no crecen sin control ni acumulan duplicados al volver a añadir la misma serie.
 - Las **etiquetas** se sincronizan en el mismo archivo. Al borrar una etiqueta también se guarda una lápida de 30 días y se quita de todas las series; la primera mezcla entre dispositivos une las asignaciones para no perder ninguna.
+- Las **posiciones de reproducción** viajan con cada parte. Si dos dispositivos guardaron la misma parte, gana la más reciente; marcar una parte como vista borra su posición en ambos.
 
 > **Privacidad:** el permiso `drive.appdata` solo da acceso a la carpeta privada de CdramaList. La app no puede leer ni modificar el resto de archivos de tu Google Drive. Si quieres revocar el acceso, hazlo desde [la configuración de tu cuenta de Google](https://myaccount.google.com/permissions).
 

@@ -10,6 +10,15 @@ export type Filter = 'all' | SeriesStatus | 'favorites'
 /** Criterio de ordenación de «Mi lista». */
 export type SeriesSort = 'recent' | 'created' | 'title' | 'progress' | 'favorites'
 
+/**
+ * Última posición reproducida de una parte. La marca de tiempo permite quedarse
+ * con el avance más reciente cuando dos dispositivos sincronizan la misma parte.
+ */
+export interface PlaybackPosition {
+  seconds: number
+  updatedAt: number
+}
+
 export interface Part {
   videoId: string
   title: string
@@ -22,6 +31,8 @@ export interface Part {
   publishedAt?: string
   thumbnail?: string
   addedAt: number
+  /** Punto desde el que reanudar esta parte; se borra al marcarla como vista. */
+  playback?: PlaybackPosition
 }
 
 /** Información de parte detectada en el título de un vídeo. */
