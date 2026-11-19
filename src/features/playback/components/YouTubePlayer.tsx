@@ -1,4 +1,11 @@
-import { forwardRef, useEffect, useImperativeHandle, useRef, useState } from 'react'
+import {
+  forwardRef,
+  useCallback,
+  useEffect,
+  useImperativeHandle,
+  useRef,
+  useState
+} from 'react'
 import {
   PLAYBACK_SAVE_INTERVAL_MS,
   YOUTUBE_EMBED_BASE,
@@ -8,6 +15,7 @@ import {
   YOUTUBE_PLAYER_PLAYING_STATE,
   YOUTUBE_PLAYER_TIMEOUT_MS
 } from '../constants'
+import { createIframeBridge, type IframeBridge } from '../model/iframeBridge'
 
 interface YTPlayer {
   cueVideoById: (options: { videoId: string; startSeconds?: number }) => void
@@ -16,6 +24,13 @@ interface YTPlayer {
   playVideo: () => void
   pauseVideo: () => void
   destroy: () => void
+}
+
+/** Lo que la API oficial y el puente del iframe saben hacer por igual. */
+interface PlaybackHandle {
+  getCurrentTime: () => number
+  getPlayerState: () => number
+  cueVideoById?: (options: { videoId: string; startSeconds?: number }) => void
 }
 
 interface YTNamespace {
@@ -100,7 +115,10 @@ export interface YouTubePlayerHandle {
 export const YouTubePlayer = forwardRef<YouTubePlayerHandle, YouTubePlayerProps>(
   function YouTubePlayer({ videoId, startSeconds = 0, onEnded, onError, onProgress }, ref) {
     const containerRef = useRef<HTMLDivElement>(null)
-    const playerRef = useRef<YTPlayer | null>(null)
+    const iframeRef = useRef<HTMLIFrameElement>(null)
+    const apiPlayerRef = useRef<YTPlayer | null>(null)
+    const bridgeRef = useRef<IframeBridge | null>(null)
+    const playerRef = useRef<PlaybackHandle | null>(null)
     const currentVideoRef = useRef<string | null>(null)
     const callbacks = useRef({ onEnded, onError, onProgress })
     const [mode, setMode] = useState<'loading' | 'api' | 'fallback'>('loading')
@@ -136,6 +154,25 @@ export const YouTubePlayer = forwardRef<YouTubePlayerHandle, YouTubePlayerProps>
       callbacks.current = { onEnded, onError, onProgress }
     }, [onEnded, onError, onProgress])
 
+    // Un único manejador para la API oficial y para el puente del iframe: en
+    // ambos modos terminar avanza de parte y pausar guarda la posición.
+    const handleStateChange = useCallback((state: number) => {
+      if (state === ENDED) {
+        callbacks.current.onEnded?.()
+        return
+      }
+      if (state === PAUSED) {
+        try {
+          const seconds = playerRef.current?.getCurrentTime() ?? 0
+          if (Number.isFinite(seconds) && seconds > 0) {
+            callbacks.current.onProgress?.(Math.floor(seconds))
+          }
+        } catch {
+          // El reproductor pudo haberse eliminado al cambiar de parte.
+        }
+      }
+    }, [])
+
     useEffect(() => {
       let cancelled = false
       let player: YTPlayer | null = null
@@ -165,18 +202,7 @@ export const YouTubePlayer = forwardRef<YouTubePlayerHandle, YouTubePlayerProps>
                 setMode('api')
               },
               onStateChange: (event) => {
-                if (cancelled) return
-                if (event.data === ENDED) callbacks.current.onEnded?.()
-                if (event.data === PAUSED) {
-                  try {
-                    const seconds = player?.getCurrentTime() ?? 0
-                    if (Number.isFinite(seconds) && seconds > 0) {
-                      callbacks.current.onProgress?.(Math.floor(seconds))
-                    }
-                  } catch {
-                    // El reproductor pudo haberse eliminado al cambiar de parte.
-                  }
-                }
+                if (!cancelled) handleStateChange(event.data)
               },
               onError: () => {
                 if (!cancelled) callbacks.current.onError?.()
@@ -184,6 +210,7 @@ export const YouTubePlayer = forwardRef<YouTubePlayerHandle, YouTubePlayerProps>
             }
           })
 
+          apiPlayerRef.current = player
           playerRef.current = player
           currentVideoRef.current = initialVideo
         })
@@ -193,6 +220,9 @@ export const YouTubePlayer = forwardRef<YouTubePlayerHandle, YouTubePlayerProps>
 
       return () => {
         cancelled = true
+        bridgeRef.current?.destroy()
+        bridgeRef.current = null
+        apiPlayerRef.current = null
         playerRef.current = null
         currentVideoRef.current = null
         try {
@@ -206,22 +236,21 @@ export const YouTubePlayer = forwardRef<YouTubePlayerHandle, YouTubePlayerProps>
     }, [])
 
     useEffect(() => {
-      const player = playerRef.current
-      if (!player || mode !== 'api') return
+      if (mode !== 'api' || !playerRef.current) return
       if (currentVideoRef.current === videoId) return
 
       currentVideoRef.current = videoId
       try {
         // Carga el vídeo en pausa y en el punto guardado; nunca inicia la
         // reproducción ni la publicidad.
-        player.cueVideoById({ videoId, startSeconds: startRef.current })
+        playerRef.current?.cueVideoById?.({ videoId, startSeconds: startRef.current })
       } catch {
         setMode('fallback')
       }
     }, [videoId, mode])
 
     useEffect(() => {
-      if (mode !== 'api') return
+      if (mode === 'loading') return
 
       const timer = window.setInterval(() => {
         try {
@@ -239,6 +268,34 @@ export const YouTubePlayer = forwardRef<YouTubePlayerHandle, YouTubePlayerProps>
       return () => window.clearInterval(timer)
     }, [mode])
 
+    useEffect(() => {
+      if (mode !== 'fallback') return
+      const iframe = iframeRef.current
+      if (!iframe) return
+
+      // Cada vídeo monta su propio iframe: retira el puente anterior y, si la
+      // API llegó a crear un reproductor, lo descarta para no tener dos activos.
+      bridgeRef.current?.destroy()
+      try {
+        apiPlayerRef.current?.destroy()
+      } catch {
+        // Ya se había eliminado al cambiar de parte.
+      }
+      apiPlayerRef.current = null
+
+      const bridge = createIframeBridge(iframe, (state) => handleStateChange(state))
+      bridgeRef.current = bridge
+      playerRef.current = bridge
+
+      return () => {
+        bridge.destroy()
+        if (bridgeRef.current === bridge) {
+          bridgeRef.current = null
+          playerRef.current = null
+        }
+      }
+    }, [mode, videoId, handleStateChange])
+
     const fallbackStart =
       fallbackStartRef.current > 0 ? `&start=${fallbackStartRef.current}` : ''
 
@@ -254,8 +311,9 @@ export const YouTubePlayer = forwardRef<YouTubePlayerHandle, YouTubePlayerProps>
 
         {mode === 'fallback' && (
           <iframe
+            ref={iframeRef}
             key={videoId}
-            src={`${YOUTUBE_EMBED_BASE}/${videoId}?autoplay=0&playsinline=1&rel=0${fallbackStart}`}
+            src={`${YOUTUBE_EMBED_BASE}/${videoId}?autoplay=0&playsinline=1&rel=0&enablejsapi=1&origin=${encodeURIComponent(window.location.origin)}${fallbackStart}`}
             title="Reproductor de YouTube"
             allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
             allowFullScreen
