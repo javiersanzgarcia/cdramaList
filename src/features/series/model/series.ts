@@ -1,4 +1,12 @@
-import type { Filter, Part, PartMetaPatch, Series, SeriesDraft, SeriesStatus } from '../types'
+import type {
+  Filter,
+  Part,
+  PartMetaPatch,
+  Series,
+  SeriesDraft,
+  SeriesSort,
+  SeriesStatus
+} from '../types'
 import { normalizeSemanticFingerprint } from '../../discovery/model/semanticAi'
 import {
   YOUTUBE_CHANNEL_FALLBACK,
@@ -121,6 +129,30 @@ export function sortSeriesByRecent(series: Series[]): Series[] {
   return [...series].sort(
     (a, b) => (b.lastOpenedAt ?? b.updatedAt) - (a.lastOpenedAt ?? a.updatedAt)
   )
+}
+
+/**
+ * Aplica el criterio elegido en «Mi lista». Los criterios secundarios usan la
+ * actividad reciente para desempatar, así que el orden anterior se conserva
+ * cuando dos series tienen el mismo título, progreso o favorito.
+ */
+export function sortSeries(series: Series[], sort: SeriesSort): Series[] {
+  const ordered = sortSeriesByRecent(series)
+
+  switch (sort) {
+    case 'created':
+      return ordered.sort((a, b) => b.createdAt - a.createdAt)
+    case 'title':
+      return ordered.sort((a, b) =>
+        a.title.localeCompare(b.title, 'es', { sensitivity: 'base', numeric: true })
+      )
+    case 'progress':
+      return ordered.sort((a, b) => progressPercent(b) - progressPercent(a))
+    case 'favorites':
+      return ordered.sort((a, b) => Number(b.favorite) - Number(a.favorite))
+    default:
+      return ordered
+  }
 }
 
 export function findExistingSeries(series: Series[], draft: SeriesDraft): Series | undefined {

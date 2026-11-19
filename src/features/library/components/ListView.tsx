@@ -1,10 +1,11 @@
 import type { ReactNode } from 'react'
-import { filterSeries, sortSeriesByRecent } from '../../series/model/series'
-import type { Filter, Series } from '../../series/types'
+import { filterSeries, sortSeries } from '../../series/model/series'
+import type { Filter, Series, SeriesSort } from '../../series/types'
 import type { Tag } from '../../tags/types'
 import { EmptyState } from './EmptyState'
 import { FilterChips } from './FilterChips'
 import { SearchBar } from './SearchBar'
+import { SortSelect } from './SortSelect'
 import { TagFilterBar } from '../../tags/components/TagFilterBar'
 import * as Icon from '../../../shared/components/Icons'
 import { SeriesCard } from './SeriesCard'
@@ -20,6 +21,9 @@ interface ListViewProps {
   /** Texto a buscar por título, alias o canal dentro de la lista. */
   query: string
   onQueryChange: (value: string) => void
+  /** Criterio de ordenación de la cuadrícula. */
+  sort: SeriesSort
+  onSortChange: (value: SeriesSort) => void
   onTagFilterChange: (value: string) => void
   onListFilterChange: (filter: Filter) => void
   onManageTags: () => void
@@ -36,6 +40,8 @@ export function ListView({
   listFilter,
   query,
   onQueryChange,
+  sort,
+  onSortChange,
   onTagFilterChange,
   onListFilterChange,
   onManageTags,
@@ -47,7 +53,7 @@ export function ListView({
     tagFilter === 'all'
       ? series
       : series.filter((item) => (item.tagIds ?? []).includes(tagFilter))
-  const visible = sortSeriesByRecent(filterSeries(tagged, query, listFilter))
+  const visible = sortSeries(filterSeries(tagged, query, listFilter), sort)
   const activeTag = tags.find((tag) => tag.id === tagFilter && !tag.deletedAt)
 
   return (
@@ -74,7 +80,10 @@ export function ListView({
           />
 
           <SearchBar value={query} onChange={onQueryChange} />
-          <FilterChips value={listFilter} onChange={onListFilterChange} />
+          <div className="flex gap-2">
+            <FilterChips value={listFilter} onChange={onListFilterChange} />
+            <SortSelect value={sort} onChange={onSortChange} />
+          </div>
 
           {visible.length === 0 ? (
             <EmptyState

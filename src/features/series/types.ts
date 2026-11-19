@@ -7,6 +7,9 @@ export type SeriesStatus = 'watching' | 'planned' | 'completed'
 
 export type Filter = 'all' | SeriesStatus | 'favorites'
 
+/** Criterio de ordenación de «Mi lista». */
+export type SeriesSort = 'recent' | 'created' | 'title' | 'progress' | 'favorites'
+
 export interface Part {
   videoId: string
   title: string

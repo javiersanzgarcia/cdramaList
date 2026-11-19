@@ -16,7 +16,7 @@ interface FilterChipsProps {
 
 export function FilterChips({ value, onChange }: FilterChipsProps) {
   return (
-    <div className="relative mt-3">
+    <div className="relative mt-3 min-w-0 flex-1">
       <select
         id="series-filter"
         name="series-filter"

@@ -6,6 +6,10 @@ PWA para reunir las partes de una historia de YouTube, guardar el progreso y ver
 
 **Fire TV:** se puede usar con el navegador TV Bro; consulta [Instalar en Fire TV](#instalar-en-fire-tv-tv-bro).
 
+## Novedades de la 1.5
+
+- **Ordenación en «Mi lista».** Junto al filtro de estado hay un selector con cinco criterios: **Recientes** (el de siempre), **Creadas** (fecha de creación, de la más nueva a la más antigua), **Título A–Z**, **Progreso** (más avanzadas primero) y **Favoritas** (primero las marcadas como favoritas). Los empates se resuelven por actividad reciente y el criterio se conserva al cambiar de pestaña.
+
 ## Novedades de la 1.4
 
 - **Búsqueda en «Mi lista».** La pestaña «Mi lista» tiene su propio buscador: filtra por título, alias o canal y se combina con las etiquetas y con el filtro de estado o favoritas. Es independiente del buscador de Inicio, así que cambiar de pestaña no cambia lo que estás viendo.
@@ -59,6 +63,7 @@ Primera versión estable. Lo más destacado:
 - **Estados claros por serie.** Cada serie es **Pendiente**, está **En curso** o **Completada**, según su progreso o tu elección manual en la ficha. Puedes filtrar por estado; marcar una serie como completada da por vistas todas sus partes.
 - **Etiquetas para organizar.** Crea etiquetas propias y asígnalas a las series desde su ficha. En **Mi lista** eliges una etiqueta y ves todas sus series sin importar el estado; el estado y las favoritas quedan como filtros adicionales. Las etiquetas se pueden renombrar y borrar, se sincronizan con Drive y aparecen en las tarjetas.
 - **Busca en «Mi lista».** Escribe en el buscador de la pestaña para encontrar una serie por título, alias o canal, con la etiqueta y el estado que ya tengas seleccionados. No comparte texto con el buscador de Inicio.
+- **Ordena «Mi lista» a tu gusto.** Por actividad reciente, por fecha de creación, por título, por progreso o poniendo primero las favoritas.
 - **Favoritas.** Marca series como favoritas para tenerlas a mano y actualízalas todas de una vez buscando capítulos nuevos.
 - **Duración por parte y total.** La ficha muestra la duración de cada parte y la suma de la serie; si falta el metadato de algún vídeo, el total se marca como parcial.
 - **Reorganiza los capítulos.** Usa las flechas de la ficha para cambiar el orden de reproducción; el orden manual se conserva al recargar y sincronizar y las partes se renumeran como **Parte 1**, **Parte 2**… También puedes quitar una parte concreta de la serie con la papelera de su fila.
@@ -76,14 +81,14 @@ Desde la ficha de una serie puedes fijar su estado a mano: **Pendientes**, **En 
 - **Dejar de estar completada borra el progreso.** Si marcas como «En curso» o «Pendiente» una serie que estaba al 100 %, se reinicia su progreso para que pueda volver a verse desde el principio. La app pide confirmación antes de borrarlo.
 - **Reproducir no cambia lo que hayas elegido.** Ver una parte no pisa un estado manual: una serie marcada como «Pendiente» sigue en «Pendientes» hasta que la completes o cambies el estado tú.
 - **«Continuar viendo»** muestra las series en curso con alguna parte pendiente, y el filtro de cada lista se basa tanto en el estado elegido como en el progreso.
-- **El estado es un filtro, no una agrupación.** En «Mi lista» las series se ordenan por actividad reciente y el estado se combina con la etiqueta activa y con **Favoritas**.
+- **El estado es un filtro, no una agrupación.** En «Mi lista» el estado se combina con la etiqueta activa y con **Favoritas**, y la cuadrícula se ordena por actividad reciente, fecha de creación, título, progreso o favoritas, según elijas.
 
 ## Etiquetas
 
 Las etiquetas son globales: cada serie guarda solo el id de las que tiene asignadas, así que renombrar una etiqueta actualiza todas sus series sin reescribirlas.
 
 - **Crear y asignar.** Desde **Mi lista → Gestionar** o desde la propia ficha de una serie. En la ficha, los chips de etiqueta se marcan y desmarcan con un toque.
-- **Filtrar.** La barra de etiquetas de «Mi lista» muestra **Todas** y cada etiqueta. Debajo, el buscador filtra por título, alias o canal, y el filtro de estado (**Pendientes**, **En curso**, **Completadas**, **Favoritas**) se aplica encima; los tres se pueden combinar. Con ratón o trackpad las etiquetas se reparten en varias filas para que se vean todas; en móvil se deslizan en horizontal.
+- **Filtrar.** La barra de etiquetas de «Mi lista» muestra **Todas** y cada etiqueta. Debajo, el buscador filtra por título, alias o canal, y el filtro de estado (**Pendientes**, **En curso**, **Completadas**, **Favoritas**) se aplica encima; los tres se pueden combinar. A su lado, el selector de orden elige entre **Recientes**, **Creadas**, **Título A–Z**, **Progreso** y **Favoritas**. Con ratón o trackpad las etiquetas se reparten en varias filas para que se vean todas; en móvil se deslizan en horizontal.
 - **Renombrar y borrar.** Renombrar cambia el nombre en todas las series al instante. Borrar pide confirmación, quita la etiqueta de las series y deja una lápida que se propaga al sincronizar; las lápidas se purgan a los 30 días.
 - **Sincronización.** Las etiquetas viajan en `cdramalist.json` y en la exportación. La primera mezcla entre dispositivos une las asignaciones para no perder ninguna.
 

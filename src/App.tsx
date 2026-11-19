@@ -26,7 +26,7 @@ import { TagManagerSheet } from './features/tags/components/TagManagerSheet'
 import { useAppStore } from './store/appStore'
 import { LEGACY_CLEANUP_KEYS } from './store/constants'
 import { useSeriesActions } from './features/series/useSeriesActions'
-import type { Filter, Series } from './features/series/types'
+import type { Filter, Series, SeriesSort } from './features/series/types'
 import type { ChapterCandidate } from './features/discovery/types'
 import type { PlayerState, Tab } from './app/types'
 import { APP_NAME, BUSY_HISTORY_KEY } from './shared/lib/constants'
@@ -65,6 +65,7 @@ export default function App() {
   // La búsqueda de «Mi lista» es independiente de la de Inicio: cambiar de
   //pestaña no debe ocultar series sin que el usuario lo espere.
   const [listQuery, setListQuery] = useState('')
+  const [listSort, setListSort] = useState<SeriesSort>('recent')
   const [filter, setFilter] = useState<Filter>('all')
   const [listFilter, setListFilter] = useState<Filter>('all')
   const [tagFilter, setTagFilter] = useState<string>('all')
@@ -337,6 +338,7 @@ export default function App() {
     setTagFilter('all')
     setListFilter('all')
     setListQuery('')
+    setListSort('recent')
     setTagManagerOpen(false)
     setSelectedSeriesId(null)
     setPlayer(null)
@@ -467,6 +469,8 @@ export default function App() {
             listFilter={listFilter}
             query={listQuery}
             onQueryChange={setListQuery}
+            sort={listSort}
+            onSortChange={setListSort}
             onTagFilterChange={setTagFilter}
             onListFilterChange={setListFilter}
             onManageTags={() => setTagManagerOpen(true)}
