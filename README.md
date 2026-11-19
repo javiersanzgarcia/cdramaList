@@ -6,6 +6,12 @@ PWA para reunir las partes de una historia de YouTube, guardar el progreso y ver
 
 **Fire TV:** se puede usar con el navegador TV Bro; consulta [Instalar en Fire TV](#instalar-en-fire-tv-tv-bro).
 
+## Novedades de la 1.6.3
+
+- **Sincronización automática más fiable.** Si la sincronización automática está activada y hay sesión, la app intenta subir y combinar los cambios sin esperar a que pulses «Sincronizar», incluso cuando todavía no se ha completado una primera sincronización correcta, para evitar que los cambios se queden solo en local. Los reintentos automáticos se evitan en bucle tras un error mientras el contenido no cambie.
+- **Aviso si no se puede restaurar Google Drive.** Al recargar la página, la app intenta recuperar la sesión de Drive en silencio; si ya no es posible (por ejemplo, porque el acceso ha caducado), ahora muestra un mensaje para que sepas que debes volver a conectar y la sincronización no quede detenida sin aviso.
+- **Documentación.** Se corrige en el README el número de búsquedas globales que puede hacer **Actualizar serie** (hasta 4 por actualización, según las consultas que genere).
+
 ## Novedades de la 1.6
 
 - **Reanuda cada vídeo donde lo dejaste.** El reproductor guarda la posición real de la parte que estás viendo (cada 30 segundos, al pausar, al cambiar de parte y al cerrar) y la recupera al volver a abrirla. «Continuar viendo» y la ficha muestran **Reanudar Parte N · 12:34**, y abren el vídeo en ese punto **sin autoplay**, así que sigues sin ver la publicidad previa. La posición se guarda en el dispositivo y se sincroniza con Drive; se borra al marcar la parte como vista, al terminarla o al reiniciar el progreso de la serie.
@@ -157,7 +163,7 @@ https://<nombre-del-worker>.<tu-subdominio>.workers.dev/api/semantic-fingerprint
 
 Los títulos enviados al Worker salen del dispositivo. La cuota gratuita de Workers AI es limitada y puede cambiar; el Worker limita el tamaño de la petición y la frecuencia por IP.
 
-> Cada búsqueda consume 100 unidades de la cuota gratuita diaria (10.000). Las peticiones de metadatos consumen mucho menos. **Actualizar serie** hace una sola búsqueda global por actualización.
+> Cada búsqueda consume 100 unidades de la cuota gratuita diaria (10.000). Las peticiones de metadatos consumen mucho menos. **Actualizar serie** hace hasta 4 búsquedas globales por actualización (según las consultas que genere).
 
 ## Buscar capítulos nuevos
 

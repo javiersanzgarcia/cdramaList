@@ -46,6 +46,9 @@ export function useDriveSync({
   const [message, setMessage] = useState<SyncMessage | null>(null)
   const [busy, setBusy] = useState(false)
   const [lastSyncedSignature, setLastSyncedSignature] = useState<string | null>(null)
+  // Evita reintentos automáticos en bucle cuando no hay firma base y el último
+  // intento falló para el mismo estado local.
+  const lastAutoSyncAttemptRef = useRef<string | null>(null)
 
   const seriesRef = useRef(series)
   const tagsRef = useRef(tags)
@@ -443,27 +446,40 @@ export function useDriveSync({
         connectedRef.current = true
         setConnected(true)
         await syncWithToken(token, true)
-      } catch {
-        connectedRef.current = false
-        setConnected(false)
-        setStatus('disconnected')
+      } catch (cause) {
+        // Al recargar no hay gesto del usuario para renovar el token: si la
+        // sesión no se puede restaurar en silencio, hay que avisar para que
+        // pueda volver a conectar Drive.
+        handleDriveError(cause)
       }
     })()
-  }, [clientId, state.enabled, getToken, syncWithToken])
+  }, [clientId, state.enabled, getToken, syncWithToken, handleDriveError])
 
   // Subida automática con debounce cuando cambian los datos y hay sesión activa.
   // Antes de subir se hace pull/merge para no perder cambios de otros equipos.
+  // Si aún no hay una sincronización correcta (p. ej. falló la primera), se
+  // intenta igualmente para no dejar los cambios solo en local. Sin firma base
+  // no se reintenta en bucle tras un error para el mismo estado: se vuelve a
+  // intentar si el usuario cambia algo o si la sincronización se recupera.
   useEffect(() => {
     if (!connected || !state.auto || busy) return
-    if (lastSyncedSignature === null) return
-    if (signature === lastSyncedSignature) return
+    if (lastSyncedSignature !== null && signature === lastSyncedSignature) return
+
+    if (
+      lastSyncedSignature === null &&
+      status === 'error' &&
+      lastAutoSyncAttemptRef.current === signature
+    ) {
+      return
+    }
 
     const timer = window.setTimeout(() => {
+      lastAutoSyncAttemptRef.current = signature
       void pullAndPush()
     }, AUTO_SYNC_DEBOUNCE_MS)
 
     return () => window.clearTimeout(timer)
-  }, [connected, state.auto, busy, lastSyncedSignature, signature, pullAndPush])
+  }, [connected, state.auto, busy, status, lastSyncedSignature, signature, pullAndPush])
 
   return {
     configured: Boolean(clientId),
