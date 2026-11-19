@@ -4,6 +4,7 @@ import type { Filter, Series } from '../../series/types'
 import type { Tag } from '../../tags/types'
 import { EmptyState } from './EmptyState'
 import { FilterChips } from './FilterChips'
+import { SearchBar } from './SearchBar'
 import { TagFilterBar } from '../../tags/components/TagFilterBar'
 import * as Icon from '../../../shared/components/Icons'
 import { SeriesCard } from './SeriesCard'
@@ -16,6 +17,9 @@ interface ListViewProps {
   tagFilter: string
   /** Filtro extra por estado o favoritas. */
   listFilter: Filter
+  /** Texto a buscar por título, alias o canal dentro de la lista. */
+  query: string
+  onQueryChange: (value: string) => void
   onTagFilterChange: (value: string) => void
   onListFilterChange: (filter: Filter) => void
   onManageTags: () => void
@@ -30,6 +34,8 @@ export function ListView({
   tags,
   tagFilter,
   listFilter,
+  query,
+  onQueryChange,
   onTagFilterChange,
   onListFilterChange,
   onManageTags,
@@ -41,7 +47,7 @@ export function ListView({
     tagFilter === 'all'
       ? series
       : series.filter((item) => (item.tagIds ?? []).includes(tagFilter))
-  const visible = sortSeriesByRecent(filterSeries(tagged, '', listFilter))
+  const visible = sortSeriesByRecent(filterSeries(tagged, query, listFilter))
   const activeTag = tags.find((tag) => tag.id === tagFilter && !tag.deletedAt)
 
   return (
@@ -67,6 +73,7 @@ export function ListView({
             onManage={onManageTags}
           />
 
+          <SearchBar value={query} onChange={onQueryChange} />
           <FilterChips value={listFilter} onChange={onListFilterChange} />
 
           {visible.length === 0 ? (
@@ -74,12 +81,15 @@ export function ListView({
               icon={<Icon.Tag className="size-6" />}
               title="Ninguna serie coincide"
               description={
-                activeTag
-                  ? `No hay series con la etiqueta «${activeTag.name}» que cumplan el filtro seleccionado.`
-                  : 'No hay series que cumplan el filtro seleccionado.'
+                query.trim()
+                  ? `No hay series que coincidan con «${query.trim()}» con los filtros seleccionados.`
+                  : activeTag
+                    ? `No hay series con la etiqueta «${activeTag.name}» que cumplan el filtro seleccionado.`
+                    : 'No hay series que cumplan el filtro seleccionado.'
               }
               actionLabel="Ver todas"
               onAction={() => {
+                onQueryChange('')
                 onTagFilterChange('all')
                 onListFilterChange('all')
               }}

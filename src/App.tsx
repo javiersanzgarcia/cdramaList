@@ -62,6 +62,9 @@ export default function App() {
   const [accountOpen, setAccountOpen] = useState(false)
 
   const [query, setQuery] = useState('')
+  // La búsqueda de «Mi lista» es independiente de la de Inicio: cambiar de
+  //pestaña no debe ocultar series sin que el usuario lo espere.
+  const [listQuery, setListQuery] = useState('')
   const [filter, setFilter] = useState<Filter>('all')
   const [listFilter, setListFilter] = useState<Filter>('all')
   const [tagFilter, setTagFilter] = useState<string>('all')
@@ -333,6 +336,7 @@ export default function App() {
     setTags([])
     setTagFilter('all')
     setListFilter('all')
+    setListQuery('')
     setTagManagerOpen(false)
     setSelectedSeriesId(null)
     setPlayer(null)
@@ -461,6 +465,8 @@ export default function App() {
             tags={tags}
             tagFilter={activeTagFilter}
             listFilter={listFilter}
+            query={listQuery}
+            onQueryChange={setListQuery}
             onTagFilterChange={setTagFilter}
             onListFilterChange={setListFilter}
             onManageTags={() => setTagManagerOpen(true)}
