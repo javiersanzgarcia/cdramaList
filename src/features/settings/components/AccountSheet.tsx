@@ -1,3 +1,4 @@
+import type React from 'react'
 import { useSheet } from '../../../shared/hooks/useSheet'
 import type { DriveSync } from '../../sync/types'
 import { formatDateTime } from '../../../shared/lib/format'
@@ -11,7 +12,12 @@ interface AccountSheetProps {
   onClose: () => void
 }
 
-export function AccountSheet({ user, clientId, drive, onClose }: AccountSheetProps) {
+export const AccountSheet: React.FC<AccountSheetProps> = ({
+  user,
+  clientId,
+  drive,
+  onClose
+}) => {
   useSheet(onClose)
 
   const busy = drive.busy

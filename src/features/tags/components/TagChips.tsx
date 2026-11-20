@@ -1,3 +1,4 @@
+import type React from 'react'
 import type { Tag } from '../types'
 import * as Icon from '../../../shared/components/Icons'
 
@@ -9,7 +10,7 @@ interface TagChipsProps {
   onRemove?: (tagId: string) => void
 }
 
-export function TagChips({ tags, max, className = '', onRemove }: TagChipsProps) {
+export const TagChips: React.FC<TagChipsProps> = ({ tags, max, className = '', onRemove }) => {
   if (tags.length === 0) return null
 
   const visible = max == null ? tags : tags.slice(0, max)

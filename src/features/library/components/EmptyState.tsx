@@ -1,4 +1,4 @@
-import type { ReactNode } from 'react'
+import { memo, type ReactNode } from 'react'
 
 interface EmptyStateProps {
   icon: ReactNode
@@ -8,7 +8,8 @@ interface EmptyStateProps {
   onAction?: () => void
 }
 
-export function EmptyState({
+/** Estado vacío reutilizable para secciones sin contenido. */
+export const EmptyState = memo(function EmptyState({
   icon,
   title,
   description,
@@ -33,4 +34,4 @@ export function EmptyState({
       )}
     </div>
   )
-}
+})

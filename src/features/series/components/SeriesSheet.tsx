@@ -1,4 +1,5 @@
-import { useEffect, useState } from 'react'
+import type React from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { formatDate, formatDuration } from '../../../shared/lib/format'
 import { partLabel } from '../model/parts'
 import {
@@ -59,7 +60,7 @@ interface SeriesSheetProps {
   onNewsHandled: (seriesId: string) => void
 }
 
-export function SeriesSheet({
+export const SeriesSheet: React.FC<SeriesSheetProps> = ({
   series,
   semanticConfigured,
   refreshing,
@@ -87,7 +88,7 @@ export function SeriesSheet({
   onReviewNext,
   initialCandidates,
   onNewsHandled
-}: SeriesSheetProps) {
+}) => {
   const [confirmingDelete, setConfirmingDelete] = useState(false)
   const [coverPickerOpen, setCoverPickerOpen] = useState(false)
   const [pendingStatus, setPendingStatus] = useState<SeriesStatus | null>(null)
@@ -96,12 +97,18 @@ export function SeriesSheet({
   }
   useSheet(handleClose)
 
-  // Rellena las duraciones que falten (series antiguas o creadas sin cuota)
-  // para poder mostrar la duración de cada parte y el total de la serie.
+  const seriesRef = useRef(series)
+  const fillDurationsRef = useRef(onFillDurations)
+
   useEffect(() => {
-    void onFillDurations(series)
-    // Solo al abrir la serie; el callback cambia en cada render.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    seriesRef.current = series
+    fillDurationsRef.current = onFillDurations
+  }, [series, onFillDurations])
+
+  // Rellena las duraciones que falten (series antiguas o creadas sin cuota)
+  // al abrir la ficha para poder mostrar la duración de cada parte y el total.
+  useEffect(() => {
+    void fillDurationsRef.current(seriesRef.current)
   }, [series.id])
 
   const total = series.parts.length

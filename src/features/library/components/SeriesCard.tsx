@@ -1,3 +1,4 @@
+import { memo } from 'react'
 import { isSeriesComplete, progressPercent, progressLabel } from '../../series/model/series'
 import { resolveSeriesTags } from '../../tags/model/tags'
 import type { Series } from '../../series/types'
@@ -29,7 +30,16 @@ interface SeriesCardProps {
   onToggleFavorite: (id: string) => void
 }
 
-export function SeriesCard({ series, tags = [], onOpen, onToggleFavorite }: SeriesCardProps) {
+/**
+ * Tarjeta de serie en listados; memoizada para evitar renders innecesarios
+ * cuando sus props no cambian.
+ */
+export const SeriesCard = memo(function SeriesCard({
+  series,
+  tags = [],
+  onOpen,
+  onToggleFavorite
+}: SeriesCardProps) {
   const complete = isSeriesComplete(series)
   const progress = progressPercent(series)
   const total = series.parts.length
@@ -108,4 +118,4 @@ export function SeriesCard({ series, tags = [], onOpen, onToggleFavorite }: Seri
       </button>
     </article>
   )
-}
+})

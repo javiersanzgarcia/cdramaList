@@ -1,3 +1,4 @@
+import type React from 'react'
 import type { Tab } from '../../app/types'
 import * as Icon from './Icons'
 
@@ -13,7 +14,7 @@ interface BottomNavProps {
   onChange: (tab: Tab) => void
 }
 
-export function BottomNav({ tab, savedCount, onChange }: BottomNavProps) {
+export const BottomNav: React.FC<BottomNavProps> = ({ tab, savedCount, onChange }) => {
   return (
     <nav
       aria-label="Navegación principal"

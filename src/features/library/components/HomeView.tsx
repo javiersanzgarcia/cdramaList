@@ -1,3 +1,4 @@
+import type React from 'react'
 import { useEffect, useRef, useState, type ReactNode } from 'react'
 import { continueWatching } from '../../series/model/series'
 import type { Filter, Series } from '../../series/types'
@@ -32,7 +33,7 @@ interface HomeViewProps {
   onOpenSettings: () => void
 }
 
-export function HomeView({
+export const HomeView: React.FC<HomeViewProps> = ({
   header,
   series,
   allSeries,
@@ -48,7 +49,7 @@ export function HomeView({
   onAdd,
   onRefreshFavorites,
   onOpenSettings
-}: HomeViewProps) {
+}) => {
   const continueList = continueWatching(allSeries).slice(0, 8)
   const showContinue = query.trim().length === 0 && filter === 'all' && continueList.length > 0
   const continueScrollRef = useRef<HTMLDivElement>(null)

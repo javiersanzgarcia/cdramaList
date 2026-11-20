@@ -1,3 +1,4 @@
+import type React from 'react'
 import { useState } from 'react'
 import type { FormEvent } from 'react'
 import { normalizeTagName } from '../model/tags'
@@ -17,14 +18,14 @@ interface TagManagerSheetProps {
 }
 
 /** Gestión de etiquetas: crear, renombrar y borrar. */
-export function TagManagerSheet({
+export const TagManagerSheet: React.FC<TagManagerSheetProps> = ({
   tags,
   counts,
   onClose,
   onCreate,
   onRename,
   onDelete
-}: TagManagerSheetProps) {
+}) => {
   const [draft, setDraft] = useState('')
   const [message, setMessage] = useState<string | null>(null)
   const [editingId, setEditingId] = useState<string | null>(null)

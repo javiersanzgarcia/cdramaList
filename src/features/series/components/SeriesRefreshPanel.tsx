@@ -1,3 +1,4 @@
+import type React from 'react'
 import { useState } from 'react'
 import {
   buildCandidateState,
@@ -26,7 +27,7 @@ interface SeriesRefreshPanelProps {
   onNewsHandled?: (seriesId: string) => void
 }
 
-export function SeriesRefreshPanel({
+export const SeriesRefreshPanel: React.FC<SeriesRefreshPanelProps> = ({
   series,
   semanticConfigured,
   initialCandidates,
@@ -35,7 +36,7 @@ export function SeriesRefreshPanel({
   onDiscardCandidate,
   onBusyChange,
   onNewsHandled
-}: SeriesRefreshPanelProps) {
+}) => {
   const [refreshing, setRefreshing] = useState(false)
   const [refreshMessage, setRefreshMessage] = useState<{
     kind: 'ok' | 'info' | 'error'

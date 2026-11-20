@@ -1,3 +1,4 @@
+import type React from 'react'
 import * as Icon from '../../../shared/components/Icons'
 
 interface SearchBarProps {
@@ -5,7 +6,7 @@ interface SearchBarProps {
   onChange: (value: string) => void
 }
 
-export function SearchBar({ value, onChange }: SearchBarProps) {
+export const SearchBar: React.FC<SearchBarProps> = ({ value, onChange }) => {
   return (
     <div className="relative mt-4">
       <Icon.Search className="pointer-events-none absolute left-3.5 top-1/2 size-5 -translate-y-1/2 text-ink-subtle" />

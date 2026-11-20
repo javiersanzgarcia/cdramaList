@@ -1,3 +1,4 @@
+import type React from 'react'
 import { useState } from 'react'
 import type { FormEvent } from 'react'
 import type { Series } from '../types'
@@ -12,7 +13,10 @@ function normalizeTitle(value: string): string {
   return value.trim().replace(/\s+/g, ' ')
 }
 
-export function SeriesTitleEditor({ series, onUpdateTitle }: SeriesTitleEditorProps) {
+export const SeriesTitleEditor: React.FC<SeriesTitleEditorProps> = ({
+  series,
+  onUpdateTitle
+}) => {
   const [titleDraft, setTitleDraft] = useState(series.title)
   const [previousTitle, setPreviousTitle] = useState(series.title)
   const [message, setMessage] = useState<string | null>(null)

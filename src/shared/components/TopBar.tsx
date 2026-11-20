@@ -1,3 +1,4 @@
+import type React from 'react'
 import type { GoogleUser } from '../../features/sync/types'
 import * as Icon from './Icons'
 
@@ -12,7 +13,7 @@ interface TopBarProps {
   onOpenAccount: () => void
 }
 
-export function TopBar({
+export const TopBar: React.FC<TopBarProps> = ({
   eyebrow,
   title,
   canInstall,
@@ -21,7 +22,7 @@ export function TopBar({
   syncDirty,
   syncBusy,
   onOpenAccount
-}: TopBarProps) {
+}) => {
   return (
     <header className="sticky top-0 z-20 border-b border-line-soft/80 bg-canvas/85 backdrop-blur-xl">
       <div className="flex items-center justify-between gap-3 px-4 pb-3 pt-[calc(env(safe-area-inset-top)_+_0.9rem)]">

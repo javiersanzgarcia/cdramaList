@@ -1,3 +1,4 @@
+import type React from 'react'
 import type { SeriesSort } from '../../series/types'
 import * as Icon from '../../../shared/components/Icons'
 
@@ -15,7 +16,7 @@ interface SortSelectProps {
 }
 
 /** Ordena la cuadrícula de «Mi lista» junto al filtro de estado. */
-export function SortSelect({ value, onChange }: SortSelectProps) {
+export const SortSelect: React.FC<SortSelectProps> = ({ value, onChange }) => {
   return (
     <div className="relative mt-3 min-w-0 flex-1">
       <select

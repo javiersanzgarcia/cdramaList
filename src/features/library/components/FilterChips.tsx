@@ -1,3 +1,4 @@
+import type React from 'react'
 import type { Filter } from '../../series/types'
 import * as Icon from '../../../shared/components/Icons'
 
@@ -14,7 +15,7 @@ interface FilterChipsProps {
   onChange: (filter: Filter) => void
 }
 
-export function FilterChips({ value, onChange }: FilterChipsProps) {
+export const FilterChips: React.FC<FilterChipsProps> = ({ value, onChange }) => {
   return (
     <div className="relative mt-3 min-w-0 flex-1">
       <select

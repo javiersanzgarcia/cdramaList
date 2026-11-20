@@ -1,3 +1,4 @@
+import { memo } from 'react'
 import { formatDuration } from '../../../shared/lib/format'
 import {
   isSeriesComplete,
@@ -16,7 +17,12 @@ interface ContinueCardProps {
   onOpen: (series: Series) => void
 }
 
-export function ContinueCard({ series, onPlay, onOpen }: ContinueCardProps) {
+/** Tarjeta de «Continuar viendo»; memoizada para listas horizontales. */
+export const ContinueCard = memo(function ContinueCard({
+  series,
+  onPlay,
+  onOpen
+}: ContinueCardProps) {
   const nextIndex = nextPartIndex(series)
   const nextPart = series.parts[nextIndex]
   if (!nextPart) return null
@@ -91,4 +97,4 @@ export function ContinueCard({ series, onPlay, onOpen }: ContinueCardProps) {
       </button>
     </article>
   )
-}
+})

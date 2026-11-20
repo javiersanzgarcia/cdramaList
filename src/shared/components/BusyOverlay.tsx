@@ -1,3 +1,4 @@
+import type React from 'react'
 import * as Icon from './Icons'
 
 interface BusyOverlayProps {
@@ -11,7 +12,7 @@ interface BusyOverlayProps {
  * (por ejemplo, actualizar una serie) está en curso. Evita cerrar el panel,
  * navegar o tocar cualquier control antes de que la operación termine.
  */
-export function BusyOverlay({ open, title, message }: BusyOverlayProps) {
+export const BusyOverlay: React.FC<BusyOverlayProps> = ({ open, title, message }) => {
   if (!open) return null
 
   return (

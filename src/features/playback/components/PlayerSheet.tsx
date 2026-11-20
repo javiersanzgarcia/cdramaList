@@ -1,3 +1,4 @@
+import type React from 'react'
 import { useEffect, useRef, useState } from 'react'
 import { formatDuration } from '../../../shared/lib/format'
 import { partLabel } from '../../series/model/parts'
@@ -20,7 +21,7 @@ interface PlayerSheetProps {
   onFillDurations: (series: Series) => Promise<void>
 }
 
-export function PlayerSheet({
+export const PlayerSheet: React.FC<PlayerSheetProps> = ({
   series,
   startIndex,
   apiKey,
@@ -29,7 +30,7 @@ export function PlayerSheet({
   onSavePosition,
   onUpdatePartMeta,
   onFillDurations
-}: PlayerSheetProps) {
+}) => {
   const [index, setIndex] = useState(startIndex)
   const [playerError, setPlayerError] = useState(false)
   const [description, setDescription] = useState('')
@@ -43,65 +44,78 @@ export function PlayerSheet({
   const descriptionRef = useRef<HTMLParagraphElement>(null)
   const playerRef = useRef<YouTubePlayerHandle>(null)
 
+  const seriesRef = useRef(series)
+  const fillDurationsRef = useRef(onFillDurations)
+  const updatePartMetaRef = useRef(onUpdatePartMeta)
+
+  useEffect(() => {
+    seriesRef.current = series
+    fillDurationsRef.current = onFillDurations
+    updatePartMetaRef.current = onUpdatePartMeta
+  }, [series, onFillDurations, onUpdatePartMeta])
+
   useSheet(handleClose)
 
   // Completa las duraciones que falten para mostrarlas también en la lista de
-  // partes de la serie.
+  // partes de la serie al abrir el reproductor.
   useEffect(() => {
-    void onFillDurations(series)
-    // Solo al abrir el reproductor; el callback cambia en cada render.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    void fillDurationsRef.current(seriesRef.current)
   }, [series.id])
 
   const total = series.parts.length
   const safeIndex = Math.min(Math.max(index, 0), Math.max(total - 1, 0))
   const part = series.parts[safeIndex]
+  const partVideoId = part?.videoId
 
   useEffect(() => {
-    if (!part) return
+    const targetPart = seriesRef.current.parts[safeIndex]
+    if (!targetPart || targetPart.videoId !== partVideoId) return
 
     let cancelled = false
     setDescriptionExpanded(false)
     setDescriptionCanExpand(false)
 
-    const needsDescription = !part.description
-    const needsDuration = part.durationSeconds == null
+    const needsDescription = !targetPart.description
+    const needsDuration = targetPart.durationSeconds == null
 
     if (!needsDescription && !needsDuration) {
-      setDescription(part.description ?? '')
+      setDescription(targetPart.description ?? '')
       setDescriptionLoading(false)
       return
     }
 
     if (!apiKey) {
-      setDescription(part.description ?? '')
+      setDescription(targetPart.description ?? '')
       setDescriptionLoading(false)
       return
     }
 
-    setDescription(part.description ?? '')
+    setDescription(targetPart.description ?? '')
     setDescriptionLoading(needsDescription)
 
-    fetchVideoMeta(part.videoId, apiKey)
+    fetchVideoMeta(targetPart.videoId, apiKey)
       .then((meta) => {
         if (cancelled) return
 
+        const current = seriesRef.current.parts[safeIndex]
+        if (!current || current.videoId !== targetPart.videoId) return
+
         const text = meta.description?.trim()
-        if (text && !part.description) setDescription(text)
+        if (text && !current.description) setDescription(text)
         if (meta.durationSeconds) {
           setFetchedDuration({
-            videoId: part.videoId,
+            videoId: current.videoId,
             seconds: meta.durationSeconds
           })
         }
 
         const patch: PartMetaPatch = {}
-        if (text && !part.description) patch.description = text
-        if (meta.durationSeconds && part.durationSeconds == null) {
+        if (text && !current.description) patch.description = text
+        if (meta.durationSeconds && current.durationSeconds == null) {
           patch.durationSeconds = meta.durationSeconds
         }
         if (Object.keys(patch).length > 0) {
-          onUpdatePartMeta(series.id, part.videoId, patch)
+          updatePartMetaRef.current(series.id, current.videoId, patch)
         }
       })
       .catch(() => {
@@ -114,11 +128,7 @@ export function PlayerSheet({
     return () => {
       cancelled = true
     }
-    // El callback cambia en cada render, pero solo depende de la serie y el vídeo.
-    // La descripción y la duración no entran en las dependencias: al persistirlas
-    // se actualiza la serie y no queremos reiniciar el estado de «Ver más».
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [part?.videoId, apiKey, series.id])
+  }, [partVideoId, safeIndex, apiKey, series.id])
 
   useEffect(() => {
     if (descriptionExpanded || descriptionLoading) return

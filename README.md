@@ -6,6 +6,12 @@ PWA para reunir las partes de una historia de YouTube, guardar el progreso y ver
 
 **Fire TV:** se puede usar con el navegador TV Bro; consulta [Instalar en Fire TV](#instalar-en-fire-tv-tv-bro).
 
+## Novedades de la 1.7
+
+- **Más robustez y calidad interna.** La app incorpora un límite de errores en la interfaz para mostrar una recuperación segura si falla el renderizado, activa el modo estricto de TypeScript y corrige dependencias de efectos en el reproductor y las fichas para evitar comportamientos inconsistentes. También se memoizan componentes de listado donde aporta y se mejora la documentación del código.
+- **Pruebas automatizadas.** Se añade infraestructura de pruebas con Vitest y React Testing Library, junto con pruebas unitarias y de componentes (formato de datos, lógica de series, estados vacíos y límite de errores) ejecutables con `npm test`.
+- **Mantenimiento y revisión de longitud.** Se extrae la lógica de exportar, importar y reiniciar datos a un hook dedicado para simplificar `App.tsx`, y se revisa la longitud de los ficheros para priorizar responsabilidades más acotadas en futuras mejoras.
+
 ## Novedades de la 1.6.3
 
 - **Sincronización automática más fiable.** Si la sincronización automática está activada y hay sesión, la app intenta subir y combinar los cambios sin esperar a que pulses «Sincronizar», incluso cuando todavía no se ha completado una primera sincronización correcta, para evitar que los cambios se queden solo en local. Los reintentos automáticos se evitan en bucle tras un error mientras el contenido no cambie.

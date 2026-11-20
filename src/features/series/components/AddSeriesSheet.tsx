@@ -1,3 +1,4 @@
+import type React from 'react'
 import { useMemo, useState } from 'react'
 import type { FormEvent } from 'react'
 import {
@@ -32,14 +33,14 @@ interface AddSeriesSheetProps {
   onOpenSettings: () => void
 }
 
-export function AddSeriesSheet({
+export const AddSeriesSheet: React.FC<AddSeriesSheetProps> = ({
   apiKey,
   series,
   targetSeries,
   onClose,
   onSave,
   onOpenSettings
-}: AddSeriesSheetProps) {
+}) => {
   const [url, setUrl] = useState('')
   const [phase, setPhase] = useState<Phase>('input')
   const [message, setMessage] = useState('')

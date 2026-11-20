@@ -1,3 +1,4 @@
+import type React from 'react'
 import { formatDuration } from '../../../shared/lib/format'
 import type { ChapterCandidate } from '../../discovery/types'
 import * as Icon from '../../../shared/components/Icons'
@@ -14,7 +15,7 @@ interface CandidateCardProps {
   onDiscard: () => void
 }
 
-export function CandidateCard({
+export const CandidateCard: React.FC<CandidateCardProps> = ({
   candidate,
   number,
   isFinal,
@@ -24,7 +25,7 @@ export function CandidateCard({
   onToggleFinal,
   onAdd,
   onDiscard
-}: CandidateCardProps) {
+}) => {
   const duration = formatDuration(candidate.durationSeconds)
 
   return (

@@ -1,3 +1,4 @@
+import type React from 'react'
 import type { Tag } from '../types'
 import * as Icon from '../../../shared/components/Icons'
 
@@ -16,7 +17,12 @@ interface TagFilterBarProps {
  * reparten en varias filas para que se vean todas: ratón, trackpad y mandos de
  * TV.
  */
-export function TagFilterBar({ tags, value, onChange, onManage }: TagFilterBarProps) {
+export const TagFilterBar: React.FC<TagFilterBarProps> = ({
+  tags,
+  value,
+  onChange,
+  onManage
+}) => {
   const activeTags = tags.filter((tag) => !tag.deletedAt)
 
   return (

@@ -1,3 +1,4 @@
+import type React from 'react'
 import { formatDuration } from '../../../shared/lib/format'
 import { partLabel } from '../model/parts'
 import type { ChapterCandidate } from '../../discovery/types'
@@ -22,7 +23,7 @@ interface SeriesDraftPartsReviewProps {
   onDiscardCandidate: (videoId: string) => void
 }
 
-export function SeriesDraftPartsReview({
+export const SeriesDraftPartsReview: React.FC<SeriesDraftPartsReviewProps> = ({
   parts,
   selected,
   allSelected,
@@ -37,7 +38,7 @@ export function SeriesDraftPartsReview({
   onToggleCandidateFinal,
   onAddCandidate,
   onDiscardCandidate
-}: SeriesDraftPartsReviewProps) {
+}) => {
   const selectableParts = parts.filter((part) => !existingVideoIds.has(part.videoId))
 
   return (

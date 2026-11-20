@@ -11,16 +11,9 @@ import { BusyOverlay } from './shared/components/BusyOverlay'
 import * as Icon from './shared/components/Icons'
 import { TopBar } from './shared/components/TopBar'
 import { useDriveSync } from './features/sync/hooks/useDriveSync'
-import { buildSnapshot } from './features/sync/model/drive'
 import { useInstallPrompt } from './app/hooks/useInstallPrompt'
-import {
-  filterSeries,
-  isSeries,
-  mergeSeriesCollections,
-  normalizeSeries,
-  watchedCount
-} from './features/series/model/series'
-import { mergeTagCollections, normalizeTags } from './features/tags/model/tags'
+import { useAppPersistence } from './app/hooks/useAppPersistence'
+import { filterSeries, watchedCount } from './features/series/model/series'
 import { useTagActions } from './features/tags/useTagActions'
 import { TagManagerSheet } from './features/tags/components/TagManagerSheet'
 import { useAppStore } from './store/appStore'
@@ -29,13 +22,14 @@ import { useSeriesActions } from './features/series/useSeriesActions'
 import type { Filter, Series, SeriesSort } from './features/series/types'
 import type { ChapterCandidate } from './features/discovery/types'
 import type { PlayerState, Tab } from './app/types'
-import { APP_NAME, BUSY_HISTORY_KEY } from './shared/lib/constants'
+import { BUSY_HISTORY_KEY } from './shared/lib/constants'
+import type React from 'react'
 
 const ENV_CLIENT_ID = (import.meta.env.VITE_GOOGLE_CLIENT_ID ?? '').trim()
 const ENV_YOUTUBE_API_KEY = (import.meta.env.VITE_YOUTUBE_API_KEY ?? '').trim()
 const ENV_SEMANTIC_API_URL = (import.meta.env.VITE_SEMANTIC_API_URL ?? '').trim()
 
-export default function App() {
+const App: React.FC = () => {
   const allSeries = useAppStore((state) => state.series)
   const setSeries = useAppStore((state) => state.setSeries)
   // Las series borradas se conservan marcadas con una lápida para que el
@@ -333,82 +327,28 @@ export default function App() {
       ? reviewQueue.filter((item) => item !== selectedSeriesId).length
       : 0
 
-  function handleReset() {
-    updateSeries(() => [])
-    setTags([])
-    setTagFilter('all')
-    setListFilter('all')
-    setListQuery('')
-    setListSort('recent')
-    setTagManagerOpen(false)
-    setSelectedSeriesId(null)
-    setPlayer(null)
-    setReviewQueue([])
-    setReviewCandidates({})
-    setReviewActiveId(null)
-    setAddOpen(false)
-    setAddTargetId(null)
-  }
-
-  function handleExport() {
-    // Se exporta también lo borrado (con lápida) para que al importar en otro
-    // dispositivo no reaparezca. Las etiquetas viajan con las series.
-    const payload = buildSnapshot(allSeries, allTags)
-
-    const blob = new Blob([JSON.stringify(payload, null, 2)], {
-      type: 'application/json'
-    })
-    const url = URL.createObjectURL(blob)
-    const anchor = document.createElement('a')
-    anchor.href = url
-    anchor.download = `${APP_NAME}-${new Date().toISOString().slice(0, 10)}.json`
-    document.body.appendChild(anchor)
-    anchor.click()
-    anchor.remove()
-    URL.revokeObjectURL(url)
-  }
-
-  async function handleImport(file: File) {
-    try {
-      const text = await file.text()
-      const parsed = JSON.parse(text) as unknown
-
-      let raw: unknown[] | null = null
-      let rawTags: unknown[] = []
-
-      if (Array.isArray(parsed)) {
-        raw = parsed
-      } else if (
-        parsed &&
-        typeof parsed === 'object' &&
-        Array.isArray((parsed as { series?: unknown }).series)
-      ) {
-        const record = parsed as { series: unknown[]; tags?: unknown }
-        raw = record.series
-        rawTags = Array.isArray(record.tags) ? record.tags : []
-      }
-
-      if (!raw) throw new Error('Formato no reconocido')
-
-      const imported = raw.filter(isSeries).map(normalizeSeries)
-      if (imported.length === 0) throw new Error('Sin series válidas')
-
-      const importedTags = normalizeTags(rawTags)
-      updateSeries((current) => mergeSeriesCollections(current, imported))
-      if (importedTags.length > 0) {
-        setTags((current) => mergeTagCollections(current, importedTags))
-      }
-
-      const importedCount = imported.filter((item) => !item.deletedAt).length
-      window.alert(
-        `Se ${importedCount === 1 ? 'ha importado 1 serie' : `han importado ${importedCount} series`}.`
-      )
-    } catch {
-      window.alert(
-        'No se pudo importar el archivo. Asegúrate de que es una copia exportada por CdramaList.'
-      )
-    }
-  }
+  const {
+    reset: handleReset,
+    exportData: handleExport,
+    importData: handleImport
+  } = useAppPersistence({
+    allSeries,
+    allTags,
+    updateSeries,
+    setTags,
+    setTagFilter,
+    setListFilter,
+    setListQuery,
+    setListSort,
+    setTagManagerOpen,
+    setSelectedSeriesId,
+    setPlayer,
+    setReviewQueue,
+    setReviewCandidates,
+    setReviewActiveId,
+    setAddOpen,
+    setAddTargetId
+  })
 
   function openSettingsFromAdd() {
     closeAdd()
@@ -630,3 +570,5 @@ export default function App() {
     </div>
   )
 }
+
+export default App

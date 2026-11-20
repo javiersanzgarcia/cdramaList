@@ -1,3 +1,4 @@
+import type React from 'react'
 import type { FormEventHandler } from 'react'
 import * as Icon from '../../../shared/components/Icons'
 
@@ -11,7 +12,7 @@ interface YouTubeLinkFormProps {
   onOpenSettings: () => void
 }
 
-export function YouTubeLinkForm({
+export const YouTubeLinkForm: React.FC<YouTubeLinkFormProps> = ({
   mode,
   apiKeyAvailable,
   url,
@@ -19,7 +20,7 @@ export function YouTubeLinkForm({
   onPaste,
   onSubmit,
   onOpenSettings
-}: YouTubeLinkFormProps) {
+}) => {
   const isAddMode = mode === 'add'
 
   return (

@@ -1,3 +1,4 @@
+import type React from 'react'
 import { useState } from 'react'
 import type { FormEvent } from 'react'
 import { normalizeTagName, resolveSeriesTags } from '../model/tags'
@@ -15,7 +16,7 @@ interface TagPickerProps {
 }
 
 /** Selector de etiquetas de una serie, con creación rápida desde la ficha. */
-export function TagPicker({ series, tags, onToggle, onCreate }: TagPickerProps) {
+export const TagPicker: React.FC<TagPickerProps> = ({ series, tags, onToggle, onCreate }) => {
   const [draft, setDraft] = useState('')
   const [message, setMessage] = useState<string | null>(null)
   const activeTags = tags.filter((tag) => !tag.deletedAt)

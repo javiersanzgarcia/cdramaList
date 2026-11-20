@@ -1,3 +1,4 @@
+import type React from 'react'
 import type { SVGProps } from 'react'
 
 type IconProps = SVGProps<SVGSVGElement>
@@ -17,7 +18,7 @@ function Svg(props: IconProps) {
   )
 }
 
-export function Home(props: IconProps) {
+export const Home: React.FC<IconProps> = (props) => {
   return (
     <Svg {...props}>
       <path d="M3 10.5 12 3l9 7.5" />
@@ -26,7 +27,7 @@ export function Home(props: IconProps) {
   )
 }
 
-export function Bookmark(props: IconProps) {
+export const Bookmark: React.FC<IconProps> = (props) => {
   return (
     <Svg {...props}>
       <path d="M6 4.5A1.5 1.5 0 0 1 7.5 3h9A1.5 1.5 0 0 1 18 4.5V21l-6-4-6 4V4.5Z" />
@@ -34,7 +35,7 @@ export function Bookmark(props: IconProps) {
   )
 }
 
-export function Settings(props: IconProps) {
+export const Settings: React.FC<IconProps> = (props) => {
   return (
     <Svg {...props}>
       <path d="M4 6h16M4 12h16M4 18h16" />
@@ -45,7 +46,7 @@ export function Settings(props: IconProps) {
   )
 }
 
-export function Search(props: IconProps) {
+export const Search: React.FC<IconProps> = (props) => {
   return (
     <Svg {...props}>
       <circle cx="11" cy="11" r="7" />
@@ -54,7 +55,7 @@ export function Search(props: IconProps) {
   )
 }
 
-export function X(props: IconProps) {
+export const X: React.FC<IconProps> = (props) => {
   return (
     <Svg {...props}>
       <path d="M6 6l12 12M18 6 6 18" />
@@ -62,7 +63,10 @@ export function X(props: IconProps) {
   )
 }
 
-export function Heart({ filled = false, ...props }: IconProps & { filled?: boolean }) {
+export const Heart: React.FC<IconProps & { filled?: boolean }> = ({
+  filled = false,
+  ...props
+}) => {
   return (
     <Svg {...props} fill={filled ? 'currentColor' : 'none'}>
       <path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z" />
@@ -70,7 +74,7 @@ export function Heart({ filled = false, ...props }: IconProps & { filled?: boole
   )
 }
 
-export function Star(props: IconProps) {
+export const Star: React.FC<IconProps> = (props) => {
   return (
     <Svg {...props} fill="currentColor" stroke="none">
       <path d="M12 2.6l2.9 5.9 6.5 1-4.7 4.6 1.1 6.5L12 17.5l-5.8 3.1 1.1-6.5L2.6 9.5l6.5-1L12 2.6Z" />
@@ -78,7 +82,7 @@ export function Star(props: IconProps) {
   )
 }
 
-export function Play(props: IconProps) {
+export const Play: React.FC<IconProps> = (props) => {
   return (
     <Svg {...props}>
       <path d="M8 5.5v13l11-6.5-11-6.5Z" />
@@ -86,7 +90,7 @@ export function Play(props: IconProps) {
   )
 }
 
-export function Clock(props: IconProps) {
+export const Clock: React.FC<IconProps> = (props) => {
   return (
     <Svg {...props}>
       <circle cx="12" cy="12" r="9" />
@@ -95,7 +99,7 @@ export function Clock(props: IconProps) {
   )
 }
 
-export function Check(props: IconProps) {
+export const Check: React.FC<IconProps> = (props) => {
   return (
     <Svg {...props}>
       <path d="m4.5 12.5 5 5 10-11" />
@@ -103,7 +107,7 @@ export function Check(props: IconProps) {
   )
 }
 
-export function Download(props: IconProps) {
+export const Download: React.FC<IconProps> = (props) => {
   return (
     <Svg {...props}>
       <path d="M12 3v12m0 0 4-4m-4 4-4-4" />
@@ -112,7 +116,7 @@ export function Download(props: IconProps) {
   )
 }
 
-export function Trash(props: IconProps) {
+export const Trash: React.FC<IconProps> = (props) => {
   return (
     <Svg {...props}>
       <path d="M4 7h16M9 7V4.5A1.5 1.5 0 0 1 10.5 3h3A1.5 1.5 0 0 1 15 4.5V7" />
@@ -122,7 +126,7 @@ export function Trash(props: IconProps) {
   )
 }
 
-export function Sparkles(props: IconProps) {
+export const Sparkles: React.FC<IconProps> = (props) => {
   return (
     <Svg {...props}>
       <path d="M12 3l1.9 4.6L18.5 9.5l-4.6 1.9L12 16l-1.9-4.6L5.5 9.5l4.6-1.9L12 3Z" />
@@ -131,7 +135,7 @@ export function Sparkles(props: IconProps) {
   )
 }
 
-export function ChevronRight(props: IconProps) {
+export const ChevronRight: React.FC<IconProps> = (props) => {
   return (
     <Svg {...props}>
       <path d="m9 5 7 7-7 7" />
@@ -139,7 +143,7 @@ export function ChevronRight(props: IconProps) {
   )
 }
 
-export function Info(props: IconProps) {
+export const Info: React.FC<IconProps> = (props) => {
   return (
     <Svg {...props}>
       <circle cx="12" cy="12" r="9" />
@@ -149,7 +153,7 @@ export function Info(props: IconProps) {
   )
 }
 
-export function Photo(props: IconProps) {
+export const Photo: React.FC<IconProps> = (props) => {
   return (
     <Svg {...props}>
       <rect x="3.5" y="4.5" width="17" height="15" rx="2.5" />
@@ -159,7 +163,7 @@ export function Photo(props: IconProps) {
   )
 }
 
-export function Pencil(props: IconProps) {
+export const Pencil: React.FC<IconProps> = (props) => {
   return (
     <Svg {...props}>
       <path d="M4 20h4L18.5 9.5a2.1 2.1 0 0 0-3-3L5 17v3Z" />
@@ -168,7 +172,7 @@ export function Pencil(props: IconProps) {
   )
 }
 
-export function Google(props: IconProps) {
+export const Google: React.FC<IconProps> = (props) => {
   return (
     <svg viewBox="0 0 48 48" aria-hidden="true" {...props}>
       <path
@@ -191,7 +195,7 @@ export function Google(props: IconProps) {
   )
 }
 
-export function Plus(props: IconProps) {
+export const Plus: React.FC<IconProps> = (props) => {
   return (
     <Svg {...props}>
       <path d="M12 5v14M5 12h14" />
@@ -199,7 +203,7 @@ export function Plus(props: IconProps) {
   )
 }
 
-export function ChevronLeft(props: IconProps) {
+export const ChevronLeft: React.FC<IconProps> = (props) => {
   return (
     <Svg {...props}>
       <path d="m15 5-7 7 7 7" />
@@ -207,7 +211,7 @@ export function ChevronLeft(props: IconProps) {
   )
 }
 
-export function ChevronDown(props: IconProps) {
+export const ChevronDown: React.FC<IconProps> = (props) => {
   return (
     <Svg {...props}>
       <path d="m5 9 7 7 7-7" />
@@ -215,7 +219,7 @@ export function ChevronDown(props: IconProps) {
   )
 }
 
-export function ExternalLink(props: IconProps) {
+export const ExternalLink: React.FC<IconProps> = (props) => {
   return (
     <Svg {...props}>
       <path d="M14 4h6v6" />
@@ -225,7 +229,7 @@ export function ExternalLink(props: IconProps) {
   )
 }
 
-export function Youtube(props: IconProps) {
+export const Youtube: React.FC<IconProps> = (props) => {
   return (
     <Svg {...props}>
       <rect x="2.5" y="5.5" width="19" height="13" rx="4" />
@@ -234,7 +238,7 @@ export function Youtube(props: IconProps) {
   )
 }
 
-export function Key(props: IconProps) {
+export const Key: React.FC<IconProps> = (props) => {
   return (
     <Svg {...props}>
       <circle cx="7.5" cy="15.5" r="3.5" />
@@ -243,7 +247,10 @@ export function Key(props: IconProps) {
   )
 }
 
-export function Eye({ filled = false, ...props }: IconProps & { filled?: boolean }) {
+export const Eye: React.FC<IconProps & { filled?: boolean }> = ({
+  filled = false,
+  ...props
+}) => {
   return (
     <Svg {...props}>
       <path d="M2.5 12S6 5.5 12 5.5 21.5 12 21.5 12 18 18.5 12 18.5 2.5 12 2.5 12Z" />
@@ -252,7 +259,7 @@ export function Eye({ filled = false, ...props }: IconProps & { filled?: boolean
   )
 }
 
-export function EyeOff(props: IconProps) {
+export const EyeOff: React.FC<IconProps> = (props) => {
   return (
     <Svg {...props}>
       <path d="M3 3l18 18" />
@@ -263,7 +270,7 @@ export function EyeOff(props: IconProps) {
   )
 }
 
-export function Upload(props: IconProps) {
+export const Upload: React.FC<IconProps> = (props) => {
   return (
     <Svg {...props}>
       <path d="M12 16V4m0 0 4 4m-4-4L8 8" />
@@ -272,7 +279,7 @@ export function Upload(props: IconProps) {
   )
 }
 
-export function LinkIcon(props: IconProps) {
+export const LinkIcon: React.FC<IconProps> = (props) => {
   return (
     <Svg {...props}>
       <path d="M10 13a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1.7 1.7" />
@@ -281,7 +288,7 @@ export function LinkIcon(props: IconProps) {
   )
 }
 
-export function RotateCcw(props: IconProps) {
+export const RotateCcw: React.FC<IconProps> = (props) => {
   return (
     <Svg {...props}>
       <path d="M3 12a9 9 0 1 0 2.6-6.4" />
@@ -290,7 +297,7 @@ export function RotateCcw(props: IconProps) {
   )
 }
 
-export function User(props: IconProps) {
+export const User: React.FC<IconProps> = (props) => {
   return (
     <Svg {...props}>
       <circle cx="12" cy="8" r="4" />
@@ -299,7 +306,7 @@ export function User(props: IconProps) {
   )
 }
 
-export function Cloud(props: IconProps) {
+export const Cloud: React.FC<IconProps> = (props) => {
   return (
     <Svg {...props}>
       <path d="M7 18.5a4.5 4.5 0 0 1-.7-8.95A6 6 0 0 1 17.8 8.6 4 4 0 0 1 17 18.5H7Z" />
@@ -307,7 +314,7 @@ export function Cloud(props: IconProps) {
   )
 }
 
-export function CloudOff(props: IconProps) {
+export const CloudOff: React.FC<IconProps> = (props) => {
   return (
     <Svg {...props}>
       <path d="M3 3l18 18" />
@@ -318,7 +325,7 @@ export function CloudOff(props: IconProps) {
   )
 }
 
-export function LogOut(props: IconProps) {
+export const LogOut: React.FC<IconProps> = (props) => {
   return (
     <Svg {...props}>
       <path d="M15 4h3a1 1 0 0 1 1 1v14a1 1 0 0 1-1 1h-3" />
@@ -328,7 +335,7 @@ export function LogOut(props: IconProps) {
   )
 }
 
-export function RefreshCw(props: IconProps) {
+export const RefreshCw: React.FC<IconProps> = (props) => {
   return (
     <Svg {...props}>
       <path d="M21 12a9 9 0 0 1-15.5 6.2L3 16" />
@@ -338,7 +345,7 @@ export function RefreshCw(props: IconProps) {
   )
 }
 
-export function Shield(props: IconProps) {
+export const Shield: React.FC<IconProps> = (props) => {
   return (
     <Svg {...props}>
       <path d="M12 3l7 3v5.5c0 4.2-2.9 7.6-7 9.5-4.1-1.9-7-5.3-7-9.5V6l7-3Z" />
@@ -347,7 +354,7 @@ export function Shield(props: IconProps) {
   )
 }
 
-export function Tag(props: IconProps) {
+export const Tag: React.FC<IconProps> = (props) => {
   return (
     <Svg {...props}>
       <path d="M20.6 13.4 13.4 20.6a2 2 0 0 1-2.8 0l-7.2-7.2a2 2 0 0 1-.6-1.4V5a2 2 0 0 1 2-2h7a2 2 0 0 1 1.4.6l7.2 7.2a2 2 0 0 1 .2 2.6Z" />

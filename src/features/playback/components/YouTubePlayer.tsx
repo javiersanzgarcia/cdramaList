@@ -123,6 +123,10 @@ export const YouTubePlayer = forwardRef<YouTubePlayerHandle, YouTubePlayerProps>
     const callbacks = useRef({ onEnded, onError, onProgress })
     const [mode, setMode] = useState<'loading' | 'api' | 'fallback'>('loading')
 
+    // Valores iniciales para crear el reproductor una sola vez al montar.
+    const initialVideoRef = useRef(videoId)
+    const initialStartRef = useRef(Math.floor(startSeconds))
+
     // `startSeconds` cambia cada vez que guardamos la posición. El reproductor
     // debe leer el valor solo al cargar un vídeo, nunca volver a bobinar uno que
     // ya está sonando.
@@ -176,8 +180,8 @@ export const YouTubePlayer = forwardRef<YouTubePlayerHandle, YouTubePlayerProps>
     useEffect(() => {
       let cancelled = false
       let player: YTPlayer | null = null
-      const initialVideo = videoId
-      const initialStart = startRef.current
+      const initialVideo = initialVideoRef.current
+      const initialStart = initialStartRef.current
 
       loadYouTubeApi()
         .then((YT) => {
@@ -231,9 +235,9 @@ export const YouTubePlayer = forwardRef<YouTubePlayerHandle, YouTubePlayerProps>
           // El reproductor puede haberse eliminado ya.
         }
       }
-      // El reproductor se crea una sola vez; los cambios de vídeo se cargan aparte.
-      // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [])
+      // El reproductor se crea una sola vez al montar; los cambios de vídeo se
+      // gestionan en efectos aparte. `handleStateChange` es estable.
+    }, [handleStateChange])
 
     useEffect(() => {
       if (mode !== 'api' || !playerRef.current) return

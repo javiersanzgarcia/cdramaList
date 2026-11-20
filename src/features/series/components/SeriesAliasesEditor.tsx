@@ -1,3 +1,4 @@
+import type React from 'react'
 import { useState } from 'react'
 import type { FormEvent } from 'react'
 import { normalizeAliases } from '../model/series'
@@ -10,7 +11,10 @@ interface SeriesAliasesEditorProps {
   onUpdateAliases: (seriesId: string, aliases: string[]) => void
 }
 
-export function SeriesAliasesEditor({ series, onUpdateAliases }: SeriesAliasesEditorProps) {
+export const SeriesAliasesEditor: React.FC<SeriesAliasesEditorProps> = ({
+  series,
+  onUpdateAliases
+}) => {
   const [aliasDraft, setAliasDraft] = useState('')
   const [aliasMessage, setAliasMessage] = useState<string | null>(null)
   const aliases = series.aliases ?? []

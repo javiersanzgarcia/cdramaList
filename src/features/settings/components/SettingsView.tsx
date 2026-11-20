@@ -1,3 +1,4 @@
+import type React from 'react'
 import { useState } from 'react'
 import type { GoogleUser } from '../../sync/types'
 import * as Icon from '../../../shared/components/Icons'
@@ -22,7 +23,7 @@ interface SettingsViewProps {
   onOpenAccount: () => void
 }
 
-export function SettingsView({
+export const SettingsView: React.FC<SettingsViewProps> = ({
   apiKey,
   apiKeyLocked,
   seriesCount,
@@ -39,7 +40,7 @@ export function SettingsView({
   onExport,
   onImport,
   onOpenAccount
-}: SettingsViewProps) {
+}) => {
   const [draftKey, setDraftKey] = useState(apiKey)
   const [showKey, setShowKey] = useState(false)
 

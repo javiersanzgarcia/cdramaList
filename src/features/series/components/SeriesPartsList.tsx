@@ -1,3 +1,4 @@
+import type React from 'react'
 import { useState } from 'react'
 import { formatDate, formatDuration } from '../../../shared/lib/format'
 import { partLabel } from '../model/parts'
@@ -13,14 +14,14 @@ interface SeriesPartsListProps {
   onAddParts: (series: Series) => void
 }
 
-export function SeriesPartsList({
+export const SeriesPartsList: React.FC<SeriesPartsListProps> = ({
   series,
   onPlay,
   onSetWatched,
   onMovePart,
   onRemovePart,
   onAddParts
-}: SeriesPartsListProps) {
+}) => {
   const [pendingVideoId, setPendingVideoId] = useState<string | null>(null)
   const total = series.parts.length
   const pendingIndex = series.parts.findIndex((part) => part.videoId === pendingVideoId)

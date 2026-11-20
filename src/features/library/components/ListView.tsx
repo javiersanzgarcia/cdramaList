@@ -1,3 +1,4 @@
+import type React from 'react'
 import type { ReactNode } from 'react'
 import { filterSeries, sortSeries } from '../../series/model/series'
 import type { Filter, Series, SeriesSort } from '../../series/types'
@@ -32,7 +33,7 @@ interface ListViewProps {
   onAdd: () => void
 }
 
-export function ListView({
+export const ListView: React.FC<ListViewProps> = ({
   header,
   series,
   tags,
@@ -48,7 +49,7 @@ export function ListView({
   onOpen,
   onToggleFavorite,
   onAdd
-}: ListViewProps) {
+}) => {
   const tagged =
     tagFilter === 'all'
       ? series

@@ -1,262 +1,42 @@
-import type {
-  Filter,
-  Part,
-  PartMetaPatch,
-  PlaybackPosition,
-  Series,
-  SeriesDraft,
-  SeriesSort,
-  SeriesStatus
-} from '../types'
+import type { Part, PartMetaPatch, Series, SeriesDraft, SeriesStatus } from '../types'
 import { normalizeSemanticFingerprint } from '../../discovery/model/semanticAi'
 import {
   YOUTUBE_CHANNEL_FALLBACK,
   YOUTUBE_VIDEO_FALLBACK_TITLE
 } from '../../discovery/model/constants'
-import { keepOnlyLastFinal, sortParts, stripPartMarkers } from './parts'
-import { extractKeywords, titleSimilarity } from './titleMatching'
-import { statusOrder } from './status'
+import { keepOnlyLastFinal, sortParts } from './parts'
+import { titleSimilarity } from './titleMatching'
 import { normalizeTagIds } from '../../tags/model/tags'
 import {
   DELETED_SERIES_TTL,
-  MAX_ALIAS_LENGTH,
-  MAX_KEYWORD_CONFIDENCE,
-  MAX_KEYWORD_CONFIDENCE_ENTRIES,
   MAX_PART_DESCRIPTION_LENGTH,
-  MAX_PLAYBACK_POSITION_SECONDS,
-  MAX_SERIES_ALIASES,
-  MIN_ALIAS_LENGTH,
-  MIN_SERIES_TITLE_LENGTH,
   SERIES_MATCH_MIN_SIMILARITY,
   SERIES_MATCH_SAME_CHANNEL_SIMILARITY
 } from './constants'
+import { normalizePlaybackPosition, pickPlaybackPosition } from './seriesPlayback'
 
-export function watchedCount(series: Series): number {
-  return series.parts.filter((part) => series.watched.includes(part.videoId)).length
-}
+export {
+  clearPlaybackPositions,
+  nextPartIndex,
+  normalizePlaybackPosition,
+  pickPlaybackPosition,
+  resumeSeconds,
+  setPlaybackPosition
+} from './seriesPlayback'
+export {
+  continueWatching,
+  filterSeries,
+  groupSeries,
+  isSeriesComplete,
+  progressLabel,
+  progressPercent,
+  seriesStatus,
+  sortSeries,
+  sortSeriesByRecent,
+  watchedCount
+} from './seriesProgress'
 
-/**
- * Estado efectivo de una serie. Es la única fuente de verdad (la usan el badge,
- * los filtros, «Continuar viendo» y el agrupado de «Mi lista»).
- *
- * Prioridad:
- * 1. Todas las partes vistas ⇒ «completada», aunque haya estado manual: el
- *    progreso y el estado nunca deben contradecirse.
- * 2. Estado elegido a mano, si no contradice lo anterior.
- * 3. Automático: «en curso» con algo de progreso, «pendiente» si no hay nada.
- */
-export function seriesStatus(series: Series): SeriesStatus {
-  const total = series.parts.length
-  const watched = watchedCount(series)
-
-  if (total > 0 && watched >= total) return 'completed'
-
-  // Un «completada» manual que ya no cubre todas las partes (por ejemplo, tras
-  // añadir capítulos) se ignora y se recalcula; uno sin partes se respeta.
-  if (series.status === 'completed') {
-    if (total === 0) return 'completed'
-    return watched > 0 || series.lastOpenedAt ? 'watching' : 'planned'
-  }
-
-  if (series.status) return series.status
-
-  // Automático: con algo de progreso (parte vista o reproducida), en curso.
-  if (watched > 0 || series.lastOpenedAt) return 'watching'
-
-  return 'planned'
-}
-
-export function progressPercent(series: Series): number {
-  if (series.parts.length === 0) return 0
-  return Math.round((watchedCount(series) / series.parts.length) * 100)
-}
-
-/** Convierte una posición guardada en un valor válido, o la descarta. */
-export function normalizePlaybackPosition(value: unknown): PlaybackPosition | undefined {
-  if (!value || typeof value !== 'object' || Array.isArray(value)) return undefined
-
-  const record = value as Record<string, unknown>
-  const { seconds, updatedAt } = record
-  if (
-    typeof seconds !== 'number' ||
-    !Number.isFinite(seconds) ||
-    seconds < 1 ||
-    typeof updatedAt !== 'number' ||
-    !Number.isFinite(updatedAt) ||
-    updatedAt < 1
-  ) {
-    return undefined
-  }
-
-  return {
-    seconds: Math.min(Math.floor(seconds), MAX_PLAYBACK_POSITION_SECONDS),
-    updatedAt
-  }
-}
-
-/**
- * Se queda con la posición guardada más reciente. Si dos copias la guardaron en
- * el mismo instante gana la que más avanzó, para no retroceder al sincronizar.
- */
-export function pickPlaybackPosition(
-  current: PlaybackPosition | undefined,
-  incoming: PlaybackPosition | undefined
-): PlaybackPosition | undefined {
-  if (!current) return incoming
-  if (!incoming) return current
-  if (incoming.updatedAt !== current.updatedAt) {
-    return incoming.updatedAt > current.updatedAt ? incoming : current
-  }
-  return incoming.seconds >= current.seconds ? incoming : current
-}
-
-/** Guarda el punto de reanudación de una parte, sin retroceder. */
-export function setPlaybackPosition(
-  series: Series,
-  videoId: string,
-  seconds: number,
-  now: number = Date.now()
-): Series {
-  const position = normalizePlaybackPosition({ seconds, updatedAt: now })
-  if (!position) return series
-
-  let changed = false
-  const parts = series.parts.map((part) => {
-    if (part.videoId !== videoId) return part
-
-    const previous = normalizePlaybackPosition(part.playback)
-    if (previous && previous.seconds >= position.seconds) return part
-
-    changed = true
-    return { ...part, playback: position }
-  })
-
-  return changed ? { ...series, parts } : series
-}
-
-/** Borra el punto de reanudación de las partes indicadas (o de todas). */
-export function clearPlaybackPositions(series: Series, videoIds?: Iterable<string>): Series {
-  const cleared = videoIds ? new Set(videoIds) : null
-  let changed = false
-  const parts = series.parts.map((part) => {
-    if (!part.playback || (cleared && !cleared.has(part.videoId))) return part
-    changed = true
-    const nextPart: Part = { ...part }
-    delete nextPart.playback
-    return nextPart
-  })
-
-  return changed ? { ...series, parts } : series
-}
-
-/**
- * Siguiente parte a reproducir. Si alguna parte sin ver tiene una posición
- * guardada, se vuelve a ella (la más reciente) en lugar de empezar por la
- * primera pendiente.
- */
-export function nextPartIndex(series: Series): number {
-  const watchedIds = new Set(series.watched)
-  let resumeIndex = -1
-  let latest = 0
-
-  series.parts.forEach((part, index) => {
-    if (watchedIds.has(part.videoId) || !part.playback) return
-    if (part.playback.updatedAt >= latest) {
-      latest = part.playback.updatedAt
-      resumeIndex = index
-    }
-  })
-  if (resumeIndex >= 0) return resumeIndex
-
-  const index = series.parts.findIndex((part) => !watchedIds.has(part.videoId))
-  return index === -1 ? 0 : index
-}
-
-/** Segundos desde los que debe empezar una parte al abrir el reproductor. */
-export function resumeSeconds(series: Series, index: number): number {
-  return series.parts[index]?.playback?.seconds ?? 0
-}
-
-export function isSeriesComplete(series: Series): boolean {
-  return series.parts.length > 0 && watchedCount(series) >= series.parts.length
-}
-
-export function progressLabel(series: Series): string {
-  return `${watchedCount(series)}/${series.parts.length}`
-}
-
-export function filterSeries(series: Series[], query: string, filter: Filter): Series[] {
-  const term = query.trim().toLowerCase()
-
-  return series.filter((item) => {
-    const matchesQuery =
-      term.length === 0 ||
-      item.title.toLowerCase().includes(term) ||
-      (item.aliases ?? []).some((alias) => alias.toLowerCase().includes(term)) ||
-      item.channelTitle.toLowerCase().includes(term)
-
-    const matchesFilter =
-      filter === 'all' ||
-      (filter === 'favorites' ? item.favorite : seriesStatus(item) === filter)
-
-    return matchesQuery && matchesFilter
-  })
-}
-
-export function groupSeries(series: Series[]): Record<SeriesStatus, Series[]> {
-  const groups: Record<SeriesStatus, Series[]> = {
-    watching: [],
-    planned: [],
-    completed: []
-  }
-
-  for (const item of series) {
-    groups[seriesStatus(item)].push(item)
-  }
-
-  for (const status of statusOrder) {
-    groups[status].sort(
-      (a, b) => (b.lastOpenedAt ?? b.updatedAt) - (a.lastOpenedAt ?? a.updatedAt)
-    )
-  }
-
-  return groups
-}
-
-export function continueWatching(series: Series[]): Series[] {
-  return sortSeriesByRecent(series.filter((item) => seriesStatus(item) === 'watching'))
-}
-
-/** Ordena por la última vez que se abrió o modificó la serie. */
-export function sortSeriesByRecent(series: Series[]): Series[] {
-  return [...series].sort(
-    (a, b) => (b.lastOpenedAt ?? b.updatedAt) - (a.lastOpenedAt ?? a.updatedAt)
-  )
-}
-
-/**
- * Aplica el criterio elegido en «Mi lista». Los criterios secundarios usan la
- * actividad reciente para desempatar, así que el orden anterior se conserva
- * cuando dos series tienen el mismo título, progreso o favorito.
- */
-export function sortSeries(series: Series[], sort: SeriesSort): Series[] {
-  const ordered = sortSeriesByRecent(series)
-
-  switch (sort) {
-    case 'created':
-      return ordered.sort((a, b) => b.createdAt - a.createdAt)
-    case 'title':
-      return ordered.sort((a, b) =>
-        a.title.localeCompare(b.title, 'es', { sensitivity: 'base', numeric: true })
-      )
-    case 'progress':
-      return ordered.sort((a, b) => progressPercent(b) - progressPercent(a))
-    case 'favorites':
-      return ordered.sort((a, b) => Number(b.favorite) - Number(a.favorite))
-    default:
-      return ordered
-  }
-}
+// Progreso, estado y ordenación: ver ./seriesProgress.ts
 
 export function findExistingSeries(series: Series[], draft: SeriesDraft): Series | undefined {
   if (draft.existingSeriesId) {
@@ -547,151 +327,25 @@ export function reconcileCompletedStatus(
   return hasUnwatched ? undefined : status
 }
 
-export function normalizeKeywordConfidence(value: unknown): Record<string, number> {
-  if (!value || typeof value !== 'object' || Array.isArray(value)) return {}
+import {
+  combineKeywordConfidence,
+  learnKeywordConfidence,
+  mergeAliasesWithParts,
+  normalizeAliases,
+  normalizeDiscardedCandidates,
+  normalizeKeywordConfidence,
+  normalizeRemovedParts
+} from './seriesMetadata'
 
-  const entries = Object.entries(value as Record<string, unknown>)
-    .map(([keyword, score]) => [keyword, Number(score)] as const)
-    .filter(
-      ([keyword, score]) =>
-        /^[\p{L}\p{N}]+$/u.test(keyword) && Number.isFinite(score) && score > 0
-    )
-    .map(
-      ([keyword, score]) =>
-        [keyword, Math.min(MAX_KEYWORD_CONFIDENCE, Math.floor(score))] as const
-    )
-    .filter(([, score]) => score > 0)
-    .sort((a, b) => b[1] - a[1])
-    .slice(0, MAX_KEYWORD_CONFIDENCE_ENTRIES)
-
-  return Object.fromEntries(entries)
-}
-
-export function learnKeywordConfidence(
-  current: unknown,
-  titles: string[]
-): Record<string, number> {
-  const confidence = normalizeKeywordConfidence(current)
-
-  for (const keyword of new Set(titles.flatMap(extractKeywords))) {
-    const previous = Object.hasOwn(confidence, keyword) ? confidence[keyword] : 0
-    confidence[keyword] = Math.min(MAX_KEYWORD_CONFIDENCE, previous + 1)
-  }
-
-  return normalizeKeywordConfidence(confidence)
-}
-
-function combineKeywordConfidence(
-  current: unknown,
-  incoming: unknown
-): Record<string, number> {
-  const confidence = normalizeKeywordConfidence(current)
-
-  for (const [keyword, score] of Object.entries(normalizeKeywordConfidence(incoming))) {
-    const currentScore = Object.hasOwn(confidence, keyword) ? confidence[keyword] : 0
-    confidence[keyword] = Math.max(currentScore, score)
-  }
-
-  return normalizeKeywordConfidence(confidence)
-}
-
-/**
- * Limpia la lista de alias: cadenas recortadas, sin duplicados (sin distinguir
- * mayúsculas) y con un límite para no disparar la consulta de búsqueda.
- */
-export function normalizeAliases(value: unknown): string[] {
-  if (!Array.isArray(value)) return []
-
-  const result: string[] = []
-  const seen = new Set<string>()
-
-  for (const entry of value) {
-    if (typeof entry !== 'string') continue
-
-    const alias = entry.trim().replace(/\s+/g, ' ').slice(0, MAX_ALIAS_LENGTH)
-    if (alias.length < MIN_ALIAS_LENGTH) continue
-
-    const key = alias.toLowerCase()
-    if (seen.has(key)) continue
-
-    seen.add(key)
-    result.push(alias)
-    if (result.length >= MAX_SERIES_ALIASES) break
-  }
-
-  return result
-}
-
-/**
- * IDs de vídeos descartados a mano en las sugerencias de capítulos. Se guardan
- * para no volver a proponerlos en futuras actualizaciones de la serie.
- */
-export function normalizeDiscardedCandidates(value: unknown): string[] {
-  if (!Array.isArray(value)) return []
-
-  return [...new Set(value.filter((id): id is string => typeof id === 'string'))]
-}
-
-/**
- * Lápidas de partes: id del vídeo y momento en que se quitó de la serie. Se
- * descartan las entradas sin marca de tiempo válida.
- */
-export function normalizeRemovedParts(value: unknown): Record<string, number> | undefined {
-  if (!value || typeof value !== 'object' || Array.isArray(value)) return undefined
-
-  const entries = Object.entries(value as Record<string, unknown>).filter(
-    (entry): entry is [string, number] =>
-      typeof entry[1] === 'number' && Number.isFinite(entry[1])
-  )
-  return entries.length > 0 ? Object.fromEntries(entries) : undefined
-}
-
-/**
- * Títulos base de los vídeos de YouTube, sin marcadores de parte ni emojis.
- * Sirven como alias para que una re-subida publicada con otro título siga
- * apareciendo en las búsquedas de la serie.
- */
-export function youtubeTitleAliases(parts: Part[]): string[] {
-  const result: string[] = []
-  const seen = new Set<string>()
-
-  for (const part of parts) {
-    const title = stripPartMarkers(part.title)
-      .replace(/[\s\-–—|:]*\b(?:final|fin|ending|last|[uú]ltima\s+parte)\s*$/iu, '')
-      .replace(/[\s\-–—|:]+$/gu, '')
-      .trim()
-    if (title.length < MIN_SERIES_TITLE_LENGTH) continue
-
-    const key = title.toLowerCase()
-    if (seen.has(key)) continue
-
-    seen.add(key)
-    result.push(title)
-  }
-
-  return result
-}
-
-/**
- * Combina los alias actuales con los títulos reales de YouTube de los vídeos,
- * descartando los que coinciden con el título principal de la serie.
- */
-export function mergeAliasesWithParts(
-  current: string[] | undefined,
-  parts: Part[],
-  title: string
-): string[] {
-  const titleKey = title.trim().toLowerCase()
-  const aliases = (current ?? []).filter((alias) => alias.trim().toLowerCase() !== titleKey)
-
-  return normalizeAliases([
-    // Los títulos de YouTube van primero: la búsqueda global solo lanza unas
-    // pocas consultas, así que deben tener prioridad sobre alias antiguos.
-    ...youtubeTitleAliases(parts).filter((alias) => alias.toLowerCase() !== titleKey),
-    ...aliases
-  ])
-}
-
+export {
+  learnKeywordConfidence,
+  mergeAliasesWithParts,
+  normalizeAliases,
+  normalizeDiscardedCandidates,
+  normalizeKeywordConfidence,
+  normalizeRemovedParts,
+  youtubeTitleAliases
+} from './seriesMetadata'
 export function isSeries(value: unknown): value is Series {
   if (!value || typeof value !== 'object') return false
   const item = value as Record<string, unknown>
