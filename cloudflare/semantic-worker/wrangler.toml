@@ -6,7 +6,10 @@ compatibility_date = "2026-11-10"
 binding = "AI"
 
 [vars]
-AI_MODEL = "@cf/meta/llama-3.3-70b-instruct-fp8-fast"
+# Modelos para fingerprints, en orden de preferencia. Los dos primeros son
+# económicos; el último se usa solo como red de seguridad. Se acepta también
+# AI_MODEL con un solo modelo, por compatibilidad con versiones anteriores.
+AI_MODELS = "@cf/zai-org/glm-4.7-flash,@cf/google/gemma-4-26b-a4b-it,@cf/meta/llama-3.3-70b-instruct-fp8-fast"
 # Modelos para clasificar solo el país, en orden. Si Cloudflare retira uno
 # (error 5028), el Worker prueba el siguiente automáticamente.
 ORIGIN_MODELS = "@cf/zai-org/glm-4.7-flash,@cf/google/gemma-4-26b-a4b-it,@cf/meta/llama-3.3-70b-instruct-fp8-fast"

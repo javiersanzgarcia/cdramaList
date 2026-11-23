@@ -83,13 +83,18 @@ describe('Worker semántico', () => {
     expect(fetchMock.mock.calls[0][0]).toBe('https://api.groq.com/openai/v1/chat/completions')
   })
 
-  it('pide JSON Mode solo para fingerprints, no para el país', async () => {
+  it('no pide JSON Mode y prueba los modelos de fingerprints en orden', async () => {
     const requests = []
+    const used = []
     const env = {
       ...envBase,
+      AI_MODEL: undefined,
+      AI_MODELS: MODELS,
       AI: {
         run: async (model, body) => {
+          used.push(model)
           requests.push(body)
+          if (model === '@cf/model-a') throw new Error('5028: model deprecated')
           return {
             response: {
               items: [
@@ -117,9 +122,62 @@ describe('Worker semántico', () => {
     )
 
     expect(response.status).toBe(200)
-    expect(requests[0].response_format.type).toBe('json_schema')
+    expect(used).toEqual(['@cf/model-a', '@cf/model-b'])
+    expect(requests[0].response_format).toBeUndefined()
+    expect(requests[0].max_tokens).toBe(2048)
 
     await worker.fetch(makeRequest(originEntries), env)
-    expect(requests[1].response_format).toBeUndefined()
+    expect(requests[2].response_format).toBeUndefined()
+    expect(requests[2].max_tokens).toBe(1024)
+  })
+
+  it('usa el respaldo externo si fallan también los fingerprints', async () => {
+    const fetchMock = vi.fn().mockResolvedValue(
+      new Response(
+        JSON.stringify({
+          choices: [
+            {
+              message: {
+                content: JSON.stringify({
+                  items: [
+                    {
+                      id: 'series',
+                      fingerprint: {
+                        genres: ['romance'],
+                        tropes: ['Rebirth!'],
+                        roles: [],
+                        settings: [],
+                        plotElements: []
+                      },
+                      originCountry: 'CN'
+                    }
+                  ]
+                })
+              }
+            }
+          ]
+        }),
+        { status: 200 }
+      )
+    )
+    vi.stubGlobal('fetch', fetchMock)
+    const env = {
+      ...envBase,
+      FALLBACK_API_KEY: 'demo',
+      AI: {
+        run: async () => {
+          throw new Error('4006: quota exhausted')
+        }
+      }
+    }
+
+    const response = await worker.fetch(
+      makeRequest([{ id: 'series', text: 'Drama chino' }]),
+      env
+    )
+
+    expect(response.status).toBe(200)
+    expect((await response.json()).items[0].fingerprint.tropes).toEqual(['rebirth'])
+    expect(fetchMock.mock.calls[0][0]).toBe('https://api.groq.com/openai/v1/chat/completions')
   })
 })

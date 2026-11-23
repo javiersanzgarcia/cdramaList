@@ -1,15 +1,16 @@
-const MODEL = '@cf/meta/llama-3.3-70b-instruct-fp8-fast'
 const MAX_ENTRIES = 25
-const MAX_TEXT_LENGTH = 1200
+const MAX_TEXT_LENGTH = 900
+const MAX_TAGS_PER_CATEGORY = 8
 const RATE_WINDOW_MS = 60_000
 const MAX_REQUESTS_PER_WINDOW = 8
 const requestWindows = new Map()
 const CATEGORIES = ['genres', 'tropes', 'roles', 'settings', 'plotElements']
 const ORIGIN_COUNTRIES = ['CN', 'KR', 'JP', 'TH', 'TR', 'PH', 'TW', 'other', 'unknown']
 // Cloudflare retira modelos con poco aviso (error 5028). Se prueban en orden:
-// los dos primeros son los económicos recomendados por Cloudflare en 2026 y el
-// último es el modelo grande que ya sabemos que funciona con JSON Mode.
-const DEFAULT_ORIGIN_MODELS = [
+// los dos primeros son los modelos económicos recomendados en 2026 y el último
+// es el modelo grande como red de seguridad. Se usan tanto para fingerprints
+// como para clasificar solo el país; cada lista se puede configurar aparte.
+const DEFAULT_MODELS = [
   '@cf/zai-org/glm-4.7-flash',
   '@cf/google/gemma-4-26b-a4b-it',
   '@cf/meta/llama-3.3-70b-instruct-fp8-fast'
@@ -17,55 +18,6 @@ const DEFAULT_ORIGIN_MODELS = [
 // Respaldo gratuito: cualquier API compatible con /chat/completions de OpenAI.
 const DEFAULT_FALLBACK_BASE = 'https://api.groq.com/openai/v1'
 const DEFAULT_FALLBACK_MODEL = 'openai/gpt-oss-120b'
-
-const ORIGIN_SCHEMA = {
-  type: 'object',
-  properties: {
-    items: {
-      type: 'array',
-      items: {
-        type: 'object',
-        properties: {
-          id: { type: 'string' },
-          originCountry: { type: 'string', enum: ORIGIN_COUNTRIES }
-        },
-        required: ['id', 'originCountry']
-      }
-    }
-  },
-  required: ['items']
-}
-
-const FINGERPRINT_SCHEMA = {
-  type: 'object',
-  properties: {
-    items: {
-      type: 'array',
-      items: {
-        type: 'object',
-        properties: {
-          id: { type: 'string' },
-          fingerprint: {
-            type: 'object',
-            properties: Object.fromEntries(
-              CATEGORIES.map((category) => [
-                category,
-                {
-                  type: 'array',
-                  items: { type: 'string' }
-                }
-              ])
-            ),
-            required: CATEGORIES
-          },
-          originCountry: { type: 'string', enum: ORIGIN_COUNTRIES }
-        },
-        required: ['id', 'fingerprint', 'originCountry']
-      }
-    }
-  },
-  required: ['items']
-}
 
 const ORIGIN_SYSTEM_PROMPT = [
   'Classify the country of origin of each short drama-series description.',
@@ -80,9 +32,10 @@ const FINGERPRINT_SYSTEM_PROMPT = [
   'Create a semantic fingerprint for each short drama-series description.',
   'Return concise, reusable English snake_case tags grouped into genres, tropes, roles, settings, and plotElements. These are open categories: add relevant concepts not shown in the examples instead of omitting them.',
   'Recognize Chinese-drama concepts across languages. Examples include: roles engineer, scientist, inventor, doctor, ceo, billionaire, secretary, poor_heroine, orphan, heiress, farmer, soldier; tropes transmigration, rebirth, reincarnation, time_travel, modern_person_in_past, body_swap, revenge, contract_marriage, arranged_marriage, hidden_identity, system, raising_children; settings ancient_china, historical_china, republican_era, 1980s_china, modern_city, rural_village, workplace; plotElements twins, secret_child, family_feud, inheritance, cultivation; genres romance, fantasy, historical, comedy, mystery, crime.',
-  'Only include concepts stated or strongly implied by the text. Do not invent plot details. Return at most 12 tags per category.',
+  'Only include concepts stated or strongly implied by the text. Do not invent plot details. Return at most 8 tags per category.',
   'Also return originCountry for every entry, using the same country codes as above. Use "unknown" when the text gives no solid clue.',
-  'Return one result for every input id, unchanged, and no extra text.'
+  'Return one result for every input id, unchanged.',
+  'Answer with a single JSON object: {"items":[{"id":"...","fingerprint":{"genres":[],"tropes":[],"roles":[],"settings":[],"plotElements":[]},"originCountry":"CN"}]}. No extra text.'
 ].join('\n')
 
 function allowedOrigins(env) {
@@ -132,7 +85,7 @@ function normalizeTags(value) {
         )
         .filter((tag) => tag.length >= 2)
     )
-  ].slice(0, 12)
+  ].slice(0, MAX_TAGS_PER_CATEGORY)
 }
 
 function isRateLimited(ip) {
@@ -251,10 +204,11 @@ async function runFallback(env, { system, entries, maxTokens }) {
   return parseJsonLoose(body?.choices?.[0]?.message?.content)
 }
 
-async function runWorkersAi({ env, system, entries, schema, maxTokens, originOnly }) {
-  const models = originOnly
-    ? modelList(env.ORIGIN_MODELS ?? env.ORIGIN_MODEL, DEFAULT_ORIGIN_MODELS)
-    : modelList(env.AI_MODELS ?? env.AI_MODEL, [MODEL])
+async function runWorkersAi({ env, system, entries, maxTokens, originOnly }) {
+  const models = modelList(
+    originOnly ? (env.ORIGIN_MODELS ?? env.ORIGIN_MODEL) : (env.AI_MODELS ?? env.AI_MODEL),
+    DEFAULT_MODELS
+  )
   const request = {
     messages: [
       { role: 'system', content: system },
@@ -263,11 +217,8 @@ async function runWorkersAi({ env, system, entries, schema, maxTokens, originOnl
     max_tokens: maxTokens,
     temperature: 0
   }
-  // Los modelos económicos recientes no siempre aceptan JSON Mode: en las
-  // peticiones de país basta el prompt estricto y el parseo tolerante.
-  if (!originOnly) {
-    request.response_format = { type: 'json_schema', json_schema: schema }
-  }
+  // Los modelos económicos no siempre aceptan JSON Mode: el prompt pide un
+  // objeto JSON y `parseJsonLoose` tolera cercas markdown y texto introductorio.
 
   let lastError
   for (const model of models) {
@@ -286,10 +237,11 @@ async function runWorkersAi({ env, system, entries, schema, maxTokens, originOnl
 }
 
 async function runInference(options) {
-  const { env, originOnly } = options
-  // Cloudflare 8B + caché siguen siendo la vía principal. El respaldo externo
-  // solo se consulta si falla una petición de país (cuota 4006, timeout, etc.).
-  if (originOnly && env.FALLBACK_API_KEY) {
+  const { env } = options
+  // Cloudflare + caché siguen siendo la vía principal. El respaldo externo
+  // cubre tanto peticiones de país como de fingerprints cuando se agota la
+  // cuota (4006), se retira un modelo (5028) o hay un timeout.
+  if (env.FALLBACK_API_KEY) {
     try {
       return await runWorkersAi(options)
     } catch (cause) {
@@ -361,19 +313,11 @@ async function handleFingerprint(request, env, origin) {
   }
 
   const originOnly = entries[0].originOnly
-  const schema = originOnly ? ORIGIN_SCHEMA : FINGERPRINT_SCHEMA
   const system = originOnly ? ORIGIN_SYSTEM_PROMPT : FINGERPRINT_SYSTEM_PROMPT
-  const maxTokens = originOnly ? 1024 : 3072
+  const maxTokens = originOnly ? 1024 : 2048
 
   try {
-    const parsed = await runInference({
-      env,
-      system,
-      entries,
-      schema,
-      maxTokens,
-      originOnly
-    })
+    const parsed = await runInference({ env, system, entries, maxTokens, originOnly })
     const results = normalizeResults(
       parsed,
       entries.map((entry) => entry.id),

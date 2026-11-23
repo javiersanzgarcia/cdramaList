@@ -27,20 +27,23 @@ compatibility_date = "2026-11-10"
 binding = "AI"
 
 [vars]
-AI_MODEL = "@cf/meta/llama-3.3-70b-instruct-fp8-fast"
+AI_MODELS = "@cf/zai-org/glm-4.7-flash,@cf/google/gemma-4-26b-a4b-it,@cf/meta/llama-3.3-70b-instruct-fp8-fast"
 ORIGIN_MODELS = "@cf/zai-org/glm-4.7-flash,@cf/google/gemma-4-26b-a4b-it,@cf/meta/llama-3.3-70b-instruct-fp8-fast"
 FALLBACK_API_BASE = "https://api.groq.com/openai/v1"
 FALLBACK_MODEL = "openai/gpt-oss-120b"
 ALLOWED_ORIGINS = "https://javiersanzgarcia.github.io,http://localhost:5173,http://127.0.0.1:5173,http://localhost:4173"
 ```
 
-- `AI_MODEL`: modelo grande de Workers AI, solo para fingerprints. Debe soportar
-  JSON Mode.
+- `AI_MODELS`: modelos para fingerprints, **en orden de preferencia**. Los dos
+  primeros son económicos (~3–5 neurons por llamada); el último, el modelo
+  grande de 70B (~200 veces más caro), queda solo como red de seguridad. Ya no
+  se exige JSON Mode: el prompt pide un objeto JSON y el Worker tolera cercas
+  markdown o texto introductorio. Se acepta también `AI_MODEL` con un solo
+  modelo, por compatibilidad con versiones anteriores.
 - `ORIGIN_MODELS`: modelos para clasificar el país, **en orden de preferencia**.
-  Si Cloudflare retira uno (error `5028`) o falla, se prueba el siguiente. Los
-  dos primeros son económicos (~3–5 neurons por llamada); el último es el
-  modelo grande como red de seguridad. Se acepta también `ORIGIN_MODEL` con un
-  solo modelo, por compatibilidad con versiones anteriores.
+  Si Cloudflare retira uno (error `5028`) o falla, se prueba el siguiente. Se
+  acepta también `ORIGIN_MODEL` con un solo modelo, por compatibilidad con
+  versiones anteriores.
 - `FALLBACK_API_BASE` y `FALLBACK_MODEL`: proveedor externo opcional compatible
   con la API de OpenAI. Por defecto Groq; también funciona con OpenRouter.
 - `ALLOWED_ORIGINS`: orígenes permitidos, separados por comas. Si usas otro
@@ -49,10 +52,10 @@ ALLOWED_ORIGINS = "https://javiersanzgarcia.github.io,http://localhost:5173,http
 ### Respaldo gratuito con Groq u OpenRouter (opcional)
 
 Cuando Workers AI agota su asignación diaria de 10 000 neurons (error `4006`)
-o ninguno de los modelos de `ORIGIN_MODELS` está disponible, el Worker puede
-pedir el país a otro proveedor **sin cambiar la URL de la PWA** y sin depender
-de Google AI Studio. La clave se guarda como **secreto del Worker**, nunca en
-el bundle:
+o ninguno de los modelos configurados está disponible, el Worker puede pedir
+el país o los fingerprints a otro proveedor **sin cambiar la URL de la PWA** y
+sin depender de Google AI Studio. La clave se guarda como **secreto del
+Worker**, nunca en el bundle:
 
 ```bash
 npx wrangler secret put FALLBACK_API_KEY
@@ -74,8 +77,9 @@ La clave de OpenRouter se crea en
 créditos comprados, 1 000/día a partir de 10 créditos).
 
 Si el secreto no existe, no pasa nada: la PWA sigue mostrando _Desconocido_
-cuando Cloudflare no puede responder. El respaldo solo se usa en las peticiones
-`originOnly`, nunca en las de fingerprints.
+cuando Cloudflare no puede responder y continúa con la búsqueda léxica si falla
+un fingerprint. El respaldo se usa tanto en las peticiones `originOnly` como en
+las de fingerprints, siempre después de intentar los modelos de Cloudflare.
 
 ### Diagnosticar el respaldo
 
@@ -181,7 +185,8 @@ fijado el país a mano.
 
 ## Límites y seguridad
 
-- Máximo 25 entradas por petición y 1200 caracteres por texto.
+- Máximo 25 entradas por petición, 900 caracteres por texto y 8 etiquetas por
+  categoría (la PWA envía como máximo 10 entradas por petición).
 - Máximo 8 peticiones por IP cada 60 segundos (mejor esfuerzo por isolate).
 - Solo se aceptan peticiones de los orígenes de `ALLOWED_ORIGINS`.
 - Si ningún servicio de IA puede cumplir el esquema JSON (o se agotan ambos

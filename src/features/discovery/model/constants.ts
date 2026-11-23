@@ -51,7 +51,12 @@ export const MAX_SEMANTIC_CANDIDATES = 12
  * y una re-subida puede quedar decenas de posiciones por debajo de la última.
  */
 export const MAX_RECENT_CHANNEL_CANDIDATES = 30
-export const MAX_FINGERPRINT_CANDIDATES = 39
+/**
+ * Candidatos enviados al Worker para calcular huellas. Cada entrada consume
+ * neurons, así que se limita a los más prometedores (la serie + 20 candidatos
+ * caben en tres lotes de 10 entradas).
+ */
+export const MAX_FINGERPRINT_CANDIDATES = 20
 /**
  * Consultas globales independientes por actualización: título, alias, título
  * real de la descripción y títulos de las partes. Cada una cuesta 100 unidades
@@ -69,7 +74,7 @@ export const SERIES_UPDATE_LEARNING_BONUS_MIN = 4
 export const SERIES_UPDATE_DESCRIPTION_MATCH_BONUS = 12
 export const SERIES_UPDATE_DESCRIPTION_RELEVANT_BONUS = 6
 /** Títulos de partes que se incluyen al construir el fingerprint de la serie. */
-export const SERIES_UPDATE_FINGERPRINT_TITLE_PARTS = 10
+export const SERIES_UPDATE_FINGERPRINT_TITLE_PARTS = 8
 /** Similitud semántica mínima para incorporar un candidato. */
 export const SERIES_UPDATE_SEMANTIC_MIN_SIMILARITY = 0.3
 export const SERIES_UPDATE_SEMANTIC_MIN_SCORE = 30
@@ -106,7 +111,8 @@ export const SYNONYM_MAX_QUERY_LENGTH = 300
 
 // --- Análisis semántico (Worker de IA) ---
 export const SEMANTIC_REQUEST_TIMEOUT_MS = 60_000
-export const SEMANTIC_MAX_TEXT_LENGTH = 1200
+/** Texto máximo por entrada: menos neurons por petición sin perder las pistas clave. */
+export const SEMANTIC_MAX_TEXT_LENGTH = 900
 /**
  * El Worker acepta como máximo 25 entradas por petición, pero con lotes
  * pequeños responde mucho antes. Se envían varios lotes en paralelo para
@@ -116,7 +122,7 @@ export const SEMANTIC_MAX_ENTRIES_PER_REQUEST = 10
 /** Normalización de etiquetas devueltas por el servicio semántico. */
 export const SEMANTIC_MAX_TAG_LENGTH = 40
 export const SEMANTIC_MIN_TAG_LENGTH = 2
-export const SEMANTIC_MAX_TAGS = 12
+export const SEMANTIC_MAX_TAGS = 8
 /** Similitud mínima (etiquetas compartidas) para considerar dos historias. */
 export const SEMANTIC_MIN_SHARED_TAGS = 2
 /** Reintento ante 429/503. */

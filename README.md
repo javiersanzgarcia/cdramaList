@@ -6,6 +6,12 @@ PWA para reunir las partes de una historia de YouTube, guardar el progreso y ver
 
 **Fire TV:** se puede usar con el navegador TV Bro; consulta [Instalar en Fire TV](#instalar-en-fire-tv-tv-bro).
 
+## Novedades de la 1.10.3
+
+- **Mucho menos gasto de IA.** Los fingerprints ya no se calculan con el modelo grande de 70B: el Worker prueba primero los modelos económicos de Cloudflare, limita las etiquetas a 8 por categoría y recorta los textos y el número de candidatos analizados. El cuello de botella de las 10 000 neurons diarias queda reducido sin perder las pistas culturales del drama.
+- **El respaldo externo funciona también para los fingerprints.** Si Cloudflare agota su cupo (`4006`) o falla un modelo (`5028`), el Worker intenta Groq u OpenRouter para ambos tipos de petición, no solo para inferir el país. Si no hay secreto configurado, la app sigue con la búsqueda léxica y muestra el aviso habitual.
+- **Hay que redesplegar el Worker** (`cd cloudflare/semantic-worker && npx wrangler deploy`) para aplicar los modelos y el respaldo; opcionalmente configura `npx wrangler secret put FALLBACK_API_KEY`. La URL de la PWA no cambia.
+
 ## Novedades de la 1.10.2
 
 - **Vuelve el análisis semántico tras la retirada de modelos de Cloudflare.** Cloudflare dejó de servir el modelo pequeño que usábamos para inferir el país (error `5028`). El Worker prueba ahora varios modelos activos en orden y, si ninguno responde, recurre al respaldo Groq/OpenRouter; una futura retirada no volverá a romper la app. No hay que cambiar la configuración de la PWA, solo **redesplegar el Worker**.
