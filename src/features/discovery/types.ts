@@ -109,4 +109,6 @@ export interface SynonymCacheEntry {
 export interface FingerprintInput {
   id: string
   text: string
+  /** Pide únicamente `originCountry`, sin generar etiquetas semánticas. */
+  originOnly?: boolean
 }

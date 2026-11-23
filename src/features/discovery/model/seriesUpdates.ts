@@ -14,6 +14,7 @@ import {
   tokenCount
 } from '../../series/model/titleMatching'
 import { analyzeSemanticEntries, semanticSimilarity } from './semanticAi'
+import { readCachedAiOrigin, writeCachedAiOrigin } from './originAiCache'
 import {
   buildSynonymAliases,
   expandQueryWithSynonyms,
@@ -371,19 +372,34 @@ export async function discoverSeriesUpdates(
       .filter(Boolean)
       .join('\n')
       .slice(0, SEMANTIC_MAX_TEXT_LENGTH)
+
+    // Si la huella ya existe, lo único que faltaría es el país. En ese caso se
+    // pide solo `originCountry` (sin etiquetas) y se reutiliza la respuesta
+    // cacheada para el mismo texto: así una serie no gasta neurons dos veces.
+    const needsFingerprint = !semanticFingerprint
+    if (needsOrigin && !series.originCountryManual) {
+      aiOriginCountry = readCachedAiOrigin(seriesAiText)
+    }
+    const wantsAiOrigin =
+      needsOrigin && !series.originCountryManual && aiOriginCountry === undefined
     const entries = [
-      ...(!semanticFingerprint || needsOrigin
+      ...(needsFingerprint || wantsAiOrigin
         ? [
             {
               id: 'series',
-              text: seriesAiText
+              text: seriesAiText,
+              ...(needsFingerprint ? {} : { originOnly: true })
             }
           ]
         : []),
-      ...candidatesForFingerprint.map((candidate) => ({
-        id: candidate.video.videoId,
-        text: [candidate.video.title, candidate.descriptionTitle].filter(Boolean).join('\n')
-      }))
+      ...(needsFingerprint
+        ? candidatesForFingerprint.map((candidate) => ({
+            id: candidate.video.videoId,
+            text: [candidate.video.title, candidate.descriptionTitle]
+              .filter(Boolean)
+              .join('\n')
+          }))
+        : [])
     ]
 
     if (entries.length > 0) {
@@ -393,8 +409,9 @@ export async function discoverSeriesUpdates(
         // Si ya había huella, se conserva: esta llamada puede existir solo para
         // pedir el país y su texto está preparado para eso, no para recalcularla.
         if (!semanticFingerprint) semanticFingerprint = seriesAnalysis?.fingerprint
-        if (needsOrigin && !series.originCountryManual) {
-          aiOriginCountry = seriesAnalysis?.originCountry
+        if (wantsAiOrigin && seriesAnalysis?.originCountry !== undefined) {
+          aiOriginCountry = seriesAnalysis.originCountry
+          writeCachedAiOrigin(seriesAiText, aiOriginCountry)
         }
 
         if (semanticFingerprint) {

@@ -33,7 +33,7 @@ describe('análisis semántico', () => {
     const analyses = await analyzeSemanticEntries('https://example.com/api', entries)
 
     expect(analyses.get('series')?.originCountry).toBe('CN')
-    expect(analyses.get('series')?.fingerprint.genres).toEqual(['romance'])
+    expect(analyses.get('series')?.fingerprint?.genres).toEqual(['romance'])
   })
 
   it('conserva «Desconocido» cuando la IA no encuentra una señal', async () => {
@@ -52,7 +52,7 @@ describe('análisis semántico', () => {
     const analyses = await analyzeSemanticEntries('https://example.com/api', entries)
 
     expect(analyses.get('series')?.originCountry).toBeUndefined()
-    expect(analyses.get('series')?.fingerprint.tropes).toEqual(['revenge'])
+    expect(analyses.get('series')?.fingerprint?.tropes).toEqual(['revenge'])
   })
 
   it('mantiene la interfaz de solo fingerprints', async () => {
@@ -61,5 +61,17 @@ describe('análisis semántico', () => {
     const fingerprints = await generateSemanticFingerprints('https://example.com/api', entries)
 
     expect(fingerprints.get('series')?.settings).toEqual(['rural_village'])
+  })
+
+  it('acepta respuestas de solo país y envía el modo originOnly', async () => {
+    const fetchMock = stubSemanticResponse([{ id: 'series', originCountry: 'CN' }])
+
+    const analyses = await analyzeSemanticEntries('https://example.com/api', [
+      { id: 'series', text: 'Harem imperial', originOnly: true }
+    ])
+
+    expect(analyses.get('series')?.originCountry).toBe('CN')
+    expect(analyses.get('series')?.fingerprint).toBeUndefined()
+    expect(JSON.parse(fetchMock.mock.calls[0][1].body).entries[0].originOnly).toBe(true)
   })
 })

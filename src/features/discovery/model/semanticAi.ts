@@ -21,7 +21,8 @@ interface SemanticResponse {
 
 /** Resultado del análisis semántico de una entrada: etiquetas y país inferido. */
 export interface SemanticAnalysis {
-  fingerprint: SemanticFingerprint
+  /** Ausente cuando la petición pidió solo el país (`originOnly`). */
+  fingerprint?: SemanticFingerprint
   originCountry?: SeriesOriginCountry
 }
 
@@ -100,7 +101,8 @@ async function requestFingerprints(
       body: JSON.stringify({
         entries: entries.map((entry) => ({
           id: entry.id,
-          text: entry.text.slice(0, SEMANTIC_MAX_TEXT_LENGTH)
+          text: entry.text.slice(0, SEMANTIC_MAX_TEXT_LENGTH),
+          ...(entry.originOnly ? { originOnly: true } : {})
         }))
       }),
       signal: controller.signal
@@ -172,7 +174,14 @@ export async function generateSemanticFingerprints(
   entries: FingerprintInput[]
 ): Promise<Map<string, SemanticFingerprint>> {
   const analyses = await analyzeSemanticEntries(endpoint, entries)
-  return new Map([...analyses].map(([id, analysis]) => [id, analysis.fingerprint]))
+  return new Map(
+    [...analyses]
+      .filter(
+        (entry): entry is [string, SemanticAnalysis & { fingerprint: SemanticFingerprint }] =>
+          Boolean(entry[1].fingerprint)
+      )
+      .map(([id, analysis]) => [id, analysis.fingerprint])
+  )
 }
 
 async function requestFingerprintChunk(
@@ -205,6 +214,9 @@ async function requestFingerprintChunk(
     throw new Error('El servicio semántico devolvió un formato no válido.')
   }
 
+  const originOnlyIds = new Set(
+    entries.filter((entry) => entry.originOnly).map((entry) => entry.id)
+  )
   const results = new Map<string, SemanticAnalysis>()
   for (const item of body.items) {
     if (!item || typeof item !== 'object') continue
@@ -212,12 +224,12 @@ async function requestFingerprintChunk(
     if (typeof record.id !== 'string') continue
 
     const fingerprint = normalizeSemanticFingerprint(record.fingerprint)
-    if (fingerprint) {
-      results.set(record.id, {
-        fingerprint,
-        originCountry: normalizeOriginCountry(record.originCountry)
-      })
-    }
+    const originCountry = normalizeOriginCountry(record.originCountry)
+    // En modo `originOnly` el Worker no devuelve etiquetas: basta el país.
+    const valid = originOnlyIds.has(record.id)
+      ? originCountry !== undefined
+      : Boolean(fingerprint)
+    if (valid) results.set(record.id, { fingerprint, originCountry })
   }
 
   if (results.size === 0) {

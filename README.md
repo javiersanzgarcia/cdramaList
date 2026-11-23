@@ -6,6 +6,11 @@ PWA para reunir las partes de una historia de YouTube, guardar el progreso y ver
 
 **Fire TV:** se puede usar con el navegador TV Bro; consulta [Instalar en Fire TV](#instalar-en-fire-tv-tv-bro).
 
+## Novedades de la 1.10
+
+- **Mucho menos gasto de IA.** Cuando la serie ya tiene huella semántica, la app pide al Worker **solo el país** (`originOnly`) en lugar de regenerar todas las etiquetas, y usa un modelo pequeño de Cloudflare para esa clasificación (~20 veces más barato en _neurons_). El resultado se guarda en caché: si el texto no cambia, no se repite la consulta aunque la respuesta haya sido _Desconocido_.
+- **Respaldo gratuito si Cloudflare agota su cupo diario.** El Worker puede usar Gemini Flash-Lite como alternativa cuando se alcanzan las 10 000 neurons diarias (error `4006`), sin cambiar la URL configurada en la PWA. La clave se configura como secreto del Worker (`wrangler secret put GEMINI_API_KEY`); consulta [cloudflare/semantic-worker/README.md](cloudflare/semantic-worker/README.md).
+
 ## Novedades de la 1.9
 
 - **El país de origen también puede inferirlo la IA.** Cuando una serie no tiene ninguna pista de país en el título, la descripción, las etiquetas ni el idioma declarado por YouTube, el análisis semántico existente (Cloudflare Workers AI) examina las pistas culturales del título y los capítulos —por ejemplo «harem imperial», «princesa consorte», «xianxia» o «lakorn»— y devuelve un país candidato. La detección por metadatos sigue teniendo prioridad; la IA solo se usa como respaldo y, si tampoco encuentra una señal fiable, se mantiene **Desconocido**. El país elegido a mano nunca se sobrescribe.
