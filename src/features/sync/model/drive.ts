@@ -228,6 +228,7 @@ function canonicalSeries(series: Series) {
     title: series.title,
     aliases: [...(series.aliases ?? [])],
     originCountry: series.originCountry ?? null,
+    originCountryManual: series.originCountryManual === true,
     keywordConfidence: Object.fromEntries(
       Object.entries(series.keywordConfidence ?? {}).sort(([a], [b]) => a.localeCompare(b))
     ),

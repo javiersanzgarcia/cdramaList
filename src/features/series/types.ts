@@ -67,6 +67,8 @@ export interface Series {
   aliases: string[]
   /** País de origen detectado o elegido manualmente. */
   originCountry?: SeriesOriginCountry
+  /** El país fue elegido a mano: la detección automática no debe pisarlo. */
+  originCountryManual?: boolean
   /** Confianza acumulada en palabras de capítulos aceptados manualmente. */
   keywordConfidence?: Record<string, number>
   semanticFingerprint?: SemanticFingerprint

@@ -7,7 +7,11 @@ import {
 import { keepOnlyLastFinal, sortParts } from './parts'
 import { titleSimilarity } from './titleMatching'
 import { normalizeTagIds } from '../../tags/model/tags'
-import { detectSeriesOriginCountry, normalizeOriginCountry } from './origin'
+import {
+  detectSeriesOriginCountry,
+  normalizeOriginCountry,
+  shouldRedetectOriginCountry
+} from './origin'
 import {
   DELETED_SERIES_TTL,
   MAX_PART_DESCRIPTION_LENGTH,
@@ -302,14 +306,17 @@ export function mergeSeries(
     ...existing,
     title: finalTitle,
     aliases,
-    originCountry:
-      existing.originCountry ??
-      detectSeriesOriginCountry({
-        title: finalTitle,
-        aliases,
-        channelTitle,
-        parts: mergedParts
-      }),
+    originCountry: shouldRedetectOriginCountry(
+      existing.originCountry,
+      existing.originCountryManual
+    )
+      ? detectSeriesOriginCountry({
+          title: finalTitle,
+          aliases,
+          channelTitle,
+          parts: mergedParts
+        })
+      : existing.originCountry,
     channelId: existing.channelId ?? draft.channelId,
     // «YouTube» es el valor por defecto cuando no se conoce el canal; si ahora
     // llega el canal real, se actualiza (igual que hace handleRefreshSeries).
@@ -413,13 +420,20 @@ export function normalizeSeries(value: Series): Series {
       }))
   )
 
+  const storedOriginCountry = normalizeOriginCountry(value.originCountry)
+  const originCountryManual = value.originCountryManual === true
+  // «Desconocido» no es definitivo: las series guardadas antes de existir la
+  // detección (o sin metadatos suficientes) se vuelven a intentar al cargar.
+  const originCountry = shouldRedetectOriginCountry(storedOriginCountry, originCountryManual)
+    ? detectSeriesOriginCountry({ title, aliases, channelTitle, parts })
+    : storedOriginCountry
+
   return {
     id: value.id,
     title,
     aliases,
-    originCountry:
-      normalizeOriginCountry(value.originCountry) ??
-      detectSeriesOriginCountry({ title, aliases, channelTitle, parts }),
+    originCountry,
+    originCountryManual,
     keywordConfidence: normalizeKeywordConfidence(value.keywordConfidence),
     semanticFingerprint: normalizeSemanticFingerprint(value.semanticFingerprint),
     channelId: value.channelId,
@@ -595,9 +609,24 @@ export function combineSeries(current: Series, incoming: Series, base?: Series):
   const channelTitle = mergeField(base, current, incoming, newer, (item) => item.channelTitle)
   const channelUrl =
     mergeField(base, current, incoming, newer, (item) => item.channelUrl) ?? older.channelUrl
-  const originCountry =
+  // Una elección manual gana a la detección automática. Si ambas copias la
+  // marcan, gana la más reciente, y el flag se conserva al restaurar un
+  // snapshot de Drive creado antes de que existiera.
+  const originSource =
+    current.originCountryManual === true && incoming.originCountryManual !== true
+      ? current
+      : incoming.originCountryManual === true && current.originCountryManual !== true
+        ? incoming
+        : newer
+  const originCountryManual = originSource.originCountryManual === true
+  const mergedOriginCountry =
     mergeField(base, current, incoming, newer, (item) => item.originCountry) ??
     older.originCountry
+  const originCountry = originCountryManual
+    ? (originSource.originCountry ?? mergedOriginCountry ?? 'unknown')
+    : shouldRedetectOriginCountry(mergedOriginCountry, false)
+      ? detectSeriesOriginCountry({ title, aliases, channelTitle, parts })
+      : mergedOriginCountry
 
   return {
     ...older,
@@ -609,6 +638,7 @@ export function combineSeries(current: Series, incoming: Series, base?: Series):
     tagIds,
     aliases,
     originCountry,
+    originCountryManual,
     keywordConfidence: combineKeywordConfidence(
       current.keywordConfidence,
       incoming.keywordConfidence

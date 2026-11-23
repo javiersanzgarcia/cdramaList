@@ -1,6 +1,7 @@
 import type { RankedCandidate, SeriesUpdate, VideoMeta } from '../types'
 import type { Part, Series } from '../../series/types'
 import { detectPart, extractDescriptionTitle, sortParts } from '../../series/model/parts'
+import { detectOriginCountryFromMetadata } from '../../series/model/origin'
 import {
   buildGlobalSearchQuery,
   keywordConfidenceBonus,
@@ -405,6 +406,22 @@ export async function discoverSeriesUpdates(
     }
   }
 
+  // El país se detecta solo con metadatos propios de la serie: descripciones y
+  // tags de sus capítulos suelen indicar «Chinese drama», «kdrama», «dizi»…,
+  // aunque el título esté traducido. Los resultados globales y los vídeos
+  // recientes del canal pueden pertenecer a otras historias, así que no se
+  // usan para adivinar el país.
+  const originCountry = detectOriginCountryFromMetadata({
+    title: series.title,
+    aliases: [...manualAliases, ...descriptionTitles],
+    channelTitle,
+    videos: [...referenceVideos.values()].slice(0, 5).map((video) => ({
+      title: video.title,
+      description: video.description,
+      tags: video.tags
+    }))
+  })
+
   ranked.sort((a, b) => b.score - a.score)
   const candidates = ranked
     .slice(0, MAX_CANDIDATES)
@@ -433,6 +450,7 @@ export async function discoverSeriesUpdates(
     channelTitle: channelTitle || undefined,
     channelUrl,
     semanticFingerprint,
+    originCountry,
     warnings
   }
 }

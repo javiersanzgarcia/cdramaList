@@ -1,4 +1,4 @@
-import type { Part, PartInfo, SemanticFingerprint } from '../series/types'
+import type { Part, PartInfo, SemanticFingerprint, SeriesOriginCountry } from '../series/types'
 
 /** Respuesta de la API de YouTube para las miniaturas de un vídeo. */
 export interface Thumbnails {
@@ -84,6 +84,7 @@ export interface SeriesUpdate {
   channelTitle?: string
   channelUrl?: string
   semanticFingerprint?: SemanticFingerprint
+  originCountry?: SeriesOriginCountry
   warnings: string[]
 }
 

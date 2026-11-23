@@ -58,18 +58,21 @@ const RULES: Array<{
       /\bcorean(?:o|a|os|as)\b/,
       /\bcorea\s+del\s+sur\b/,
       /\bsouth\s+korea\b/,
-      /\bkorean\b/
+      /\bkorean\b/,
+      /\bhan(?:kook)?\s+drama\b/
     ]
   },
   {
     country: 'CN',
     patterns: [
       /\bc[-\s]?dramas?\b/,
+      /\bcdramas?\b/,
       /\bdramas?\s+chin(?:o|a|os|as)\b/,
       /\bchin(?:o|a|os|as)\b/,
       /\bchina\b/,
       /\bchinese\b/,
-      /\bmandarin\b/
+      /\bmandarin\b/,
+      /\bnovela\s+china\b/
     ]
   },
   {
@@ -106,7 +109,7 @@ const RULES: Array<{
   {
     country: 'TR',
     patterns: [
-      /\bdizi(?:s)?\b/,
+      /\bdizi(?:s|ler)?\b/,
       /\bdramas?\s+turc(?:o|a|os|as)\b/,
       /\bturc(?:o|a|os|as)\b/,
       /\bturkey\b/,
@@ -142,15 +145,65 @@ export function detectOriginCountryFromText(
   return 'unknown'
 }
 
+/**
+ * Detecta el país usando todos los metadatos disponibles de una serie: título,
+ * alias, canal, títulos de partes, descripciones y tags de YouTube. Las
+ * descripciones y los tags suelen ser la única pista cuando el título está
+ * traducido al español.
+ */
+export function detectOriginCountryFromMetadata({
+  title,
+  aliases = [],
+  channelTitle,
+  videos = []
+}: {
+  title?: string
+  aliases?: string[]
+  channelTitle?: string
+  videos?: Array<{ title?: string; description?: string; tags?: string[] }>
+}): SeriesOriginCountry {
+  const perSource = [
+    detectOriginCountryFromText(title, ...aliases, channelTitle),
+    ...videos.map((video) =>
+      detectOriginCountryFromText(video.title, video.description, ...(video.tags ?? []))
+    )
+  ].filter((value) => value !== 'unknown')
+
+  // Si todas las fuentes que han dado una pista coinciden, se acepta. Si hay
+  // contradicción entre fuentes, se prefiere la que más apariciones tiene;
+  // si empatan, `Desconocido` para no inventar.
+  const counts = new Map<SeriesOriginCountry, number>()
+  for (const value of perSource) counts.set(value, (counts.get(value) ?? 0) + 1)
+  const ranked = [...counts.entries()].sort((a, b) => b[1] - a[1])
+
+  if (ranked.length === 0) return 'unknown'
+  if (ranked.length > 1 && ranked[0][1] === ranked[1][1]) return 'unknown'
+  return ranked[0][0]
+}
+
 /** Detecta el país de origen de una serie usando sus metadatos disponibles. */
 export function detectSeriesOriginCountry(
   series: Pick<Series, 'title' | 'aliases' | 'channelTitle' | 'parts'>
 ): SeriesOriginCountry {
-  const partTitles = series.parts.slice(0, 3).map((part) => part.title)
-  return detectOriginCountryFromText(
-    series.title,
-    ...(series.aliases ?? []),
-    series.channelTitle,
-    ...partTitles
-  )
+  return detectOriginCountryFromMetadata({
+    title: series.title,
+    aliases: series.aliases,
+    channelTitle: series.channelTitle,
+    videos: series.parts.slice(0, 5).map((part) => ({
+      title: part.title,
+      description: part.description
+    }))
+  })
+}
+
+/**
+ * Indica si merece la pena volver a detectar el país. `unknown` no es un valor
+ * definitivo: puede venir de una serie antigua creada antes de que existiera
+ * esta función o de una búsqueda sin metadatos suficientes.
+ */
+export function shouldRedetectOriginCountry(
+  originCountry: SeriesOriginCountry | undefined,
+  manual: boolean | undefined
+): boolean {
+  return !manual && (originCountry === undefined || originCountry === 'unknown')
 }

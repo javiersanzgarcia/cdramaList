@@ -5,6 +5,7 @@ import { discoverSeriesUpdates } from '../discovery/model/seriesUpdates'
 import { fetchVideosByIds } from '../discovery/model/youtubeApi'
 import { YOUTUBE_CHANNEL_FALLBACK } from '../discovery/model/constants'
 import { reorderParts, sortParts } from './model/parts'
+import { shouldRedetectOriginCountry } from './model/origin'
 import {
   applyPartDurations,
   applyPartMeta,
@@ -147,7 +148,9 @@ export function useSeriesActions({
   function updateOriginCountry(id: string, originCountry: SeriesOriginCountry) {
     updateSeries((current) =>
       current.map((item) =>
-        item.id === id ? { ...item, originCountry, updatedAt: Date.now() } : item
+        item.id === id
+          ? { ...item, originCountry, originCountryManual: true, updatedAt: Date.now() }
+          : item
       )
     )
   }
@@ -332,8 +335,13 @@ export function useSeriesActions({
 
     const update = await discoverSeriesUpdates(item, apiKey, semanticEndpoint)
     const learnedFingerprint = !item.semanticFingerprint && Boolean(update.semanticFingerprint)
+    // El país puede descubrirse aunque no haya capítulos nuevos: sin esto, la
+    // actualización de una serie ya al día descartaba el resultado.
+    const learnedOrigin =
+      shouldRedetectOriginCountry(item.originCountry, item.originCountryManual) &&
+      Boolean(update.originCountry && update.originCountry !== 'unknown')
 
-    if (update.added.length === 0 && !learnedFingerprint) {
+    if (update.added.length === 0 && !learnedFingerprint && !learnedOrigin) {
       return {
         added: 0,
         candidates: update.candidates,
@@ -366,6 +374,12 @@ export function useSeriesActions({
               : existing.channelTitle,
           channelUrl: existing.channelUrl ?? update.channelUrl,
           parts,
+          originCountry: shouldRedetectOriginCountry(
+            existing.originCountry,
+            existing.originCountryManual
+          )
+            ? (update.originCountry ?? existing.originCountry)
+            : existing.originCountry,
           // Si se han añadido capítulos, un «completada» que ya no cubre todas
           // las partes se descarta y el estado vuelve a deducirse del progreso.
           status:
@@ -468,8 +482,13 @@ export function useSeriesActions({
           // esta búsqueda debe guardarse para no repetir el trabajo.
           const learnedFingerprint =
             !current.semanticFingerprint && Boolean(update.semanticFingerprint)
+          // Lo mismo aplica al país: puede descubrirse aunque no haya capítulos
+          // nuevos, así que esa búsqueda también debe persistirse.
+          const learnedOrigin =
+            shouldRedetectOriginCountry(current.originCountry, current.originCountryManual) &&
+            Boolean(update.originCountry && update.originCountry !== 'unknown')
 
-          if (!hasNews && !learnedFingerprint) {
+          if (!hasNews && !learnedFingerprint && !learnedOrigin) {
             continue
           }
 
@@ -488,6 +507,12 @@ export function useSeriesActions({
                 : current.channelTitle,
             channelUrl: current.channelUrl ?? update.channelUrl,
             parts,
+            originCountry: shouldRedetectOriginCountry(
+              current.originCountry,
+              current.originCountryManual
+            )
+              ? (update.originCountry ?? current.originCountry)
+              : current.originCountry,
             status:
               update.added.length > 0
                 ? reconcileCompletedStatus(current.status, current.watched, parts)
