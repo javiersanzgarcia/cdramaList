@@ -28,7 +28,7 @@ binding = "AI"
 
 [vars]
 AI_MODEL = "@cf/meta/llama-3.3-70b-instruct-fp8-fast"
-ORIGIN_MODEL = "@cf/meta/llama-3.1-8b-instruct"
+ORIGIN_MODELS = "@cf/zai-org/glm-4.7-flash,@cf/google/gemma-4-26b-a4b-it,@cf/meta/llama-3.3-70b-instruct-fp8-fast"
 FALLBACK_API_BASE = "https://api.groq.com/openai/v1"
 FALLBACK_MODEL = "openai/gpt-oss-120b"
 ALLOWED_ORIGINS = "https://javiersanzgarcia.github.io,http://localhost:5173,http://127.0.0.1:5173,http://localhost:4173"
@@ -36,9 +36,11 @@ ALLOWED_ORIGINS = "https://javiersanzgarcia.github.io,http://localhost:5173,http
 
 - `AI_MODEL`: modelo grande de Workers AI, solo para fingerprints. Debe soportar
   JSON Mode.
-- `ORIGIN_MODEL`: modelo pequeño para clasificar el país. Soporta JSON Mode y
-  consume unas **20 veces menos neurons** que Llama 3.3 70B (~4–20 neurons por
-  llamada frente a ~80–155).
+- `ORIGIN_MODELS`: modelos para clasificar el país, **en orden de preferencia**.
+  Si Cloudflare retira uno (error `5028`) o falla, se prueba el siguiente. Los
+  dos primeros son económicos (~3–5 neurons por llamada); el último es el
+  modelo grande como red de seguridad. Se acepta también `ORIGIN_MODEL` con un
+  solo modelo, por compatibilidad con versiones anteriores.
 - `FALLBACK_API_BASE` y `FALLBACK_MODEL`: proveedor externo opcional compatible
   con la API de OpenAI. Por defecto Groq; también funciona con OpenRouter.
 - `ALLOWED_ORIGINS`: orígenes permitidos, separados por comas. Si usas otro
@@ -46,10 +48,11 @@ ALLOWED_ORIGINS = "https://javiersanzgarcia.github.io,http://localhost:5173,http
 
 ### Respaldo gratuito con Groq u OpenRouter (opcional)
 
-Cuando Workers AI agota su asignación diaria de 10 000 neurons (error `4006`),
-el Worker puede pedir el país a otro proveedor **sin cambiar la URL de la PWA**
-y sin depender de Google AI Studio. La clave se guarda como **secreto del
-Worker**, nunca en el bundle:
+Cuando Workers AI agota su asignación diaria de 10 000 neurons (error `4006`)
+o ninguno de los modelos de `ORIGIN_MODELS` está disponible, el Worker puede
+pedir el país a otro proveedor **sin cambiar la URL de la PWA** y sin depender
+de Google AI Studio. La clave se guarda como **secreto del Worker**, nunca en
+el bundle:
 
 ```bash
 npx wrangler secret put FALLBACK_API_KEY

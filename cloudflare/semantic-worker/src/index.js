@@ -6,7 +6,14 @@ const MAX_REQUESTS_PER_WINDOW = 8
 const requestWindows = new Map()
 const CATEGORIES = ['genres', 'tropes', 'roles', 'settings', 'plotElements']
 const ORIGIN_COUNTRIES = ['CN', 'KR', 'JP', 'TH', 'TR', 'PH', 'TW', 'other', 'unknown']
-const DEFAULT_ORIGIN_MODEL = '@cf/meta/llama-3.1-8b-instruct'
+// Cloudflare retira modelos con poco aviso (error 5028). Se prueban en orden:
+// los dos primeros son los económicos recomendados por Cloudflare en 2026 y el
+// último es el modelo grande que ya sabemos que funciona con JSON Mode.
+const DEFAULT_ORIGIN_MODELS = [
+  '@cf/zai-org/glm-4.7-flash',
+  '@cf/google/gemma-4-26b-a4b-it',
+  '@cf/meta/llama-3.3-70b-instruct-fp8-fast'
+]
 // Respaldo gratuito: cualquier API compatible con /chat/completions de OpenAI.
 const DEFAULT_FALLBACK_BASE = 'https://api.groq.com/openai/v1'
 const DEFAULT_FALLBACK_MODEL = 'openai/gpt-oss-120b'
@@ -65,7 +72,8 @@ const ORIGIN_SYSTEM_PROMPT = [
   'Allowed values: CN (China), KR (South Korea), JP (Japan), TH (Thailand), TR (Turkey), PH (Philippines), TW (Taiwan), other, unknown.',
   'Infer it from cultural and production clues: imperial consorts, harem, xianxia, cultivation, Chinese republican era, or rural Chinese web dramas point to CN; Korean celebrity or chaebol dramas to KR; samurai or Japanese family dramas to JP; lakorn to TH; dizi to TR; Filipino family dramas to PH; Taiwanese dramas to TW.',
   'Use "unknown" when the text gives no solid clue; do not guess when evidence is contradictory. Use "other" only for a clearly identified country outside the list.',
-  'Return one result for every input id, unchanged, with only the id and originCountry fields. No extra text.'
+  'Return one result for every input id, unchanged, with only the id and originCountry fields.',
+  'Answer with a single JSON object: {"items":[{"id":"...","originCountry":"CN"}]}. No extra text.'
 ].join('\n')
 
 const FINGERPRINT_SYSTEM_PROMPT = [
@@ -82,6 +90,15 @@ function allowedOrigins(env) {
     .split(',')
     .map((origin) => origin.trim())
     .filter(Boolean)
+}
+
+/** Lista de modelos en orden de preferencia; admite el antiguo `*_MODEL`. */
+function modelList(configured, defaults) {
+  const models = (configured ?? '')
+    .split(',')
+    .map((model) => model.trim())
+    .filter(Boolean)
+  return models.length > 0 ? models : defaults
 }
 
 function jsonResponse(body, status, origin) {
@@ -180,20 +197,17 @@ function normalizeResults(value, ids, originOnly) {
 }
 
 /**
- * Los modelos compatibles con OpenAI a veces rodean el JSON con cercas
- * markdown o texto introductorio; se extrae el primer objeto completo.
+ * Algunos modelos rodean el JSON con cercas markdown o texto introductorio,
+ * tanto en Workers AI como en los proveedores compatibles con OpenAI.
  */
-function parseChatJson(content) {
-  if (typeof content !== 'string') {
-    throw new Error('El proveedor de respaldo no devolvió texto.')
-  }
-  let text = content.trim()
+function parseJsonLoose(value) {
+  let text = typeof value === 'string' ? value : JSON.stringify(value ?? '')
   const fenced = text.match(/```(?:json)?\s*([\s\S]*?)```/i)
   if (fenced) text = fenced[1].trim()
   const start = text.indexOf('{')
   const end = text.lastIndexOf('}')
   if (start === -1 || end <= start) {
-    throw new Error('El proveedor de respaldo no devolvió un objeto JSON.')
+    throw new Error('El modelo no devolvió un objeto JSON.')
   }
   return JSON.parse(text.slice(start, end + 1))
 }
@@ -234,21 +248,41 @@ async function runFallback(env, { system, entries, maxTokens }) {
     throw new Error(`Respaldo (${response.status}): ${detail}`)
   }
   const body = await response.json()
-  return parseChatJson(body?.choices?.[0]?.message?.content)
+  return parseJsonLoose(body?.choices?.[0]?.message?.content)
 }
 
 async function runWorkersAi({ env, system, entries, schema, maxTokens, originOnly }) {
-  const model = originOnly ? env.ORIGIN_MODEL || DEFAULT_ORIGIN_MODEL : env.AI_MODEL || MODEL
-  const output = await env.AI.run(model, {
+  const models = originOnly
+    ? modelList(env.ORIGIN_MODELS ?? env.ORIGIN_MODEL, DEFAULT_ORIGIN_MODELS)
+    : modelList(env.AI_MODELS ?? env.AI_MODEL, [MODEL])
+  const request = {
     messages: [
       { role: 'system', content: system },
       { role: 'user', content: JSON.stringify(entries) }
     ],
-    response_format: { type: 'json_schema', json_schema: schema },
     max_tokens: maxTokens,
     temperature: 0
-  })
-  return parseInferenceOutput(output)
+  }
+  // Los modelos económicos recientes no siempre aceptan JSON Mode: en las
+  // peticiones de país basta el prompt estricto y el parseo tolerante.
+  if (!originOnly) {
+    request.response_format = { type: 'json_schema', json_schema: schema }
+  }
+
+  let lastError
+  for (const model of models) {
+    try {
+      const output = await env.AI.run(model, request)
+      return parseInferenceOutput(output)
+    } catch (cause) {
+      lastError = cause
+      console.warn(
+        `Modelo ${model} no disponible; se prueba el siguiente.`,
+        cause instanceof Error ? cause.message : cause
+      )
+    }
+  }
+  throw lastError
 }
 
 async function runInference(options) {
@@ -270,11 +304,14 @@ async function runInference(options) {
 }
 
 function parseInferenceOutput(output) {
-  const resultText =
+  if (typeof output?.response === 'object' && output.response !== null) {
+    return parseJsonLoose(output.response)
+  }
+  const content =
     typeof output?.response === 'string'
       ? output.response
-      : JSON.stringify(output?.response ?? output)
-  return JSON.parse(resultText)
+      : (output?.choices?.[0]?.message?.content ?? JSON.stringify(output?.response ?? output))
+  return parseJsonLoose(content)
 }
 
 async function handleFingerprint(request, env, origin) {
@@ -326,7 +363,7 @@ async function handleFingerprint(request, env, origin) {
   const originOnly = entries[0].originOnly
   const schema = originOnly ? ORIGIN_SCHEMA : FINGERPRINT_SCHEMA
   const system = originOnly ? ORIGIN_SYSTEM_PROMPT : FINGERPRINT_SYSTEM_PROMPT
-  const maxTokens = originOnly ? 512 : 3072
+  const maxTokens = originOnly ? 1024 : 3072
 
   try {
     const parsed = await runInference({

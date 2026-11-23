@@ -7,8 +7,9 @@ binding = "AI"
 
 [vars]
 AI_MODEL = "@cf/meta/llama-3.3-70b-instruct-fp8-fast"
-# Modelo pequeño para clasificar solo el país: ~20 veces más barato en neurons.
-ORIGIN_MODEL = "@cf/meta/llama-3.1-8b-instruct"
+# Modelos para clasificar solo el país, en orden. Si Cloudflare retira uno
+# (error 5028), el Worker prueba el siguiente automáticamente.
+ORIGIN_MODELS = "@cf/zai-org/glm-4.7-flash,@cf/google/gemma-4-26b-a4b-it,@cf/meta/llama-3.3-70b-instruct-fp8-fast"
 # Respaldo OpenAI-compatible cuando se agota la cuota diaria de Workers AI.
 # Groq: 30 peticiones/min y 1000/día gratis. Alternativa OpenRouter:
 #   FALLBACK_API_BASE = "https://openrouter.ai/api/v1"

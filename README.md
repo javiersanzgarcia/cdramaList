@@ -6,6 +6,10 @@ PWA para reunir las partes de una historia de YouTube, guardar el progreso y ver
 
 **Fire TV:** se puede usar con el navegador TV Bro; consulta [Instalar en Fire TV](#instalar-en-fire-tv-tv-bro).
 
+## Novedades de la 1.10.2
+
+- **Vuelve el análisis semántico tras la retirada de modelos de Cloudflare.** Cloudflare dejó de servir el modelo pequeño que usábamos para inferir el país (error `5028`). El Worker prueba ahora varios modelos activos en orden y, si ninguno responde, recurre al respaldo Groq/OpenRouter; una futura retirada no volverá a romper la app. No hay que cambiar la configuración de la PWA, solo **redesplegar el Worker**.
+
 ## Novedades de la 1.10.1
 
 - **El respaldo de IA ya no depende de Google.** Si Cloudflare agota su cupo diario, el Worker puede pedir el país a **Groq u OpenRouter** (API compatible con OpenAI, sin Google AI Studio). Se configura con un único secreto (`wrangler secret put FALLBACK_API_KEY`) y los valores de `FALLBACK_API_BASE` y `FALLBACK_MODEL` en `wrangler.toml`. Cloudflare 8B y la caché siguen siendo la vía principal; consulta [cloudflare/semantic-worker/README.md](cloudflare/semantic-worker/README.md).
