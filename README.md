@@ -6,10 +6,14 @@ PWA para reunir las partes de una historia de YouTube, guardar el progreso y ver
 
 **Fire TV:** se puede usar con el navegador TV Bro; consulta [Instalar en Fire TV](#instalar-en-fire-tv-tv-bro).
 
+## Novedades de la 1.10.1
+
+- **El respaldo de IA ya no depende de Google.** Si Cloudflare agota su cupo diario, el Worker puede pedir el país a **Groq u OpenRouter** (API compatible con OpenAI, sin Google AI Studio). Se configura con un único secreto (`wrangler secret put FALLBACK_API_KEY`) y los valores de `FALLBACK_API_BASE` y `FALLBACK_MODEL` en `wrangler.toml`. Cloudflare 8B y la caché siguen siendo la vía principal; consulta [cloudflare/semantic-worker/README.md](cloudflare/semantic-worker/README.md).
+
 ## Novedades de la 1.10
 
 - **Mucho menos gasto de IA.** Cuando la serie ya tiene huella semántica, la app pide al Worker **solo el país** (`originOnly`) en lugar de regenerar todas las etiquetas, y usa un modelo pequeño de Cloudflare para esa clasificación (~20 veces más barato en _neurons_). El resultado se guarda en caché: si el texto no cambia, no se repite la consulta aunque la respuesta haya sido _Desconocido_.
-- **Respaldo gratuito si Cloudflare agota su cupo diario.** El Worker puede usar Gemini Flash-Lite como alternativa cuando se alcanzan las 10 000 neurons diarias (error `4006`), sin cambiar la URL configurada en la PWA. La clave se configura como secreto del Worker (`wrangler secret put GEMINI_API_KEY`); consulta [cloudflare/semantic-worker/README.md](cloudflare/semantic-worker/README.md).
+- **Respaldo gratuito si Cloudflare agota su cupo diario.** El Worker puede usar otro proveedor compatible con OpenAI cuando se alcanzan las 10 000 neurons diarias (error `4006`), sin cambiar la URL configurada en la PWA. La clave se configura como secreto del Worker (`wrangler secret put FALLBACK_API_KEY`); consulta [cloudflare/semantic-worker/README.md](cloudflare/semantic-worker/README.md).
 
 ## Novedades de la 1.9
 

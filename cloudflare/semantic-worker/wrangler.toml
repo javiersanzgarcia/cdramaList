@@ -9,6 +9,10 @@ binding = "AI"
 AI_MODEL = "@cf/meta/llama-3.3-70b-instruct-fp8-fast"
 # Modelo pequeño para clasificar solo el país: ~20 veces más barato en neurons.
 ORIGIN_MODEL = "@cf/meta/llama-3.1-8b-instruct"
-# Respaldo gratuito cuando se agota la cuota diaria de Workers AI.
-GEMINI_MODEL = "gemini-3.5-flash-lite"
+# Respaldo OpenAI-compatible cuando se agota la cuota diaria de Workers AI.
+# Groq: 30 peticiones/min y 1000/día gratis. Alternativa OpenRouter:
+#   FALLBACK_API_BASE = "https://openrouter.ai/api/v1"
+#   FALLBACK_MODEL = "openrouter/free"
+FALLBACK_API_BASE = "https://api.groq.com/openai/v1"
+FALLBACK_MODEL = "openai/gpt-oss-120b"
 ALLOWED_ORIGINS = "https://javiersanzgarcia.github.io,http://localhost:5173,http://127.0.0.1:5173,http://localhost:4173"

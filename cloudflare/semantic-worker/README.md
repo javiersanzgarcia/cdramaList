@@ -29,7 +29,8 @@ binding = "AI"
 [vars]
 AI_MODEL = "@cf/meta/llama-3.3-70b-instruct-fp8-fast"
 ORIGIN_MODEL = "@cf/meta/llama-3.1-8b-instruct"
-GEMINI_MODEL = "gemini-3.5-flash-lite"
+FALLBACK_API_BASE = "https://api.groq.com/openai/v1"
+FALLBACK_MODEL = "openai/gpt-oss-120b"
 ALLOWED_ORIGINS = "https://javiersanzgarcia.github.io,http://localhost:5173,http://127.0.0.1:5173,http://localhost:4173"
 ```
 
@@ -38,25 +39,60 @@ ALLOWED_ORIGINS = "https://javiersanzgarcia.github.io,http://localhost:5173,http
 - `ORIGIN_MODEL`: modelo pequeño para clasificar el país. Soporta JSON Mode y
   consume unas **20 veces menos neurons** que Llama 3.3 70B (~4–20 neurons por
   llamada frente a ~80–155).
-- `GEMINI_MODEL`: modelo de respaldo. `gemini-3.5-flash-lite` suele tener un
-  cupo gratuito más amplio que Flash; consulta el cupo real de tu proyecto en
-  Google AI Studio.
+- `FALLBACK_API_BASE` y `FALLBACK_MODEL`: proveedor externo opcional compatible
+  con la API de OpenAI. Por defecto Groq; también funciona con OpenRouter.
 - `ALLOWED_ORIGINS`: orígenes permitidos, separados por comas. Si usas otro
   dominio o el puerto de vista previa (`http://localhost:4173`), añádelo.
 
-### Respaldo gratuito con Gemini (opcional)
+### Respaldo gratuito con Groq u OpenRouter (opcional)
 
 Cuando Workers AI agota su asignación diaria de 10 000 neurons (error `4006`),
-el Worker puede clasificar el país con Gemini sin cambiar la URL de la PWA.
-La clave se guarda como **secreto del Worker**, nunca en el bundle:
+el Worker puede pedir el país a otro proveedor **sin cambiar la URL de la PWA**
+y sin depender de Google AI Studio. La clave se guarda como **secreto del
+Worker**, nunca en el bundle:
 
 ```bash
-npx wrangler secret put GEMINI_API_KEY
+npx wrangler secret put FALLBACK_API_KEY
 ```
+
+Con los valores por defecto se usa Groq (plan gratuito: 30 peticiones/min y
+1 000/día; clave en [console.groq.com/keys](https://console.groq.com/keys)).
+Para usar OpenRouter en su lugar, cambia las variables en `wrangler.toml` y
+vuelve a desplegar:
+
+```toml
+FALLBACK_API_BASE = "https://openrouter.ai/api/v1"
+FALLBACK_MODEL = "openrouter/free"
+```
+
+La clave de OpenRouter se crea en
+[openrouter.ai/settings/keys](https://openrouter.ai/settings/keys); el router
+`openrouter/free` elige entre los modelos gratuitos (50 peticiones/día sin
+créditos comprados, 1 000/día a partir de 10 créditos).
 
 Si el secreto no existe, no pasa nada: la PWA sigue mostrando _Desconocido_
 cuando Cloudflare no puede responder. El respaldo solo se usa en las peticiones
-`originOnly`, no en las de fingerprints.
+`originOnly`, nunca en las de fingerprints.
+
+### Diagnosticar el respaldo
+
+Para ver el error exacto sin desplegar nada:
+
+```bash
+FALLBACK_API_KEY=tu-clave node scripts/check-fallback.mjs
+# con OpenRouter
+FALLBACK_API_BASE=https://openrouter.ai/api/v1 FALLBACK_MODEL=openrouter/free \
+  FALLBACK_API_KEY=tu-clave node scripts/check-fallback.mjs
+```
+
+El script usa la misma carga que el Worker. Errores típicos:
+
+- **`401`**: clave incorrecta o copiada con espacios.
+- **`402` / `403`**: sin créditos o sin acceso a ese modelo. Comprueba el modelo
+  gratuito del proveedor.
+- **`404`**: el modelo ya no existe; consulta el catálogo del proveedor.
+- **`429`**: cupo por minuto o por día agotado.
+- **CORS en el navegador**: no aplica. La llama el Worker, no la PWA.
 
 ## Desplegar
 

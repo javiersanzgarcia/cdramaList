@@ -7,8 +7,9 @@ const requestWindows = new Map()
 const CATEGORIES = ['genres', 'tropes', 'roles', 'settings', 'plotElements']
 const ORIGIN_COUNTRIES = ['CN', 'KR', 'JP', 'TH', 'TR', 'PH', 'TW', 'other', 'unknown']
 const DEFAULT_ORIGIN_MODEL = '@cf/meta/llama-3.1-8b-instruct'
-const DEFAULT_GEMINI_MODEL = 'gemini-3.5-flash-lite'
-const GEMINI_API_BASE = 'https://generativelanguage.googleapis.com/v1beta/models'
+// Respaldo gratuito: cualquier API compatible con /chat/completions de OpenAI.
+const DEFAULT_FALLBACK_BASE = 'https://api.groq.com/openai/v1'
+const DEFAULT_FALLBACK_MODEL = 'openai/gpt-oss-120b'
 
 const ORIGIN_SCHEMA = {
   type: 'object',
@@ -178,59 +179,62 @@ function normalizeResults(value, ids, originOnly) {
   return results.length > 0 ? results : null
 }
 
-// Gemini usa nombres de tipo en mayúsculas y un subconjunto de JSON Schema.
-function toGeminiSchema(schema) {
-  if (!schema || typeof schema !== 'object') return schema
-  const converted = {}
-  for (const [key, value] of Object.entries(schema)) {
-    if (key === 'properties' && value && typeof value === 'object') {
-      converted.properties = Object.fromEntries(
-        Object.entries(value).map(([name, child]) => [name, toGeminiSchema(child)])
-      )
-    } else if (key === 'items') {
-      converted.items = toGeminiSchema(value)
-    } else if (key === 'type' && typeof value === 'string') {
-      converted.type = value.toUpperCase()
-    } else {
-      converted[key] = value
-    }
+/**
+ * Los modelos compatibles con OpenAI a veces rodean el JSON con cercas
+ * markdown o texto introductorio; se extrae el primer objeto completo.
+ */
+function parseChatJson(content) {
+  if (typeof content !== 'string') {
+    throw new Error('El proveedor de respaldo no devolvió texto.')
   }
-  return converted
+  let text = content.trim()
+  const fenced = text.match(/```(?:json)?\s*([\s\S]*?)```/i)
+  if (fenced) text = fenced[1].trim()
+  const start = text.indexOf('{')
+  const end = text.lastIndexOf('}')
+  if (start === -1 || end <= start) {
+    throw new Error('El proveedor de respaldo no devolvió un objeto JSON.')
+  }
+  return JSON.parse(text.slice(start, end + 1))
 }
 
-async function runGemini(env, { system, entries, schema, maxTokens }) {
-  const model = env.GEMINI_MODEL || DEFAULT_GEMINI_MODEL
-  const response = await fetch(
-    `${GEMINI_API_BASE}/${encodeURIComponent(model)}:generateContent`,
-    {
+async function runFallback(env, { system, entries, maxTokens }) {
+  const base = (env.FALLBACK_API_BASE || DEFAULT_FALLBACK_BASE).replace(/\/+$/, '')
+  const model = env.FALLBACK_MODEL || DEFAULT_FALLBACK_MODEL
+  const messages = [
+    { role: 'system', content: system },
+    { role: 'user', content: JSON.stringify(entries) }
+  ]
+  const send = (structured) =>
+    fetch(`${base}/chat/completions`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'x-goog-api-key': env.GEMINI_API_KEY
+        Authorization: `Bearer ${env.FALLBACK_API_KEY}`
       },
       body: JSON.stringify({
-        systemInstruction: { parts: [{ text: system }] },
-        contents: [{ role: 'user', parts: [{ text: JSON.stringify(entries) }] }],
-        generationConfig: {
-          temperature: 0,
-          maxOutputTokens: maxTokens,
-          responseMimeType: 'application/json',
-          responseSchema: toGeminiSchema(schema)
-        }
+        model,
+        messages,
+        temperature: 0,
+        // Los modelos de razonamiento consumen tokens antes de escribir el JSON.
+        max_tokens: Math.max(maxTokens, 1024),
+        ...(structured ? { response_format: { type: 'json_object' } } : {})
       })
-    }
-  )
+    })
+
+  let response = await send(true)
+  // Algunos modelos gratuitos rechazan `response_format`; se reintenta sin él
+  // y el prompt ya pide explícitamente JSON sin texto adicional.
+  if (response.status === 400) {
+    await response.body?.cancel()
+    response = await send(false)
+  }
   if (!response.ok) {
     const detail = (await response.text().catch(() => '')).slice(0, 200)
-    throw new Error(`Gemini respondió ${response.status}: ${detail}`)
+    throw new Error(`Respaldo (${response.status}): ${detail}`)
   }
   const body = await response.json()
-  const text = (body?.candidates?.[0]?.content?.parts ?? [])
-    .map((part) => part.text)
-    .filter(Boolean)
-    .join('')
-  if (!text) throw new Error('Gemini no devolvió ningún resultado.')
-  return JSON.parse(text)
+  return parseChatJson(body?.choices?.[0]?.message?.content)
 }
 
 async function runWorkersAi({ env, system, entries, schema, maxTokens, originOnly }) {
@@ -249,12 +253,17 @@ async function runWorkersAi({ env, system, entries, schema, maxTokens, originOnl
 
 async function runInference(options) {
   const { env, originOnly } = options
-  if (originOnly && env.GEMINI_API_KEY) {
+  // Cloudflare 8B + caché siguen siendo la vía principal. El respaldo externo
+  // solo se consulta si falla una petición de país (cuota 4006, timeout, etc.).
+  if (originOnly && env.FALLBACK_API_KEY) {
     try {
       return await runWorkersAi(options)
-    } catch {
-      // Cuota diaria agotada, modelo no disponible o timeout: se usa el respaldo.
-      return await runGemini(env, options)
+    } catch (cause) {
+      console.warn(
+        'Workers AI falló; usando respaldo:',
+        cause instanceof Error ? cause.message : cause
+      )
+      return await runFallback(env, options)
     }
   }
   return await runWorkersAi(options)
