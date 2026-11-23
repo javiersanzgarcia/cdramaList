@@ -6,6 +6,10 @@ PWA para reunir las partes de una historia de YouTube, guardar el progreso y ver
 
 **Fire TV:** se puede usar con el navegador TV Bro; consulta [Instalar en Fire TV](#instalar-en-fire-tv-tv-bro).
 
+## Novedades de la 1.8
+
+- **País de origen de la serie.** La ficha muestra el país de origen y permite cambiarlo a mano. Al crear, importar o actualizar series, la app intenta detectarlo automáticamente a partir de títulos, alias, canal y nombres de capítulos (China, Corea del Sur, Japón, Tailandia, Turquía, Filipinas y Taiwán; también «Otro»). Si no hay una pista fiable o hay señales contradictorias, se muestra **Desconocido** en lugar de adivinar. El dato se guarda y sincroniza con Drive.
+
 ## Novedades de la 1.7.1
 
 - **Estado de Drive visible en el perfil.** La foto de perfil de la barra superior muestra un punto con el estado de conexión a Google Drive: verde cuando la sincronización está al día, amarillo cuando está sincronizando o hay cambios pendientes de subir, y rojo si hay un error de conexión. Al recargar la app y al volver a ella tras un rato, se comprueba la conexión para que el indicador refleje el estado real sin entrar en Ajustes.

@@ -95,6 +95,7 @@ const App: React.FC = () => {
     setSeriesThumbnail,
     setSeriesStatus,
     updateAliases,
+    updateOriginCountry,
     updateTitle,
     updatePartMeta,
     fillMissingDurations,
@@ -499,6 +500,7 @@ const App: React.FC = () => {
           onAddCandidate={handleAddCandidate}
           onDiscardCandidate={discardCandidate}
           onUpdateAliases={updateAliases}
+          onUpdateOriginCountry={updateOriginCountry}
           onUpdateTitle={updateTitle}
           tags={tags}
           onToggleTag={toggleSeriesTag}

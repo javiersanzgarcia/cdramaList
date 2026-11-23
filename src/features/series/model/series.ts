@@ -7,6 +7,7 @@ import {
 import { keepOnlyLastFinal, sortParts } from './parts'
 import { titleSimilarity } from './titleMatching'
 import { normalizeTagIds } from '../../tags/model/tags'
+import { detectSeriesOriginCountry, normalizeOriginCountry } from './origin'
 import {
   DELETED_SERIES_TTL,
   MAX_PART_DESCRIPTION_LENGTH,
@@ -97,17 +98,25 @@ export function createSeries(draft: SeriesDraft, title: string, parts: Part[]): 
       ? crypto.randomUUID()
       : `series_${now.toString(36)}_${Math.random().toString(36).slice(2, 8)}`
   const finalTitle = title.trim() || draft.title
+  const sortedParts = sortParts(parts)
+  const aliases = mergeAliasesWithParts([], parts, finalTitle)
 
   return {
     id,
     title: finalTitle,
-    aliases: mergeAliasesWithParts([], parts, finalTitle),
+    aliases,
+    originCountry: detectSeriesOriginCountry({
+      title: finalTitle,
+      aliases,
+      channelTitle: draft.channelTitle,
+      parts: sortedParts
+    }),
     keywordConfidence: learnKeywordConfidence({}, acceptedCandidateTitles(draft, parts)),
     channelId: draft.channelId,
     channelTitle: draft.channelTitle,
     channelUrl: draft.channelUrl,
     thumbnail: draft.thumbnail ?? parts[0]?.thumbnail,
-    parts: sortParts(parts),
+    parts: sortedParts,
     watched: [],
     favorite: false,
     tagIds: [],
@@ -283,17 +292,28 @@ export function mergeSeries(
   const gainedParts = mergedParts.some((part) => !existingPartIds.has(part.videoId))
   const finalTitle = title.trim() || existing.title
 
+  const aliases = mergeAliasesWithParts(existing.aliases, mergedParts, finalTitle)
+  const channelTitle =
+    existing.channelTitle === YOUTUBE_CHANNEL_FALLBACK && draft.channelTitle
+      ? draft.channelTitle
+      : existing.channelTitle
+
   return {
     ...existing,
     title: finalTitle,
-    aliases: mergeAliasesWithParts(existing.aliases, mergedParts, finalTitle),
+    aliases,
+    originCountry:
+      existing.originCountry ??
+      detectSeriesOriginCountry({
+        title: finalTitle,
+        aliases,
+        channelTitle,
+        parts: mergedParts
+      }),
     channelId: existing.channelId ?? draft.channelId,
     // «YouTube» es el valor por defecto cuando no se conoce el canal; si ahora
     // llega el canal real, se actualiza (igual que hace handleRefreshSeries).
-    channelTitle:
-      existing.channelTitle === YOUTUBE_CHANNEL_FALLBACK && draft.channelTitle
-        ? draft.channelTitle
-        : existing.channelTitle,
+    channelTitle,
     channelUrl: existing.channelUrl ?? draft.channelUrl,
     thumbnail: existing.thumbnail ?? draft.thumbnail ?? mergedParts[0]?.thumbnail,
     parts: mergedParts,
@@ -359,47 +379,54 @@ export function isSeries(value: unknown): value is Series {
 
 export function normalizeSeries(value: Series): Series {
   const now = Date.now()
+  const title = value.title.trim() || 'Serie sin título'
+  const aliases = normalizeAliases(value.aliases)
+  const channelTitle = value.channelTitle || YOUTUBE_CHANNEL_FALLBACK
+  const parts = keepOnlyLastFinal(
+    value.parts
+      .filter((part) => part && typeof part.videoId === 'string' && part.videoId.length > 0)
+      .map((part) => ({
+        videoId: part.videoId,
+        title:
+          typeof part.title === 'string' && part.title.length > 0
+            ? part.title
+            : YOUTUBE_VIDEO_FALLBACK_TITLE,
+        description:
+          typeof part.description === 'string'
+            ? part.description.slice(0, MAX_PART_DESCRIPTION_LENGTH)
+            : undefined,
+        partNumber: typeof part.partNumber === 'number' ? part.partNumber : undefined,
+        totalParts: typeof part.totalParts === 'number' ? part.totalParts : undefined,
+        sortOrder:
+          typeof part.sortOrder === 'number' &&
+          Number.isFinite(part.sortOrder) &&
+          part.sortOrder >= 0
+            ? part.sortOrder
+            : undefined,
+        isFinal: Boolean(part.isFinal),
+        durationSeconds:
+          typeof part.durationSeconds === 'number' ? part.durationSeconds : undefined,
+        publishedAt: typeof part.publishedAt === 'string' ? part.publishedAt : undefined,
+        thumbnail: typeof part.thumbnail === 'string' ? part.thumbnail : undefined,
+        playback: normalizePlaybackPosition(part.playback),
+        addedAt: typeof part.addedAt === 'number' ? part.addedAt : now
+      }))
+  )
 
   return {
     id: value.id,
-    title: value.title.trim() || 'Serie sin título',
-    aliases: normalizeAliases(value.aliases),
+    title,
+    aliases,
+    originCountry:
+      normalizeOriginCountry(value.originCountry) ??
+      detectSeriesOriginCountry({ title, aliases, channelTitle, parts }),
     keywordConfidence: normalizeKeywordConfidence(value.keywordConfidence),
     semanticFingerprint: normalizeSemanticFingerprint(value.semanticFingerprint),
     channelId: value.channelId,
-    channelTitle: value.channelTitle || YOUTUBE_CHANNEL_FALLBACK,
+    channelTitle,
     channelUrl: value.channelUrl,
     thumbnail: value.thumbnail,
-    parts: keepOnlyLastFinal(
-      value.parts
-        .filter((part) => part && typeof part.videoId === 'string' && part.videoId.length > 0)
-        .map((part) => ({
-          videoId: part.videoId,
-          title:
-            typeof part.title === 'string' && part.title.length > 0
-              ? part.title
-              : YOUTUBE_VIDEO_FALLBACK_TITLE,
-          description:
-            typeof part.description === 'string'
-              ? part.description.slice(0, MAX_PART_DESCRIPTION_LENGTH)
-              : undefined,
-          partNumber: typeof part.partNumber === 'number' ? part.partNumber : undefined,
-          totalParts: typeof part.totalParts === 'number' ? part.totalParts : undefined,
-          sortOrder:
-            typeof part.sortOrder === 'number' &&
-            Number.isFinite(part.sortOrder) &&
-            part.sortOrder >= 0
-              ? part.sortOrder
-              : undefined,
-          isFinal: Boolean(part.isFinal),
-          durationSeconds:
-            typeof part.durationSeconds === 'number' ? part.durationSeconds : undefined,
-          publishedAt: typeof part.publishedAt === 'string' ? part.publishedAt : undefined,
-          thumbnail: typeof part.thumbnail === 'string' ? part.thumbnail : undefined,
-          playback: normalizePlaybackPosition(part.playback),
-          addedAt: typeof part.addedAt === 'number' ? part.addedAt : now
-        }))
-    ),
+    parts,
     watched: value.watched.filter((id) => typeof id === 'string'),
     favorite: Boolean(value.favorite),
     tagIds: normalizeTagIds(value.tagIds),
@@ -568,6 +595,9 @@ export function combineSeries(current: Series, incoming: Series, base?: Series):
   const channelTitle = mergeField(base, current, incoming, newer, (item) => item.channelTitle)
   const channelUrl =
     mergeField(base, current, incoming, newer, (item) => item.channelUrl) ?? older.channelUrl
+  const originCountry =
+    mergeField(base, current, incoming, newer, (item) => item.originCountry) ??
+    older.originCountry
 
   return {
     ...older,
@@ -578,6 +608,7 @@ export function combineSeries(current: Series, incoming: Series, base?: Series):
     favorite,
     tagIds,
     aliases,
+    originCountry,
     keywordConfidence: combineKeywordConfidence(
       current.keywordConfidence,
       incoming.keywordConfidence

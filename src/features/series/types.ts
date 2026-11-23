@@ -10,6 +10,10 @@ export type Filter = 'all' | SeriesStatus | 'favorites'
 /** Criterio de ordenación de «Mi lista». */
 export type SeriesSort = 'recent' | 'created' | 'title' | 'progress' | 'favorites'
 
+/** País de origen de la serie. `unknown` se usa cuando no hay una señal fiable. */
+export type SeriesOriginCountry =
+  'CN' | 'KR' | 'JP' | 'TH' | 'TR' | 'PH' | 'TW' | 'other' | 'unknown'
+
 /**
  * Última posición reproducida de una parte. La marca de tiempo permite quedarse
  * con el avance más reciente cuando dos dispositivos sincronizan la misma parte.
@@ -61,6 +65,8 @@ export interface Series {
   title: string
   /** Otros títulos con los que se publica la misma historia. */
   aliases: string[]
+  /** País de origen detectado o elegido manualmente. */
+  originCountry?: SeriesOriginCountry
   /** Confianza acumulada en palabras de capítulos aceptados manualmente. */
   keywordConfidence?: Record<string, number>
   semanticFingerprint?: SemanticFingerprint

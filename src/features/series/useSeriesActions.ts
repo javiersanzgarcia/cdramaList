@@ -25,6 +25,7 @@ import type {
   RefreshFavoritesResult,
   Series,
   SeriesDraft,
+  SeriesOriginCountry,
   SeriesStatus,
   UseSeriesActionsOptions
 } from './types'
@@ -139,6 +140,14 @@ export function useSeriesActions({
     updateSeries((current) =>
       current.map((item) =>
         item.id === id ? { ...item, aliases, updatedAt: Date.now() } : item
+      )
+    )
+  }
+
+  function updateOriginCountry(id: string, originCountry: SeriesOriginCountry) {
+    updateSeries((current) =>
+      current.map((item) =>
+        item.id === id ? { ...item, originCountry, updatedAt: Date.now() } : item
       )
     )
   }
@@ -589,6 +598,7 @@ export function useSeriesActions({
     setSeriesThumbnail,
     setSeriesStatus,
     updateAliases,
+    updateOriginCountry,
     updateTitle,
     updatePartMeta,
     fillMissingDurations,

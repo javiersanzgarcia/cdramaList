@@ -10,10 +10,11 @@ import {
   seriesStatus,
   watchedCount
 } from '../model/series'
+import { ORIGIN_COUNTRY_OPTIONS } from '../model/origin'
 import { statusMeta, statusOrder } from '../model/status'
 import { channelUrlFor, youtubeThumbnail } from '../../discovery/model/youtube'
 import type { ChapterCandidate, SeriesRefreshResult } from '../../discovery/types'
-import type { Series, SeriesStatus } from '../types'
+import type { Series, SeriesOriginCountry, SeriesStatus } from '../types'
 import type { Tag } from '../../tags/types'
 import { TagPicker } from '../../tags/components/TagPicker'
 import { useSheet } from '../../../shared/hooks/useSheet'
@@ -45,6 +46,7 @@ interface SeriesSheetProps {
   ) => Promise<{ synced: boolean }>
   onDiscardCandidate: (series: Series, videoId: string) => void
   onUpdateAliases: (seriesId: string, aliases: string[]) => void
+  onUpdateOriginCountry: (seriesId: string, originCountry: SeriesOriginCountry) => void
   onUpdateTitle: (seriesId: string, title: string) => void
   tags: Tag[]
   onToggleTag: (seriesId: string, tagId: string) => void
@@ -78,6 +80,7 @@ export const SeriesSheet: React.FC<SeriesSheetProps> = ({
   onAddCandidate,
   onDiscardCandidate,
   onUpdateAliases,
+  onUpdateOriginCountry,
   onUpdateTitle,
   tags,
   onToggleTag,
@@ -385,6 +388,28 @@ export const SeriesSheet: React.FC<SeriesSheetProps> = ({
           {publishedLabel && (
             <p className="mt-1.5 text-[11px] text-ink-subtle">Publicada el {publishedLabel}</p>
           )}
+
+          <div className="mt-3">
+            <p className="text-[11px] font-semibold uppercase tracking-wide text-ink-subtle">
+              País de origen
+            </p>
+            <div className="mt-2">
+              <select
+                value={series.originCountry ?? 'unknown'}
+                onChange={(event) =>
+                  onUpdateOriginCountry(series.id, event.target.value as SeriesOriginCountry)
+                }
+                aria-label="País de origen de la serie"
+                className="w-full rounded-2xl border border-line bg-canvas/60 px-3 py-2.5 text-sm text-ink-bright outline-none transition focus:border-brand/60"
+              >
+                {ORIGIN_COUNTRY_OPTIONS.map((option) => (
+                  <option key={option.value} value={option.value}>
+                    {option.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+          </div>
 
           <div className="mt-3">
             <p className="text-[11px] font-semibold uppercase tracking-wide text-ink-subtle">
