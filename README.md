@@ -6,6 +6,11 @@ PWA para reunir las partes de una historia de YouTube, guardar el progreso y ver
 
 **Fire TV:** se puede usar con el navegador TV Bro; consulta [Instalar en Fire TV](#instalar-en-fire-tv-tv-bro).
 
+## Novedades de la 1.9
+
+- **El país de origen también puede inferirlo la IA.** Cuando una serie no tiene ninguna pista de país en el título, la descripción, las etiquetas ni el idioma declarado por YouTube, el análisis semántico existente (Cloudflare Workers AI) examina las pistas culturales del título y los capítulos —por ejemplo «harem imperial», «princesa consorte», «xianxia» o «lakorn»— y devuelve un país candidato. La detección por metadatos sigue teniendo prioridad; la IA solo se usa como respaldo y, si tampoco encuentra una señal fiable, se mantiene **Desconocido**. El país elegido a mano nunca se sobrescribe.
+- **El Worker semántico debe redesplegarse** para que la PWA reciba este dato. Consulta [cloudflare/semantic-worker/README.md](cloudflare/semantic-worker/README.md).
+
 ## Novedades de la 1.8.2
 
 - **Más aciertos al detectar el país.** «Dorama» ya no se cuenta como Japón, porque en español se usa para cualquier drama asiático (un canal de «doramas chinos» daba un empate y acababa en _Desconocido_). La detección también aprovecha el **idioma que declara YouTube** en cada vídeo (`zh`, `ko`, `th`…) cuando el título y la descripción no dan pistas, y reconoce expresiones como «serie china», «surcoreana» o «xianxia».

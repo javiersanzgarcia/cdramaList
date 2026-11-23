@@ -2,7 +2,9 @@
 
 Worker de Cloudflare que genera fingerprints semánticos con **Workers AI** para
 la PWA de CdramaList. La PWA envía títulos y descripciones; el Worker devuelve
-etiquetas agrupadas en `genres`, `tropes`, `roles`, `settings` y `plotElements`.
+etiquetas agrupadas en `genres`, `tropes`, `roles`, `settings` y `plotElements`,
+además del **país de origen inferido** (`originCountry`) cuando el texto aporta
+pistas culturales.
 
 La credencial de Cloudflare no sale del Worker: el frontend solo conoce la URL
 pública del endpoint. No hay ninguna clave de proveedor en el bundle de la PWA.
@@ -73,11 +75,24 @@ Respuesta:
         "roles": ["ceo", "secretary"],
         "settings": ["modern_city"],
         "plotElements": ["secret_child"]
-      }
+      },
+      "originCountry": "CN"
     }
   ]
 }
 ```
+
+`originCountry` usa los mismos códigos que la PWA: `CN` (China), `KR` (Corea
+del Sur), `JP` (Japón), `TH` (Tailandia), `TR` (Turquía), `PH` (Filipinas),
+`TW` (Taiwán), `other` y `unknown`. El modelo debe devolver `unknown` cuando no
+haya una pista fiable. La PWA solo aplica este valor si la detección por texto
+de los metadatos de YouTube no ha encontrado ningún país y el usuario no ha
+fijado el país a mano.
+
+> **Importante:** tras cambiar el Worker hay que volver a desplegarlo
+> (`npx wrangler deploy`) y recargar la PWA. Mientras el Worker desplegado sea
+> una versión anterior, no devolverá `originCountry` y la PWA seguirá mostrando
+> _Desconocido_ en las series sin pistas en sus metadatos.
 
 ## Límites y seguridad
 

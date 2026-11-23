@@ -5,6 +5,7 @@ const RATE_WINDOW_MS = 60_000
 const MAX_REQUESTS_PER_WINDOW = 8
 const requestWindows = new Map()
 const CATEGORIES = ['genres', 'tropes', 'roles', 'settings', 'plotElements']
+const ORIGIN_COUNTRIES = ['CN', 'KR', 'JP', 'TH', 'TR', 'PH', 'TW', 'other', 'unknown']
 
 const FINGERPRINT_SCHEMA = {
   type: 'object',
@@ -27,9 +28,10 @@ const FINGERPRINT_SCHEMA = {
               ])
             ),
             required: CATEGORIES
-          }
+          },
+          originCountry: { type: 'string', enum: ORIGIN_COUNTRIES }
         },
-        required: ['id', 'fingerprint']
+        required: ['id', 'fingerprint', 'originCountry']
       }
     }
   },
@@ -119,7 +121,10 @@ function normalizeResults(value, ids) {
     for (const category of CATEGORIES) {
       fingerprint[category] = normalizeTags(item.fingerprint?.[category])
     }
-    results.push({ id: item.id, fingerprint })
+    const originCountry = ORIGIN_COUNTRIES.includes(item.originCountry)
+      ? item.originCountry
+      : 'unknown'
+    results.push({ id: item.id, fingerprint, originCountry })
   }
   return results.length > 0 ? results : null
 }
@@ -180,6 +185,7 @@ async function handleFingerprint(request, env, origin) {
             'Return concise, reusable English snake_case tags grouped into genres, tropes, roles, settings, and plotElements. These are open categories: add relevant concepts not shown in the examples instead of omitting them.',
             'Recognize Chinese-drama concepts across languages. Examples include: roles engineer, scientist, inventor, doctor, ceo, billionaire, secretary, poor_heroine, orphan, heiress, farmer, soldier; tropes transmigration, rebirth, reincarnation, time_travel, modern_person_in_past, body_swap, revenge, contract_marriage, arranged_marriage, hidden_identity, system, raising_children; settings ancient_china, historical_china, republican_era, 1980s_china, modern_city, rural_village, workplace; plotElements twins, secret_child, family_feud, inheritance, cultivation; genres romance, fantasy, historical, comedy, mystery, crime.',
             'Only include concepts stated or strongly implied by the text. Do not invent plot details. Return at most 12 tags per category.',
+            'Also return originCountry for every entry. Allowed values: CN (China), KR (South Korea), JP (Japan), TH (Thailand), TR (Turkey), PH (Philippines), TW (Taiwan), other, unknown. Infer it from cultural and production clues: imperial consorts, harem, xianxia, cultivation, Chinese republican era, or rural Chinese web dramas point to CN; Korean celebrity/chaebol dramas to KR; samurai or Japanese family dramas to JP; lakorn to TH; dizi to TR; Filipino family dramas to PH; Taiwanese dramas to TW. Use "unknown" only when the text gives no solid clue; do not guess when evidence is contradictory.',
             'Return one result for every input id, unchanged, and no extra text.'
           ].join('\n')
         },

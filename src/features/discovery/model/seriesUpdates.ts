@@ -1,7 +1,10 @@
 import type { RankedCandidate, SeriesUpdate, VideoMeta } from '../types'
-import type { Part, Series } from '../../series/types'
+import type { Part, Series, SeriesOriginCountry } from '../../series/types'
 import { detectPart, extractDescriptionTitle, sortParts } from '../../series/model/parts'
-import { detectOriginCountryFromMetadata } from '../../series/model/origin'
+import {
+  detectOriginCountryFromMetadata,
+  shouldRedetectOriginCountry
+} from '../../series/model/origin'
 import {
   buildGlobalSearchQuery,
   keywordConfidenceBonus,
@@ -10,7 +13,7 @@ import {
   titleJaccard,
   tokenCount
 } from '../../series/model/titleMatching'
-import { generateSemanticFingerprints, semanticSimilarity } from './semanticAi'
+import { analyzeSemanticEntries, semanticSimilarity } from './semanticAi'
 import {
   buildSynonymAliases,
   expandQueryWithSynonyms,
@@ -49,8 +52,15 @@ import {
   SERIES_UPDATE_SEMANTIC_SCORE_WEIGHT,
   SERIES_UPDATE_TITLE_OVERLAP,
   SERIES_UPDATE_TITLE_OVERLAP_SAME_CHANNEL,
-  SERIES_UPDATE_TITLE_SHARED_SAME_CHANNEL
+  SERIES_UPDATE_TITLE_SHARED_SAME_CHANNEL,
+  SEMANTIC_MAX_TEXT_LENGTH
 } from './constants'
+
+function compactText(value: string | undefined, maxLength: number): string | undefined {
+  if (!value) return undefined
+  const clean = value.replace(/\s+/g, ' ').trim()
+  return clean ? clean.slice(0, maxLength) : undefined
+}
 
 /** Busca capítulos de la serie en las subidas del canal y en todo YouTube. */
 export async function discoverSeriesUpdates(
@@ -318,6 +328,11 @@ export async function discoverSeriesUpdates(
   }
 
   let semanticFingerprint = series.semanticFingerprint
+  let aiOriginCountry: SeriesOriginCountry | undefined
+  const needsOrigin = shouldRedetectOriginCountry(
+    series.originCountry,
+    series.originCountryManual
+  )
   if (semanticEndpoint) {
     const lexicalCandidates = [...ranked]
       .sort((a, b) => b.score - a.score)
@@ -335,19 +350,33 @@ export async function discoverSeriesUpdates(
           index
       )
       .slice(0, maxFingerprintCandidates)
+    // Aunque ya tengamos la huella semántica, volvemos a enviar la serie si su
+    // país está pendiente: el Worker ahora también devuelve el origen inferido.
+    // Las etiquetas van antes que las descripciones porque suelen contener las
+    // pistas culturales (harem, emperatriz, xianxia…) que recorta el límite de
+    // caracteres del Worker.
+    const referenceSample = [...referenceVideos.values()].slice(0, 3)
+    const seriesAiText = [
+      compactText(series.title, 160),
+      channelTitle ? `Canal: ${compactText(channelTitle, 80)}` : undefined,
+      ...manualAliases.slice(0, 3).map((alias) => compactText(alias, 80)),
+      ...referenceSample.flatMap((video) =>
+        (video.tags ?? []).slice(0, 15).map((tag) => compactText(tag, 40))
+      ),
+      ...series.parts
+        .slice(0, SERIES_UPDATE_FINGERPRINT_TITLE_PARTS)
+        .map((part) => compactText(part.title, 100)),
+      ...referenceSample.map((video) => compactText(video.description, 160))
+    ]
+      .filter(Boolean)
+      .join('\n')
+      .slice(0, SEMANTIC_MAX_TEXT_LENGTH)
     const entries = [
-      ...(!semanticFingerprint
+      ...(!semanticFingerprint || needsOrigin
         ? [
             {
               id: 'series',
-              text: [
-                series.title,
-                ...manualAliases,
-                ...descriptionTitles,
-                ...series.parts
-                  .slice(0, SERIES_UPDATE_FINGERPRINT_TITLE_PARTS)
-                  .map((part) => part.title)
-              ].join('\n')
+              text: seriesAiText
             }
           ]
         : []),
@@ -359,8 +388,14 @@ export async function discoverSeriesUpdates(
 
     if (entries.length > 0) {
       try {
-        const fingerprints = await generateSemanticFingerprints(semanticEndpoint, entries)
-        semanticFingerprint = fingerprints.get('series') ?? semanticFingerprint
+        const analyses = await analyzeSemanticEntries(semanticEndpoint, entries)
+        const seriesAnalysis = analyses.get('series')
+        // Si ya había huella, se conserva: esta llamada puede existir solo para
+        // pedir el país y su texto está preparado para eso, no para recalcularla.
+        if (!semanticFingerprint) semanticFingerprint = seriesAnalysis?.fingerprint
+        if (needsOrigin && !series.originCountryManual) {
+          aiOriginCountry = seriesAnalysis?.originCountry
+        }
 
         if (semanticFingerprint) {
           const rankedById = new Map(
@@ -369,7 +404,7 @@ export async function discoverSeriesUpdates(
           for (const candidate of candidatesForFingerprint) {
             const similarity = semanticSimilarity(
               semanticFingerprint,
-              fingerprints.get(candidate.video.videoId)
+              analyses.get(candidate.video.videoId)?.fingerprint
             )
             if (similarity < SERIES_UPDATE_SEMANTIC_MIN_SIMILARITY) continue
 
@@ -411,7 +446,7 @@ export async function discoverSeriesUpdates(
   // aunque el título esté traducido. Los resultados globales y los vídeos
   // recientes del canal pueden pertenecer a otras historias, así que no se
   // usan para adivinar el país.
-  const originCountry = detectOriginCountryFromMetadata({
+  const detectedOriginCountry = detectOriginCountryFromMetadata({
     title: series.title,
     aliases: [...manualAliases, ...descriptionTitles],
     channelTitle,
@@ -422,6 +457,13 @@ export async function discoverSeriesUpdates(
       defaultLanguage: video.defaultLanguage
     }))
   })
+  // La IA solo entra en juego cuando los metadatos no dan ninguna pista y el
+  // usuario no ha fijado el país a mano. Si tampoco encuentra una señal fiable,
+  // se mantiene `Desconocido`.
+  const originCountry =
+    detectedOriginCountry !== 'unknown'
+      ? detectedOriginCountry
+      : (aiOriginCountry ?? 'unknown')
 
   ranked.sort((a, b) => b.score - a.score)
   const candidates = ranked

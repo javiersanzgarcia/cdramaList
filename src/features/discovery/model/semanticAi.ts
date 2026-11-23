@@ -1,4 +1,5 @@
-import type { SemanticFingerprint } from '../../series/types'
+import type { SemanticFingerprint, SeriesOriginCountry } from '../../series/types'
+import { normalizeOriginCountry } from '../../series/model/origin'
 import type { FingerprintInput } from '../types'
 import {
   SEMANTIC_MAX_ENTRIES_PER_REQUEST,
@@ -16,6 +17,12 @@ import {
 interface SemanticResponse {
   items?: unknown
   error?: unknown
+}
+
+/** Resultado del análisis semántico de una entrada: etiquetas y país inferido. */
+export interface SemanticAnalysis {
+  fingerprint: SemanticFingerprint
+  originCountry?: SeriesOriginCountry
 }
 
 const FINGERPRINT_CATEGORIES: Array<keyof SemanticFingerprint> = [
@@ -121,10 +128,10 @@ async function requestFingerprints(
  * lotes. Un lote que falle no invalida los fingerprints ya obtenidos: la
  * búsqueda léxica y los candidatos del resto de lotes siguen funcionando.
  */
-export async function generateSemanticFingerprints(
+export async function analyzeSemanticEntries(
   endpoint: string,
   entries: FingerprintInput[]
-): Promise<Map<string, SemanticFingerprint>> {
+): Promise<Map<string, SemanticAnalysis>> {
   const url = endpoint.trim()
   if (!url || entries.length === 0) return new Map()
 
@@ -138,7 +145,7 @@ export async function generateSemanticFingerprints(
     chunks.map((chunk) => requestFingerprintChunk(url, chunk, deadline))
   )
 
-  const results = new Map<string, SemanticFingerprint>()
+  const results = new Map<string, SemanticAnalysis>()
   let firstError: unknown
   for (const outcome of settled) {
     if (outcome.status === 'rejected') {
@@ -159,11 +166,20 @@ export async function generateSemanticFingerprints(
   return results
 }
 
+/** Solo las etiquetas, para quien no necesite el país inferido. */
+export async function generateSemanticFingerprints(
+  endpoint: string,
+  entries: FingerprintInput[]
+): Promise<Map<string, SemanticFingerprint>> {
+  const analyses = await analyzeSemanticEntries(endpoint, entries)
+  return new Map([...analyses].map(([id, analysis]) => [id, analysis.fingerprint]))
+}
+
 async function requestFingerprintChunk(
   url: string,
   entries: FingerprintInput[],
   deadline: number
-): Promise<Map<string, SemanticFingerprint>> {
+): Promise<Map<string, SemanticAnalysis>> {
   const request = () => requestFingerprints(url, entries, Math.max(1, deadline - Date.now()))
 
   let result = await request()
@@ -189,14 +205,19 @@ async function requestFingerprintChunk(
     throw new Error('El servicio semántico devolvió un formato no válido.')
   }
 
-  const results = new Map<string, SemanticFingerprint>()
+  const results = new Map<string, SemanticAnalysis>()
   for (const item of body.items) {
     if (!item || typeof item !== 'object') continue
     const record = item as Record<string, unknown>
     if (typeof record.id !== 'string') continue
 
     const fingerprint = normalizeSemanticFingerprint(record.fingerprint)
-    if (fingerprint) results.set(record.id, fingerprint)
+    if (fingerprint) {
+      results.set(record.id, {
+        fingerprint,
+        originCountry: normalizeOriginCountry(record.originCountry)
+      })
+    }
   }
 
   if (results.size === 0) {
