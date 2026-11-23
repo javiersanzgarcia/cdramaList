@@ -481,6 +481,37 @@ export function useDriveSync({
     return () => window.clearTimeout(timer)
   }, [connected, state.auto, busy, status, lastSyncedSignature, signature, pullAndPush])
 
+  // Al volver a la app, comprueba la conexión con Drive para que el indicador
+  // del perfil refleje el estado real sin tener que entrar en Ajustes.
+  useEffect(() => {
+    if (!clientId || !state.enabled) return
+
+    const checkConnection = () => {
+      if (document.visibilityState !== 'visible') return
+      if (runningRef.current) return
+
+      if (connectedRef.current) {
+        void pullAndPush()
+        return
+      }
+
+      void (async () => {
+        setStatus('connecting')
+        try {
+          const token = await getToken('none')
+          connectedRef.current = true
+          setConnected(true)
+          await syncWithToken(token, true)
+        } catch (cause) {
+          handleDriveError(cause)
+        }
+      })()
+    }
+
+    document.addEventListener('visibilitychange', checkConnection)
+    return () => document.removeEventListener('visibilitychange', checkConnection)
+  }, [clientId, state.enabled, getToken, syncWithToken, pullAndPush, handleDriveError])
+
   return {
     configured: Boolean(clientId),
     connected,

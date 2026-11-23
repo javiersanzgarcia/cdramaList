@@ -46,6 +46,9 @@
   --palette-emerald-300: oklch(84.5% 0.143 164.978);
   --palette-emerald-200: oklch(90.5% 0.093 164.15);
 
+  /* Error/peligro (rojo) */
+  --palette-red-400: oklch(70.4% 0.191 22.216);
+
   /* Aviso (ámbar) */
   --palette-amber-950: oklch(27.9% 0.077 45.635);
   --palette-amber-400: oklch(82.8% 0.189 84.429);
@@ -106,6 +109,10 @@
   --color-success-strong: var(--palette-emerald-500);
   --color-success-soft: var(--palette-emerald-300);
   --color-success-softer: var(--palette-emerald-200);
+
+  /* Error/peligro */
+  --color-danger: var(--palette-red-400);
+  --color-danger-strong: var(--palette-red-500);
 
   /* Aviso */
   --color-warning: var(--palette-amber-400);

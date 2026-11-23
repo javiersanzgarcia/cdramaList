@@ -1,5 +1,5 @@
 import type React from 'react'
-import type { GoogleUser } from '../../features/sync/types'
+import type { DriveSyncStatus, GoogleUser } from '../../features/sync/types'
 import * as Icon from './Icons'
 
 interface TopBarProps {
@@ -9,8 +9,15 @@ interface TopBarProps {
   onInstall: () => void
   user: GoogleUser | null
   syncDirty: boolean
-  syncBusy: boolean
+  syncStatus: DriveSyncStatus
   onOpenAccount: () => void
+}
+
+function syncDotClass(status: DriveSyncStatus, dirty: boolean): string | null {
+  if (status === 'error') return 'bg-danger'
+  if (status === 'syncing' || status === 'connecting') return 'animate-pulse bg-warning'
+  if (status === 'synced') return dirty ? 'bg-warning' : 'bg-success'
+  return null
 }
 
 export const TopBar: React.FC<TopBarProps> = ({
@@ -20,9 +27,21 @@ export const TopBar: React.FC<TopBarProps> = ({
   onInstall,
   user,
   syncDirty,
-  syncBusy,
+  syncStatus,
   onOpenAccount
 }) => {
+  const dotClass = syncDotClass(syncStatus, syncDirty)
+  const syncLabel =
+    syncStatus === 'error'
+      ? 'Error de conexión con Drive'
+      : syncStatus === 'syncing' || syncStatus === 'connecting'
+        ? 'Sincronizando con Drive'
+        : syncStatus === 'synced'
+          ? syncDirty
+            ? 'Cambios pendientes de sincronizar con Drive'
+            : 'Sincronizado con Drive'
+          : 'Drive no conectado'
+
   return (
     <header className="sticky top-0 z-20 border-b border-line-soft/80 bg-canvas/85 backdrop-blur-xl">
       <div className="flex items-center justify-between gap-3 px-4 pb-3 pt-[calc(env(safe-area-inset-top)_+_0.9rem)]">
@@ -53,25 +72,29 @@ export const TopBar: React.FC<TopBarProps> = ({
           <button
             type="button"
             onClick={onOpenAccount}
-            aria-label="Abrir cuenta y sincronización"
-            className="relative grid size-10 shrink-0 place-items-center overflow-hidden rounded-full border border-line bg-surface text-ink-soft transition hover:text-ink-bright active:scale-95"
+            aria-label={`Abrir cuenta y sincronización. ${syncLabel}`}
+            title={syncLabel}
+            className="relative grid size-10 shrink-0 place-items-center rounded-full border border-line bg-surface text-ink-soft transition hover:text-ink-bright active:scale-95"
           >
-            {user?.picture ? (
-              <img
-                src={user.picture}
-                alt=""
-                referrerPolicy="no-referrer"
-                className="absolute inset-0 size-full object-cover"
-              />
-            ) : (
-              <Icon.User className="size-5" />
-            )}
+            <span className="absolute inset-0 overflow-hidden rounded-full">
+              {user?.picture ? (
+                <img
+                  src={user.picture}
+                  alt=""
+                  referrerPolicy="no-referrer"
+                  className="size-full object-cover"
+                />
+              ) : (
+                <span className="grid size-full place-items-center">
+                  <Icon.User className="size-5" />
+                </span>
+              )}
+            </span>
 
-            {(syncBusy || syncDirty) && (
+            {dotClass && (
               <span
-                className={`absolute right-0.5 top-0.5 size-2.5 rounded-full border-2 border-canvas ${
-                  syncBusy ? 'animate-pulse bg-warning' : 'bg-brand-bright'
-                }`}
+                aria-hidden="true"
+                className={`absolute right-0 top-0 z-10 size-2.5 rounded-full border-2 border-canvas ${dotClass}`}
               />
             )}
           </button>

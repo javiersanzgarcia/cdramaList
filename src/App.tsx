@@ -369,7 +369,7 @@ const App: React.FC = () => {
                 onInstall={promptInstall}
                 user={googleUser}
                 syncDirty={drive.dirty}
-                syncBusy={drive.busy}
+                syncStatus={drive.status}
                 onOpenAccount={() => setAccountOpen(true)}
               />
             }
@@ -400,7 +400,7 @@ const App: React.FC = () => {
                 onInstall={promptInstall}
                 user={googleUser}
                 syncDirty={drive.dirty}
-                syncBusy={drive.busy}
+                syncStatus={drive.status}
                 onOpenAccount={() => setAccountOpen(true)}
               />
             }
@@ -431,7 +431,7 @@ const App: React.FC = () => {
             googleUser={googleUser}
             syncEnabled={drive.connected}
             syncDirty={drive.dirty}
-            syncBusy={drive.busy}
+            syncStatus={drive.status}
             onApiKeyChange={setApiKeyOverride}
             apiKeyLocked={ENV_YOUTUBE_API_KEY.length > 0}
             onInstall={promptInstall}

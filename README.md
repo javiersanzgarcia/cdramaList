@@ -6,6 +6,10 @@ PWA para reunir las partes de una historia de YouTube, guardar el progreso y ver
 
 **Fire TV:** se puede usar con el navegador TV Bro; consulta [Instalar en Fire TV](#instalar-en-fire-tv-tv-bro).
 
+## Novedades de la 1.7.1
+
+- **Estado de Drive visible en el perfil.** La foto de perfil de la barra superior muestra un punto con el estado de conexión a Google Drive: verde cuando la sincronización está al día, amarillo cuando está sincronizando o hay cambios pendientes de subir, y rojo si hay un error de conexión. Al recargar la app y al volver a ella tras un rato, se comprueba la conexión para que el indicador refleje el estado real sin entrar en Ajustes.
+
 ## Novedades de la 1.7
 
 - **Más robustez y calidad interna.** La app incorpora un límite de errores en la interfaz para mostrar una recuperación segura si falla el renderizado, activa el modo estricto de TypeScript y corrige dependencias de efectos en el reproductor y las fichas para evitar comportamientos inconsistentes. También se memoizan componentes de listado donde aporta y se mejora la documentación del código.

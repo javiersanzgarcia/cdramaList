@@ -1,6 +1,6 @@
 import type React from 'react'
 import { useState } from 'react'
-import type { GoogleUser } from '../../sync/types'
+import type { DriveSyncStatus, GoogleUser } from '../../sync/types'
 import * as Icon from '../../../shared/components/Icons'
 import { TopBar } from '../../../shared/components/TopBar'
 
@@ -14,7 +14,7 @@ interface SettingsViewProps {
   googleUser: GoogleUser | null
   syncEnabled: boolean
   syncDirty: boolean
-  syncBusy: boolean
+  syncStatus: DriveSyncStatus
   onApiKeyChange: (key: string) => void
   onInstall: () => void
   onReset: () => void
@@ -33,7 +33,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
   googleUser,
   syncEnabled,
   syncDirty,
-  syncBusy,
+  syncStatus,
   onApiKeyChange,
   onInstall,
   onReset,
@@ -77,7 +77,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
         onInstall={onInstall}
         user={googleUser}
         syncDirty={syncDirty}
-        syncBusy={syncBusy}
+        syncStatus={syncStatus}
         onOpenAccount={onOpenAccount}
       />
 
