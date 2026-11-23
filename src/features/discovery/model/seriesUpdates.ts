@@ -418,7 +418,8 @@ export async function discoverSeriesUpdates(
     videos: [...referenceVideos.values()].slice(0, 5).map((video) => ({
       title: video.title,
       description: video.description,
-      tags: video.tags
+      tags: video.tags,
+      defaultLanguage: video.defaultLanguage
     }))
   })
 

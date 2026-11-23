@@ -19,6 +19,8 @@ export interface VideoMeta {
   publishedAt?: string
   description?: string
   tags?: string[]
+  /** Idioma declarado por YouTube (`ko`, `zh`, `th`…), cuando lo proporciona. */
+  defaultLanguage?: string
   thumbnail?: string
   durationSeconds?: number
 }

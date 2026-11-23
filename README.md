@@ -6,6 +6,10 @@ PWA para reunir las partes de una historia de YouTube, guardar el progreso y ver
 
 **Fire TV:** se puede usar con el navegador TV Bro; consulta [Instalar en Fire TV](#instalar-en-fire-tv-tv-bro).
 
+## Novedades de la 1.8.2
+
+- **Más aciertos al detectar el país.** «Dorama» ya no se cuenta como Japón, porque en español se usa para cualquier drama asiático (un canal de «doramas chinos» daba un empate y acababa en _Desconocido_). La detección también aprovecha el **idioma que declara YouTube** en cada vídeo (`zh`, `ko`, `th`…) cuando el título y la descripción no dan pistas, y reconoce expresiones como «serie china», «surcoreana» o «xianxia».
+
 ## Novedades de la 1.8.1
 
 - **Corrección del país de origen.** Las series que seguían como **Desconocido** se vuelven a detectar automáticamente al cargar la app (o al restaurarlas de Drive), sin depender de que haya capítulos nuevos. La detección ahora también lee las **descripciones y etiquetas de YouTube**, que suelen ser la única pista cuando el título está traducido, y **Actualizar serie** guarda el país descubierto aunque la serie no tenga novedades. El país elegido a mano queda marcado como manual y la detección automática nunca lo sobrescribe, también al sincronizar entre dispositivos.

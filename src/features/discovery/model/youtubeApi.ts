@@ -26,6 +26,7 @@ interface VideoSnippet {
   publishedAt: string
   description?: string
   tags?: string[]
+  defaultLanguage?: string
   thumbnails?: Thumbnails
 }
 
@@ -88,6 +89,7 @@ function toVideoMeta(item: VideoItem): VideoMeta {
     publishedAt: item.snippet.publishedAt,
     description: item.snippet.description,
     tags: item.snippet.tags,
+    defaultLanguage: item.snippet.defaultLanguage,
     thumbnail: pickThumbnail(item.snippet.thumbnails) ?? youtubeThumbnail(item.id),
     durationSeconds: parseIsoDuration(item.contentDetails?.duration)
   }
@@ -284,6 +286,7 @@ export async function searchYouTubeVideos(
       publishedAt: item.snippet.publishedAt,
       description: item.snippet.description,
       tags: item.snippet.tags,
+      defaultLanguage: item.snippet.defaultLanguage,
       thumbnail:
         pickThumbnail(item.snippet.thumbnails) ?? youtubeThumbnail(item.id.videoId as string)
     }))

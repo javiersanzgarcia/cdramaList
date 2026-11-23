@@ -46,6 +46,26 @@ function hasAny(text: string, patterns: RegExp[]): boolean {
   return patterns.some((pattern) => pattern.test(text))
 }
 
+/** Códigos de idioma que YouTube declara en `snippet.defaultLanguage`. */
+const LANGUAGE_COUNTRY: Record<string, SeriesOriginCountry> = {
+  ko: 'KR',
+  ja: 'JP',
+  th: 'TH',
+  tr: 'TR',
+  tl: 'PH',
+  fil: 'PH',
+  zh: 'CN',
+  'zh-cn': 'CN',
+  'zh-hans': 'CN',
+  'zh-tw': 'TW',
+  'zh-hant': 'TW'
+}
+
+function detectOriginCountryFromLanguage(defaultLanguage?: string): SeriesOriginCountry {
+  if (!defaultLanguage) return 'unknown'
+  return LANGUAGE_COUNTRY[defaultLanguage.toLowerCase().trim()] ?? 'unknown'
+}
+
 const RULES: Array<{
   country: Exclude<SeriesOriginCountry, 'other' | 'unknown'>
   patterns: RegExp[]
@@ -56,7 +76,8 @@ const RULES: Array<{
       /\bk[-\s]?dramas?\b/,
       /\bdramas?\s+corean(?:o|a|os|as)\b/,
       /\bcorean(?:o|a|os|as)\b/,
-      /\bcorea\s+del\s+sur\b/,
+      /\bsur\s?corean(?:o|a|os|as)\b/,
+      /\bcorea(?:\s+del\s+sur)?\b/,
       /\bsouth\s+korea\b/,
       /\bkorean\b/,
       /\bhan(?:kook)?\s+drama\b/
@@ -72,7 +93,11 @@ const RULES: Array<{
       /\bchina\b/,
       /\bchinese\b/,
       /\bmandarin\b/,
-      /\bnovela\s+china\b/
+      /\bnovela\s+china\b/,
+      /\bserie\s+china\b/,
+      /\bcn[-\s]?dramas?\b/,
+      /\bxianxia\b/,
+      /\bwuxia\b/
     ]
   },
   {
@@ -82,8 +107,9 @@ const RULES: Array<{
       /\bdramas?\s+japon(?:es|esa|eses|esas)\b/,
       /\bjapon(?:es|esa|eses|esas)\b/,
       /\bjapan\b/,
-      /\bjapanese\b/,
-      /\bdorama(?:s)?\b/
+      /\bjapanese\b/
+      // «Dorama» se usa en español para cualquier drama asiático, no solo el
+      // japonés: contarlo como Japón daba falsos empates con «dorama chino».
     ]
   },
   {
@@ -160,8 +186,24 @@ export function detectOriginCountryFromMetadata({
   title?: string
   aliases?: string[]
   channelTitle?: string
-  videos?: Array<{ title?: string; description?: string; tags?: string[] }>
+  videos?: Array<{
+    title?: string
+    description?: string
+    tags?: string[]
+    defaultLanguage?: string
+  }>
 }): SeriesOriginCountry {
+  // El idioma declarado por YouTube es una señal directa y fiable. Si todos los
+  // vídeos que lo indican coinciden, gana antes que el texto promocional.
+  const languages = [
+    ...new Set(
+      videos
+        .map((video) => detectOriginCountryFromLanguage(video.defaultLanguage))
+        .filter((value) => value !== 'unknown')
+    )
+  ]
+  if (languages.length === 1) return languages[0]
+
   const perSource = [
     detectOriginCountryFromText(title, ...aliases, channelTitle),
     ...videos.map((video) =>

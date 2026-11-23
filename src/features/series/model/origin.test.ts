@@ -38,7 +38,7 @@ describe('país de origen', () => {
     ['kdrama', 'KR'],
     ['serie coreana', 'KR'],
     ['jdrama', 'JP'],
-    ['dorama', 'JP'],
+    ['drama japonés', 'JP'],
     ['lakorn', 'TH'],
     ['serie tailandesa', 'TH'],
     ['dizi turco', 'TR'],
@@ -51,6 +51,27 @@ describe('país de origen', () => {
   it('marca Desconocido si no hay señal o hay varias', () => {
     expect(detectOriginCountryFromText('Una historia sin pistas')).toBe('unknown')
     expect(detectOriginCountryFromText('kdrama y drama chino')).toBe('unknown')
+  })
+
+  it('no cuenta «dorama» en español como Japón', () => {
+    expect(detectOriginCountryFromText('Doramas chinos en español')).toBe('CN')
+    expect(detectOriginCountryFromText('Doramas coreanos')).toBe('KR')
+  })
+
+  it('usa el idioma declarado por YouTube cuando el texto no da pistas', () => {
+    expect(
+      detectOriginCountryFromMetadata({
+        title: 'Los Shen le encajaron una viuda al verlo plantado',
+        channelTitle: 'Canal de historias',
+        videos: [{ title: 'Parte 1', defaultLanguage: 'zh' }]
+      })
+    ).toBe('CN')
+    expect(
+      detectOriginCountryFromMetadata({
+        title: 'Sin pistas',
+        videos: [{ defaultLanguage: 'ko' }]
+      })
+    ).toBe('KR')
   })
 
   it('detecta el país al normalizar series antiguas sin el campo', () => {
