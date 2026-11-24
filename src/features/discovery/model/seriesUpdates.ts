@@ -178,7 +178,17 @@ export async function discoverSeriesUpdates(
   }
   if (searchFailed) {
     failed = true
-    warnings.push('No se ha podido completar alguna búsqueda en todo YouTube.')
+    const quotaFailed = searchOutcomes.some(
+      (outcome) =>
+        outcome.status === 'rejected' &&
+        outcome.reason instanceof YouTubeError &&
+        outcome.reason.reason === 'quotaExceeded'
+    )
+    warnings.push(
+      quotaFailed
+        ? 'Cuota diaria de búsquedas de YouTube agotada; se reinicia a medianoche (hora del Pacífico).'
+        : 'No se ha podido completar alguna búsqueda en todo YouTube.'
+    )
   }
 
   if (uploads.length === 0 && globalResults.length === 0 && failed) {

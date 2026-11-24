@@ -134,10 +134,15 @@ export async function fetchJson<T>(
     const detail =
       body?.error?.message ?? `YouTube respondió con el código ${response.status}.`
 
-    if (reason === 'quotaExceeded') {
+    // YouTube devuelve `quotaExceeded` en algunos endpoints y
+    // `rateLimitExceeded` (con «per day» en el detalle) en `search.list`.
+    const dailyQuotaExceeded =
+      reason === 'quotaExceeded' ||
+      (reason === 'rateLimitExceeded' && /per day|daily/i.test(detail))
+    if (dailyQuotaExceeded) {
       throw new YouTubeError(
-        'Se ha agotado la cuota diaria de YouTube. Inténtalo mañana o usa el modo manual.',
-        reason
+        'Se ha agotado la cuota diaria de búsquedas de YouTube. Se reinicia a medianoche (hora del Pacífico).',
+        'quotaExceeded'
       )
     }
 

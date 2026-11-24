@@ -6,6 +6,10 @@ PWA para reunir las partes de una historia de YouTube, guardar el progreso y ver
 
 **Fire TV:** se puede usar con el navegador TV Bro; consulta [Instalar en Fire TV](#instalar-en-fire-tv-tv-bro).
 
+## Novedades de la 1.10.6
+
+- **Aviso más claro cuando se agota la cuota de YouTube.** YouTube ha cambiado el motivo del error de búsqueda a `rateLimitExceeded` («per day»); la app ahora lo reconoce como cuota diaria agotada e indica cuándo se reinicia (medianoche, hora del Pacífico) en lugar de mostrar un mensaje genérico. La búsqueda léxica y los capítulos ya guardados siguen funcionando.
+
 ## Novedades de la 1.10.5
 
 - **El respaldo de Groq/OpenRouter ya responde también con lotes completos.** Los modelos gratuitos de Groq razonan antes de escribir: con 2048 tokens de salida se cortaban y el Worker volvía a mostrar «resultado no válido». Ahora se les dan 8192 tokens, suficientes para 10 entradas (verificado en ~6 s). La clave se guarda como secreto `FALLBACK_API_KEY`, no en el bundle de la PWA.
