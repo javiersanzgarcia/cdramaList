@@ -6,6 +6,11 @@ PWA para reunir las partes de una historia de YouTube, guardar el progreso y ver
 
 **Fire TV:** se puede usar con el navegador TV Bro; consulta [Instalar en Fire TV](#instalar-en-fire-tv-tv-bro).
 
+## Novedades de la 1.10.4
+
+- **Corregidos los avisos «resultado no válido» y el timeout semántico.** Los modelos económicos que se usaban para los fingerprints (`glm-4.7-flash` y `gemma-4`) razonan antes de responder: con 10 entradas agotaban el límite de 2048 tokens en su cadena de pensamiento y devolvían `content: null`, sin el JSON esperado. El Worker usa ahora `mistral-small-3.1-24b-instruct` (no razona, ~15 s por lote) y, si una salida está truncada, descarta ese modelo y prueba el siguiente en lugar de devolver un 502.
+- **Hay que redesplegar el Worker** con `npx wrangler deploy`; la PWA y la URL del endpoint no cambian.
+
 ## Novedades de la 1.10.3
 
 - **Mucho menos gasto de IA.** Los fingerprints ya no se calculan con el modelo grande de 70B: el Worker prueba primero los modelos económicos de Cloudflare, limita las etiquetas a 8 por categoría y recorta los textos y el número de candidatos analizados. El cuello de botella de las 10 000 neurons diarias queda reducido sin perder las pistas culturales del drama.

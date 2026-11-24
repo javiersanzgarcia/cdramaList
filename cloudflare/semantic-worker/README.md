@@ -27,19 +27,23 @@ compatibility_date = "2026-11-10"
 binding = "AI"
 
 [vars]
-AI_MODELS = "@cf/zai-org/glm-4.7-flash,@cf/google/gemma-4-26b-a4b-it,@cf/meta/llama-3.3-70b-instruct-fp8-fast"
-ORIGIN_MODELS = "@cf/zai-org/glm-4.7-flash,@cf/google/gemma-4-26b-a4b-it,@cf/meta/llama-3.3-70b-instruct-fp8-fast"
+AI_MODELS = "@cf/mistralai/mistral-small-3.1-24b-instruct,@cf/meta/llama-3.3-70b-instruct-fp8-fast"
+ORIGIN_MODELS = "@cf/mistralai/mistral-small-3.1-24b-instruct,@cf/meta/llama-3.3-70b-instruct-fp8-fast"
 FALLBACK_API_BASE = "https://api.groq.com/openai/v1"
 FALLBACK_MODEL = "openai/gpt-oss-120b"
 ALLOWED_ORIGINS = "https://javiersanzgarcia.github.io,http://localhost:5173,http://127.0.0.1:5173,http://localhost:4173"
 ```
 
-- `AI_MODELS`: modelos para fingerprints, **en orden de preferencia**. Los dos
-  primeros son económicos (~3–5 neurons por llamada); el último, el modelo
-  grande de 70B (~200 veces más caro), queda solo como red de seguridad. Ya no
-  se exige JSON Mode: el prompt pide un objeto JSON y el Worker tolera cercas
-  markdown o texto introductorio. Se acepta también `AI_MODEL` con un solo
-  modelo, por compatibilidad con versiones anteriores.
+- `AI_MODELS`: modelos para fingerprints, **en orden de preferencia**. El
+  primero (`mistral-small-3.1-24b-instruct`) es económico y **no razona**: con
+  10 entradas responde en ~15 s, dentro del timeout de 60 s de la PWA. El
+  modelo grande de 70B queda solo como red de seguridad. No se usan
+  `glm-4.7-flash` ni `gemma-4-26b-a4b-it`: son modelos de razonamiento y, con
+  el límite de 2048 tokens de salida, se quedan en su cadena de pensamiento y
+  dejan `content: null` sin llegar a escribir el JSON. Ya no se exige JSON
+  Mode: el prompt pide un objeto JSON y el Worker tolera cercas markdown o
+  texto introductorio. Se acepta también `AI_MODEL` con un solo modelo, por
+  compatibilidad con versiones anteriores.
 - `ORIGIN_MODELS`: modelos para clasificar el país, **en orden de preferencia**.
   Si Cloudflare retira uno (error `5028`) o falla, se prueba el siguiente. Se
   acepta también `ORIGIN_MODEL` con un solo modelo, por compatibilidad con

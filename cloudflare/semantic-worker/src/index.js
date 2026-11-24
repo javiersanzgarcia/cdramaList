@@ -6,13 +6,12 @@ const MAX_REQUESTS_PER_WINDOW = 8
 const requestWindows = new Map()
 const CATEGORIES = ['genres', 'tropes', 'roles', 'settings', 'plotElements']
 const ORIGIN_COUNTRIES = ['CN', 'KR', 'JP', 'TH', 'TR', 'PH', 'TW', 'other', 'unknown']
-// Cloudflare retira modelos con poco aviso (error 5028). Se prueban en orden:
-// los dos primeros son los modelos económicos recomendados en 2026 y el último
-// es el modelo grande como red de seguridad. Se usan tanto para fingerprints
-// como para clasificar solo el país; cada lista se puede configurar aparte.
+// Cloudflare retira modelos con poco aviso (error 5028). Se prueban en orden.
+// El primero es económico y NO razona: los modelos de razonamiento (glm-4.7,
+// gemma-4) agotan los 2048 tokens de salida antes de escribir el JSON y dejan
+// `content: null`. El modelo grande queda solo como red de seguridad.
 const DEFAULT_MODELS = [
-  '@cf/zai-org/glm-4.7-flash',
-  '@cf/google/gemma-4-26b-a4b-it',
+  '@cf/mistralai/mistral-small-3.1-24b-instruct',
   '@cf/meta/llama-3.3-70b-instruct-fp8-fast'
 ]
 // Respaldo gratuito: cualquier API compatible con /chat/completions de OpenAI.
@@ -256,14 +255,23 @@ async function runInference(options) {
 }
 
 function parseInferenceOutput(output) {
-  if (typeof output?.response === 'object' && output.response !== null) {
-    return parseJsonLoose(output.response)
+  const message = output?.choices?.[0]?.message
+  // Los modelos de razonamiento pueden dejar `content` vacío y poner la
+  // respuesta final en `reasoning`. Se prueban todas las ubicaciones y solo se
+  // acepta un objeto con `items`: una salida truncada debe provocar el siguiente
+  // modelo, no un 502 con "resultado no válido".
+  const candidates = [output?.response, message?.content, message?.reasoning, output?.output]
+  let lastError
+  for (const candidate of candidates) {
+    if (candidate == null) continue
+    try {
+      const parsed = parseJsonLoose(candidate)
+      if (Array.isArray(parsed?.items) && parsed.items.length > 0) return parsed
+    } catch (cause) {
+      lastError = cause
+    }
   }
-  const content =
-    typeof output?.response === 'string'
-      ? output.response
-      : (output?.choices?.[0]?.message?.content ?? JSON.stringify(output?.response ?? output))
-  return parseJsonLoose(content)
+  throw lastError ?? new Error('El modelo no devolvió un JSON con resultados.')
 }
 
 async function handleFingerprint(request, env, origin) {

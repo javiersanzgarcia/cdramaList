@@ -6,13 +6,14 @@ compatibility_date = "2026-11-10"
 binding = "AI"
 
 [vars]
-# Modelos para fingerprints, en orden de preferencia. Los dos primeros son
-# económicos; el último se usa solo como red de seguridad. Se acepta también
-# AI_MODEL con un solo modelo, por compatibilidad con versiones anteriores.
-AI_MODELS = "@cf/zai-org/glm-4.7-flash,@cf/google/gemma-4-26b-a4b-it,@cf/meta/llama-3.3-70b-instruct-fp8-fast"
+# Modelos para fingerprints, en orden de preferencia. El primero es económico
+# y no razona: con 10 entradas responde en ~15 s. Los modelos de razonamiento
+# (glm-4.7, gemma-4) se descartan porque agotan los tokens antes de escribir el
+# JSON. El modelo grande queda solo como red de seguridad.
+AI_MODELS = "@cf/mistralai/mistral-small-3.1-24b-instruct,@cf/meta/llama-3.3-70b-instruct-fp8-fast"
 # Modelos para clasificar solo el país, en orden. Si Cloudflare retira uno
 # (error 5028), el Worker prueba el siguiente automáticamente.
-ORIGIN_MODELS = "@cf/zai-org/glm-4.7-flash,@cf/google/gemma-4-26b-a4b-it,@cf/meta/llama-3.3-70b-instruct-fp8-fast"
+ORIGIN_MODELS = "@cf/mistralai/mistral-small-3.1-24b-instruct,@cf/meta/llama-3.3-70b-instruct-fp8-fast"
 # Respaldo OpenAI-compatible cuando se agota la cuota diaria de Workers AI.
 # Groq: 30 peticiones/min y 1000/día gratis. Alternativa OpenRouter:
 #   FALLBACK_API_BASE = "https://openrouter.ai/api/v1"

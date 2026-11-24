@@ -52,6 +52,40 @@ describe('Worker semántico', () => {
     expect(used).toEqual(['@cf/model-a', '@cf/model-b'])
   })
 
+  it('descarta una salida de razonamiento truncada y prueba el siguiente modelo', async () => {
+    const used = []
+    const env = {
+      ...envBase,
+      AI_MODEL: undefined,
+      AI_MODELS: MODELS,
+      AI: {
+        run: async (model) => {
+          used.push(model)
+          if (model === '@cf/model-a') {
+            return {
+              choices: [
+                { message: { content: null, reasoning: 'Pensando... sin JSON todavía' } }
+              ]
+            }
+          }
+          return {
+            response:
+              '{"items":[{"id":"series","fingerprint":{"genres":["romance"]},"originCountry":"CN"}]}'
+          }
+        }
+      }
+    }
+
+    const response = await worker.fetch(
+      makeRequest([{ id: 'series', text: 'Drama chino' }]),
+      env
+    )
+
+    expect(response.status).toBe(200)
+    expect((await response.json()).items[0].fingerprint.genres).toEqual(['romance'])
+    expect(used).toEqual(['@cf/model-a', '@cf/model-b'])
+  })
+
   it('usa el respaldo externo si fallan todos los modelos de Cloudflare', async () => {
     const fetchMock = vi.fn().mockResolvedValue(
       new Response(
