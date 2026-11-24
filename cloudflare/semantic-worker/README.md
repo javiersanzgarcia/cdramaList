@@ -85,6 +85,11 @@ cuando Cloudflare no puede responder y continúa con la búsqueda léxica si fal
 un fingerprint. El respaldo se usa tanto en las peticiones `originOnly` como en
 las de fingerprints, siempre después de intentar los modelos de Cloudflare.
 
+Los modelos disponibles en el plan gratuito de Groq (`openai/gpt-oss-120b`,
+`openai/gpt-oss-20b`, `qwen/qwen3.8-27b`) también razonan. El Worker pide
+**8192 tokens** de salida al proveedor externo para que puedan terminar el JSON
+antes de responder; con 2048 se quedaban a medias y devolvían `content: null`.
+
 ### Diagnosticar el respaldo
 
 Para ver el error exacto sin desplegar nada:

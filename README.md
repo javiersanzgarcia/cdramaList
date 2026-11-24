@@ -6,6 +6,10 @@ PWA para reunir las partes de una historia de YouTube, guardar el progreso y ver
 
 **Fire TV:** se puede usar con el navegador TV Bro; consulta [Instalar en Fire TV](#instalar-en-fire-tv-tv-bro).
 
+## Novedades de la 1.10.5
+
+- **El respaldo de Groq/OpenRouter ya responde también con lotes completos.** Los modelos gratuitos de Groq razonan antes de escribir: con 2048 tokens de salida se cortaban y el Worker volvía a mostrar «resultado no válido». Ahora se les dan 8192 tokens, suficientes para 10 entradas (verificado en ~6 s). La clave se guarda como secreto `FALLBACK_API_KEY`, no en el bundle de la PWA.
+
 ## Novedades de la 1.10.4
 
 - **Corregidos los avisos «resultado no válido» y el timeout semántico.** Los modelos económicos que se usaban para los fingerprints (`glm-4.7-flash` y `gemma-4`) razonan antes de responder: con 10 entradas agotaban el límite de 2048 tokens en su cadena de pensamiento y devolvían `content: null`, sin el JSON esperado. El Worker usa ahora `mistral-small-3.1-24b-instruct` (no razona, ~15 s por lote) y, si una salida está truncada, descarta ese modelo y prueba el siguiente en lugar de devolver un 502.

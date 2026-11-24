@@ -213,5 +213,6 @@ describe('Worker semántico', () => {
     expect(response.status).toBe(200)
     expect((await response.json()).items[0].fingerprint.tropes).toEqual(['rebirth'])
     expect(fetchMock.mock.calls[0][0]).toBe('https://api.groq.com/openai/v1/chat/completions')
+    expect(JSON.parse(fetchMock.mock.calls[0][1].body).max_tokens).toBe(8192)
   })
 })

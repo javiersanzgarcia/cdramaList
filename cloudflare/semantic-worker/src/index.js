@@ -182,8 +182,9 @@ async function runFallback(env, { system, entries, maxTokens }) {
         model,
         messages,
         temperature: 0,
-        // Los modelos de razonamiento consumen tokens antes de escribir el JSON.
-        max_tokens: Math.max(maxTokens, 1024),
+        // Los modelos de razonamiento de Groq consumen tokens antes de escribir
+        // el JSON: con 10 entradas, 2048 no bastan y `content` queda vacío.
+        max_tokens: Math.max(maxTokens, 8192),
         ...(structured ? { response_format: { type: 'json_object' } } : {})
       })
     })
