@@ -319,17 +319,24 @@ export async function searchYouTubeVideos(
       }
     })
 
-  // La búsqueda no devuelve la duración: la pedimos en una sola llamada extra.
-  const durations = await fetchVideosByIds(
+  // `search.list` no trae duración ni título localizado: `videos.list` da ambos
+  // en la misma llamada, así que se aprovecha para corregir el título original
+  // que YouTube devuelve en la búsqueda (por ejemplo, en coreano).
+  const details = await fetchVideosByIds(
     videos.map((video) => video.videoId),
     apiKey
   ).catch(() => new Map<string, VideoMeta>())
 
-  return videos.map((video) => ({
-    ...video,
-    description: durations.get(video.videoId)?.description ?? video.description,
-    durationSeconds: durations.get(video.videoId)?.durationSeconds
-  }))
+  return videos.map((video) => {
+    const detail = details.get(video.videoId)
+    return {
+      ...video,
+      title: detail?.title ?? video.title,
+      originalTitle: detail?.originalTitle ?? video.originalTitle,
+      description: detail?.description ?? video.description,
+      durationSeconds: detail?.durationSeconds
+    }
+  })
 }
 
 export async function fetchVideoMetaWithoutKey(videoId: string): Promise<VideoMeta> {
