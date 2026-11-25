@@ -12,7 +12,10 @@ export interface Thumbnails {
 /** Metadatos normalizados de un vídeo de YouTube. */
 export interface VideoMeta {
   videoId: string
+  /** Título en español (localización de YouTube), listo para mostrar. */
   title: string
+  /** Título original del vídeo, cuando la localización es distinta. */
+  originalTitle?: string
   channelId?: string
   channelTitle: string
   channelUrl?: string
@@ -81,6 +84,8 @@ export interface CandidateState {
 export interface SeriesUpdate {
   parts: Part[]
   added: Part[]
+  /** Los títulos guardados se han traducido y hay que guardar el cambio. */
+  titlesUpdated?: boolean
   candidates: ChapterCandidate[]
   channelId?: string
   channelTitle?: string

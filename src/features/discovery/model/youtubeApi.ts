@@ -21,6 +21,8 @@ export type { ParsedYouTubeUrl, Thumbnails, VideoMeta } from '../types'
 
 interface VideoSnippet {
   title: string
+  /** YouTube pone aquí el título traducido al idioma pedido con `hl`. */
+  localized?: { title?: string; description?: string }
   channelId: string
   channelTitle: string
   publishedAt: string
@@ -79,10 +81,24 @@ export function pickThumbnail(thumbnails?: Thumbnails): string | undefined {
   )
 }
 
+/**
+ * `snippet.title` suele ser el título original (coreano, chino…), aunque se
+ * pida `hl=es`. La traducción está en `snippet.localized.title`. Si no hay
+ * localización, se conserva el original para no perder el título.
+ */
+export function pickLocalizedTitle(snippet: {
+  title: string
+  localized?: { title?: string }
+}): string {
+  return snippet.localized?.title?.trim() || snippet.title
+}
+
 function toVideoMeta(item: VideoItem): VideoMeta {
+  const title = pickLocalizedTitle(item.snippet)
   return {
     videoId: item.id,
-    title: item.snippet.title,
+    title,
+    originalTitle: title !== item.snippet.title ? item.snippet.title : undefined,
     channelId: item.snippet.channelId,
     channelTitle: item.snippet.channelTitle,
     channelUrl: item.snippet.channelId ? channelUrlFor(item.snippet.channelId) : undefined,
@@ -105,6 +121,9 @@ export async function fetchJson<T>(
   for (const [key, value] of Object.entries(params)) {
     url.searchParams.set(key, value)
   }
+  // Sin `hl`, `videos.list` devuelve el título original aunque la UI sea
+  // española. Con `hl=es`, la traducción aparece en `snippet.localized`.
+  if (!url.searchParams.has('hl')) url.searchParams.set('hl', YOUTUBE_SEARCH_LANGUAGE)
   url.searchParams.set('key', apiKey)
 
   let response: Response
@@ -282,19 +301,23 @@ export async function searchYouTubeVideos(
 
   const videos = (data.items ?? [])
     .filter((item) => item.id.videoId)
-    .map((item) => ({
-      videoId: item.id.videoId as string,
-      title: item.snippet.title,
-      channelId: item.snippet.channelId,
-      channelTitle: item.snippet.channelTitle,
-      channelUrl: channelUrlFor(item.snippet.channelId),
-      publishedAt: item.snippet.publishedAt,
-      description: item.snippet.description,
-      tags: item.snippet.tags,
-      defaultLanguage: item.snippet.defaultLanguage,
-      thumbnail:
-        pickThumbnail(item.snippet.thumbnails) ?? youtubeThumbnail(item.id.videoId as string)
-    }))
+    .map((item) => {
+      const title = pickLocalizedTitle(item.snippet)
+      return {
+        videoId: item.id.videoId as string,
+        title,
+        originalTitle: title !== item.snippet.title ? item.snippet.title : undefined,
+        channelId: item.snippet.channelId,
+        channelTitle: item.snippet.channelTitle,
+        channelUrl: channelUrlFor(item.snippet.channelId),
+        publishedAt: item.snippet.publishedAt,
+        description: item.snippet.description,
+        tags: item.snippet.tags,
+        defaultLanguage: item.snippet.defaultLanguage,
+        thumbnail:
+          pickThumbnail(item.snippet.thumbnails) ?? youtubeThumbnail(item.id.videoId as string)
+      }
+    })
 
   // La búsqueda no devuelve la duración: la pedimos en una sola llamada extra.
   const durations = await fetchVideosByIds(

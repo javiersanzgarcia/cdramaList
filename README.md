@@ -6,6 +6,10 @@ PWA para reunir las partes de una historia de YouTube, guardar el progreso y ver
 
 **Fire TV:** se puede usar con el navegador TV Bro; consulta [Instalar en Fire TV](#instalar-en-fire-tv-tv-bro).
 
+## Novedades de la 1.10.7
+
+- **Títulos de capítulos en español cuando YouTube los traduce.** La API devolvía el título original (por ejemplo, en coreano) en `snippet.title` y la traducción en `snippet.localized.title`; la app no pedía `hl=es` y mostraba el original. Ahora se muestra la versión localizada, se conserva el original para la búsqueda y los capítulos ya guardados se actualizan al refrescar la serie. La descripción no se toca.
+
 ## Novedades de la 1.10.6
 
 - **Aviso más claro cuando se agota la cuota de YouTube.** YouTube ha cambiado el motivo del error de búsqueda a `rateLimitExceeded` («per day»); la app ahora lo reconoce como cuota diaria agotada e indica cuándo se reinicia (medianoche, hora del Pacífico) en lugar de mostrar un mensaje genérico. La búsqueda léxica y los capítulos ya guardados siguen funcionando.

@@ -6,6 +6,7 @@ import {
   channelUrlFor,
   fetchJson,
   fetchVideosByIds,
+  pickLocalizedTitle,
   pickThumbnail,
   youtubeThumbnail
 } from './youtubeApi'
@@ -37,6 +38,7 @@ interface PlaylistResource {
   id: string
   snippet: {
     title: string
+    localized?: { title?: string }
     channelId: string
     channelTitle: string
     publishedAt?: string
@@ -107,7 +109,10 @@ export async function fetchPlaylist(
   for (let index = 0; index < items.length; index += 1) {
     const item = items[index]
     const videoId = item.contentDetails?.videoId ?? item.snippet.resourceId?.videoId
-    const title = item.snippet.title
+    // `playlistItems` no trae títulos localizados: se aprovecha la consulta a
+    // `videos.list` que ya se hace para las duraciones.
+    const title = durations.get(videoId ?? '')?.title ?? item.snippet.title
+    const originalTitle = durations.get(videoId ?? '')?.originalTitle
 
     if (
       !videoId ||
@@ -116,7 +121,7 @@ export async function fetchPlaylist(
     )
       continue
 
-    const info = detectPart(title)
+    const info = detectPart(originalTitle ? `${title} ${originalTitle}` : title)
     parts.push({
       videoId,
       title,
@@ -132,7 +137,7 @@ export async function fetchPlaylist(
 
   return {
     playlistId,
-    title: playlist.snippet.title,
+    title: pickLocalizedTitle(playlist.snippet),
     channelId: playlist.snippet.channelId,
     channelTitle: playlist.snippet.channelTitle,
     thumbnail: pickThumbnail(playlist.snippet.thumbnails) ?? parts[0]?.thumbnail,
@@ -191,7 +196,9 @@ export async function fetchChannelUploads(
 
   for (const item of items) {
     const videoId = item.contentDetails?.videoId ?? item.snippet.resourceId?.videoId
-    const title = item.snippet.title
+    const meta = videoId ? durations.get(videoId) : undefined
+    const title = meta?.title ?? item.snippet.title
+    const originalTitle = meta?.originalTitle
 
     if (
       !videoId ||
@@ -204,6 +211,7 @@ export async function fetchChannelUploads(
     videos.push({
       videoId,
       title,
+      originalTitle,
       channelId: ownerId,
       channelTitle: item.snippet.videoOwnerChannelTitle ?? item.snippet.channelTitle ?? '',
       channelUrl: ownerId ? channelUrlFor(ownerId) : undefined,

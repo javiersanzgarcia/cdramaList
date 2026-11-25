@@ -63,6 +63,11 @@ function compactText(value: string | undefined, maxLength: number): string | und
   return clean ? clean.slice(0, maxLength) : undefined
 }
 
+/** Títulos por los que se puede comparar un vídeo: localizado y original. */
+function videoTitles(video: VideoMeta): string[] {
+  return video.originalTitle ? [video.title, video.originalTitle] : [video.title]
+}
+
 /** Busca capítulos de la serie en las subidas del canal y en todo YouTube. */
 export async function discoverSeriesUpdates(
   series: Series,
@@ -108,8 +113,17 @@ export async function discoverSeriesUpdates(
     fetchVideosByIds([...known], apiKey).catch(() => new Map<string, VideoMeta>())
   ])
 
+  // Los capítulos guardados antes de pedir `hl=es` pueden tener el título en
+  // coreano/chino. La consulta a `videos.list` ya trae la versión localizada:
+  // se aprovecha para refrescarlos sin gastar cuota adicional.
+  const parts = series.parts.map((part) => {
+    const localized = referenceVideos.get(part.videoId)?.title
+    return localized && localized !== part.title ? { ...part, title: localized } : part
+  })
+  const titlesUpdated = parts.some((part, index) => part !== series.parts[index])
+
   const descriptionTitles: string[] = []
-  for (const part of series.parts) {
+  for (const part of parts) {
     const title = extractDescriptionTitle(referenceVideos.get(part.videoId)?.description)
     if (title) descriptionTitles.push(title)
   }
@@ -128,7 +142,7 @@ export async function discoverSeriesUpdates(
       series.title,
       ...manualAliases,
       ...descriptionTitles,
-      ...series.parts.map((part) => part.title)
+      ...parts.map((part) => part.title)
     ])
   )
   const aliases = buildSynonymAliases(synonyms)
@@ -205,12 +219,12 @@ export async function discoverSeriesUpdates(
     series.title,
     ...manualAliases,
     ...descriptionTitles,
-    ...series.parts.map((part) => part.title)
+    ...parts.map((part) => part.title)
   ])
   const baseReferences = uniqueTitles([
     series.title,
     ...descriptionTitles,
-    ...series.parts.map((part) => part.title)
+    ...parts.map((part) => part.title)
   ])
   const referenceKeys = new Set(
     references.map((reference) => normalizedBaseTitle(reference)).filter(Boolean)
@@ -249,14 +263,19 @@ export async function discoverSeriesUpdates(
     // Los vídeos ya descartados a mano no se vuelven a proponer.
     if (known.has(video.videoId) || discarded.has(video.videoId)) continue
 
-    const info = detectPart(video.title)
+    const titles = videoTitles(video)
+    const info = detectPart(titles.join(' '))
     const descriptionTitle = extractDescriptionTitle(video.description)
     const descriptionKey = descriptionTitle ? normalizedBaseTitle(descriptionTitle) : ''
     const titleOverlap = Math.max(
-      ...references.map((reference) => titleJaccard(reference, video.title, aliases))
+      ...references.flatMap((reference) =>
+        titles.map((title) => titleJaccard(reference, title, aliases))
+      )
     )
     const titleShared = Math.max(
-      ...references.map((reference) => sharedTokenCount(reference, video.title, aliases))
+      ...references.flatMap((reference) =>
+        titles.map((title) => sharedTokenCount(reference, title, aliases))
+      )
     )
     const descriptionOverlap = descriptionTitle
       ? Math.max(
@@ -271,14 +290,14 @@ export async function discoverSeriesUpdates(
         )
       : 0
     const learningBonus = keywordConfidenceBonus(
-      [video.title, ...(descriptionTitle ? [descriptionTitle] : [])],
+      [...titles, ...(descriptionTitle ? [descriptionTitle] : [])],
       series.keywordConfidence
     )
     const overlap = Math.max(titleOverlap, descriptionOverlap)
     const shared = Math.max(titleShared, descriptionShared)
     const sameChannel = Boolean(channelId && video.channelId === channelId)
 
-    if (exactKeys.has(normalizedBaseTitle(video.title))) {
+    if (titles.some((title) => exactKeys.has(normalizedBaseTitle(title)))) {
       added.push(toPart(video, info))
       continue
     }
@@ -374,7 +393,10 @@ export async function discoverSeriesUpdates(
       ...referenceSample.flatMap((video) =>
         (video.tags ?? []).slice(0, 15).map((tag) => compactText(tag, 40))
       ),
-      ...series.parts
+      ...referenceSample.flatMap((video) =>
+        video.originalTitle ? [compactText(video.originalTitle, 80)] : []
+      ),
+      ...parts
         .slice(0, SERIES_UPDATE_FINGERPRINT_TITLE_PARTS)
         .map((part) => compactText(part.title, 100)),
       ...referenceSample.map((video) => compactText(video.description, 160))
@@ -405,7 +427,11 @@ export async function discoverSeriesUpdates(
       ...(needsFingerprint
         ? candidatesForFingerprint.map((candidate) => ({
             id: candidate.video.videoId,
-            text: [candidate.video.title, candidate.descriptionTitle]
+            text: [
+              candidate.video.title,
+              candidate.video.originalTitle,
+              candidate.descriptionTitle
+            ]
               .filter(Boolean)
               .join('\n')
           }))
@@ -513,7 +539,8 @@ export async function discoverSeriesUpdates(
   }
 
   return {
-    parts: sortParts([...series.parts, ...added]),
+    parts: sortParts([...parts, ...added]),
+    titlesUpdated,
     added,
     candidates,
     channelId,

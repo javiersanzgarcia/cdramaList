@@ -341,7 +341,12 @@ export function useSeriesActions({
       shouldRedetectOriginCountry(item.originCountry, item.originCountryManual) &&
       Boolean(update.originCountry && update.originCountry !== 'unknown')
 
-    if (update.added.length === 0 && !learnedFingerprint && !learnedOrigin) {
+    if (
+      update.added.length === 0 &&
+      !learnedFingerprint &&
+      !learnedOrigin &&
+      !update.titlesUpdated
+    ) {
       return {
         added: 0,
         candidates: update.candidates,
@@ -488,7 +493,12 @@ export function useSeriesActions({
             shouldRedetectOriginCountry(current.originCountry, current.originCountryManual) &&
             Boolean(update.originCountry && update.originCountry !== 'unknown')
 
-          if (!hasNews && !learnedFingerprint && !learnedOrigin) {
+          if (
+            !hasNews &&
+            !learnedFingerprint &&
+            !learnedOrigin &&
+            !update.titlesUpdated
+          ) {
             continue
           }
 
