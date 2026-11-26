@@ -63,6 +63,11 @@ export const MAX_FINGERPRINT_CANDIDATES = 20
  * de cuota, así que se limita para no agotar la cuota diaria.
  */
 export const MAX_GLOBAL_SEARCHES = 4
+/**
+ * Búsquedas globales por serie en el modo masivo de favoritas. Con 31 favoritas,
+ * cuatro búsquedas agotan la cuota diaria en una sola pulsación.
+ */
+export const FAVORITES_MAX_GLOBAL_SEARCHES = 2
 
 /** Umbrales de relevancia léxica de un candidato. */
 export const SERIES_UPDATE_DESCRIPTION_OVERLAP = 0.65

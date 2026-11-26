@@ -29,6 +29,8 @@ interface HomeViewProps {
     failed: number
     warnings: string[]
     syncFailed: boolean
+    skipped: number
+    remaining: number
   }>
   onOpenSettings: () => void
 }
@@ -104,7 +106,11 @@ export const HomeView: React.FC<HomeViewProps> = ({
       // Con novedades la ficha se abre sola; solo se muestra el aviso si no hay
       // ninguna o si hubo problemas que el usuario deba conocer (avisos de la
       // búsqueda o fallo al sincronizar con Drive).
-      const hasNotices = result.warnings.length > 0 || result.syncFailed
+      const hasNotices =
+        result.warnings.length > 0 ||
+        result.syncFailed ||
+        result.skipped > 0 ||
+        result.remaining > 0
       if (result.updated > 0 && !hasNotices) return
 
       const lines: string[] = []
@@ -118,6 +124,16 @@ export const HomeView: React.FC<HomeViewProps> = ({
         )
       } else {
         lines.push('No hay capítulos nuevos ni candidatos en tus favoritas.')
+      }
+      if (result.skipped > 0) {
+        lines.push(
+          `Se omitieron ${result.skipped} ${result.skipped === 1 ? 'favorita ya revisada recientemente' : 'favoritas ya revisadas recientemente'}.`
+        )
+      }
+      if (result.remaining > 0) {
+        lines.push(
+          `Quedan ${result.remaining} ${result.remaining === 1 ? 'favorita pendiente' : 'favoritas pendientes'} para la próxima pulsación.`
+        )
       }
       if (result.syncFailed) {
         lines.push('No se pudo sincronizar con Google Drive.')

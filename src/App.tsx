@@ -247,7 +247,14 @@ const App: React.FC = () => {
 
   async function refreshFavorites() {
     if (favoritesRefreshRef.current) {
-      return { updated: 0, failed: 0, warnings: [], syncFailed: false }
+      return {
+        updated: 0,
+        failed: 0,
+        warnings: [],
+        syncFailed: false,
+        skipped: 0,
+        remaining: 0
+      }
     }
 
     favoritesRefreshRef.current = true
@@ -269,7 +276,9 @@ const App: React.FC = () => {
         updated: result.updatedIds.length,
         failed: result.failed,
         warnings: result.warnings,
-        syncFailed: result.syncFailed
+        syncFailed: result.syncFailed,
+        skipped: result.skipped,
+        remaining: result.remaining
       }
     } finally {
       favoritesRefreshRef.current = false

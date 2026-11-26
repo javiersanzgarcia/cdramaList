@@ -68,11 +68,43 @@ function videoTitles(video: VideoMeta): string[] {
   return video.originalTitle ? [video.title, video.originalTitle] : [video.title]
 }
 
+/** Opciones del modo de búsqueda (el lote de favoritas usa menos búsquedas). */
+export interface DiscoverSeriesUpdatesOptions {
+  maxGlobalSearches?: number
+}
+
+/**
+ * Dedupe y recorta las consultas globales. En el botón masivo se pasa un límite
+ * más bajo para no agotar la cuota diaria de YouTube en una sola pulsación.
+ */
+export function pickSearchQueries(
+  values: Iterable<string | undefined>,
+  maxSearches: number = MAX_GLOBAL_SEARCHES
+): string[] {
+  const limit =
+    Number.isFinite(maxSearches) && maxSearches > 0
+      ? Math.max(1, Math.floor(maxSearches))
+      : MAX_GLOBAL_SEARCHES
+  const queries: string[] = []
+  const seen = new Set<string>()
+  for (const value of values) {
+    const query = value?.trim()
+    if (!query) continue
+    const key = query.toLowerCase()
+    if (seen.has(key)) continue
+    seen.add(key)
+    queries.push(query)
+    if (queries.length >= limit) break
+  }
+  return queries
+}
+
 /** Busca capítulos de la serie en las subidas del canal y en todo YouTube. */
 export async function discoverSeriesUpdates(
   series: Series,
   apiKey: string,
-  semanticEndpoint?: string
+  semanticEndpoint?: string,
+  options: DiscoverSeriesUpdatesOptions = {}
 ): Promise<SeriesUpdate> {
   if (series.parts.length === 0) {
     throw new YouTubeError(
@@ -83,6 +115,7 @@ export async function discoverSeriesUpdates(
   const warnings: string[] = []
   let failed = false
   let failure: unknown
+  let quotaExceeded = false
   let channelId = series.channelId
   let channelTitle = series.channelTitle
   let channelUrl = series.channelUrl
@@ -160,17 +193,10 @@ export async function discoverSeriesUpdates(
     descriptionReference ? buildGlobalSearchQuery(descriptionReference) : undefined,
     ...series.parts.map((part) => buildGlobalSearchQuery(part.title))
   ]
-  const queries: string[] = []
-  const seenQueries = new Set<string>()
-  for (const value of [identityQuery, ...referenceQueries]) {
-    const query = value?.trim()
-    if (!query) continue
-    const key = query.toLowerCase()
-    if (seenQueries.has(key)) continue
-    seenQueries.add(key)
-    queries.push(query)
-    if (queries.length >= MAX_GLOBAL_SEARCHES) break
-  }
+  const queries = pickSearchQueries(
+    [identityQuery, ...referenceQueries],
+    options.maxGlobalSearches
+  )
 
   const searchOutcomes = await Promise.allSettled(
     queries.map((query) => searchYouTubeVideos(query, apiKey))
@@ -192,20 +218,25 @@ export async function discoverSeriesUpdates(
   }
   if (searchFailed) {
     failed = true
-    const quotaFailed = searchOutcomes.some(
+    quotaExceeded = searchOutcomes.some(
       (outcome) =>
         outcome.status === 'rejected' &&
         outcome.reason instanceof YouTubeError &&
         outcome.reason.reason === 'quotaExceeded'
     )
     warnings.push(
-      quotaFailed
+      quotaExceeded
         ? 'Cuota diaria de búsquedas de YouTube agotada; se reinicia a medianoche (hora del Pacífico).'
         : 'No se ha podido completar alguna búsqueda en todo YouTube.'
     )
   }
 
   if (uploads.length === 0 && globalResults.length === 0 && failed) {
+    if (failure instanceof YouTubeError) {
+      // Conserva el motivo (por ejemplo `quotaExceeded`) para que el lote de
+      // favoritas pueda parar en cuanto se agota la cuota diaria.
+      throw new YouTubeError(failure.message, failure.reason)
+    }
     if (failure instanceof Error && failure.message) {
       throw new YouTubeError(failure.message)
     }
@@ -548,6 +579,7 @@ export async function discoverSeriesUpdates(
     channelUrl,
     semanticFingerprint,
     originCountry,
-    warnings
+    warnings,
+    quotaExceeded
   }
 }

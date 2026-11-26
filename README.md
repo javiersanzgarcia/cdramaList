@@ -6,6 +6,12 @@ PWA para reunir las partes de una historia de YouTube, guardar el progreso y ver
 
 **Fire TV:** se puede usar con el navegador TV Bro; consulta [Instalar en Fire TV](#instalar-en-fire-tv-tv-bro).
 
+## Novedades de la 1.11.0
+
+- **«Actualizar todas las favoritas» ya no agota la cuota diaria de YouTube.** Cada favorita buscada por este botón queda marcada durante 48 horas, así que no se vuelve a repetir en las siguientes pasadas. Además, el lote revisa como máximo **12 favoritas por pulsación** y usa solo **2 búsquedas globales por serie** (en lugar de 4): con 31 favoritas el gasto baja de ~12 400 a ~2 400 unidades por pasada. La app avisa de las favoritas omitidas y de las que quedan pendientes.
+- **Parada inmediata al agotarse la cuota.** Si YouTube devuelve el error de cuota diaria, el lote se detiene y conserva las marcas de las series ya revisadas; las que no se pudieron buscar siguen pendientes para la siguiente pulsación, cuando se reinicie la cuota.
+- **El marcador se guarda en Google Drive** y se conserva al sincronizar entre dispositivos. La actualización individual de una serie sigue funcionando igual y **ignora la marca**, para que puedas forzarla cuando quieras.
+
 ## Novedades de la 1.10.8
 
 - **Los candidatos encontrados en la búsqueda global también muestran el título en español.** `search.list` no incluye `snippet.localized`: el título coreano se copiaba al capítulo aunque la consulta posterior a `videos.list` ya trajera la traducción. Ahora se aprovecha esa consulta para corregir título y duración a la vez.

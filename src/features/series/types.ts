@@ -103,6 +103,12 @@ export interface Series {
   updatedAt: number
   lastOpenedAt?: number
   /**
+   * Última vez que se buscó esta serie desde «Actualizar todas las favoritas».
+   * La actualización individual la ignora: sirve solo para no repetir favoritas
+   * ya revisadas en el lote masivo.
+   */
+  lastFavoritesRefreshAt?: number
+  /**
    * Marca de borrado. La serie se oculta en la app pero se conserva para
    * propagar el borrado al sincronizar: sin esta lápida, otro dispositivo
    * volvería a subirla a Google Drive.
@@ -144,4 +150,8 @@ export interface RefreshFavoritesResult {
   failed: number
   warnings: string[]
   syncFailed: boolean
+  /** Favoritas omitidas por haberse buscado hace menos de 48 horas. */
+  skipped: number
+  /** Favoritas que quedan pendientes para la siguiente pulsación. */
+  remaining: number
 }

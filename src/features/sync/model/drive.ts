@@ -255,6 +255,7 @@ function canonicalSeries(series: Series) {
     createdAt: series.createdAt,
     updatedAt: series.updatedAt,
     lastOpenedAt: series.lastOpenedAt ?? null,
+    lastFavoritesRefreshAt: series.lastFavoritesRefreshAt ?? null,
     deletedAt: series.deletedAt ?? null,
     watched: [...series.watched].sort(),
     parts: series.parts

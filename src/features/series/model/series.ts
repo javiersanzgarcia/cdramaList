@@ -14,6 +14,8 @@ import {
 } from './origin'
 import {
   DELETED_SERIES_TTL,
+  FAVORITES_REFRESH_COOLDOWN_MS,
+  FAVORITES_REFRESH_MAX_SERIES,
   MAX_PART_DESCRIPTION_LENGTH,
   SERIES_MATCH_MIN_SIMILARITY,
   SERIES_MATCH_SAME_CHANNEL_SIMILARITY
@@ -453,7 +455,37 @@ export function normalizeSeries(value: Series): Series {
     createdAt: typeof value.createdAt === 'number' ? value.createdAt : now,
     updatedAt: typeof value.updatedAt === 'number' ? value.updatedAt : now,
     lastOpenedAt: typeof value.lastOpenedAt === 'number' ? value.lastOpenedAt : undefined,
+    lastFavoritesRefreshAt:
+      typeof value.lastFavoritesRefreshAt === 'number'
+        ? value.lastFavoritesRefreshAt
+        : undefined,
     deletedAt: typeof value.deletedAt === 'number' ? value.deletedAt : undefined
+  }
+}
+
+/**
+ * Elige qué favoritas se revisan en el botón masivo. Primero las que llevan más
+ * tiempo sin buscarse (o nunca), y nunca más de `limit` para no agotar la cuota
+ * diaria de YouTube en una sola pulsación.
+ */
+export function selectFavoritesForRefresh(
+  favorites: Series[],
+  now: number = Date.now(),
+  limit = FAVORITES_REFRESH_MAX_SERIES,
+  cooldownMs = FAVORITES_REFRESH_COOLDOWN_MS
+): { selected: Series[]; skipped: number; remaining: number } {
+  const pending = favorites.filter(
+    (item) =>
+      !item.lastFavoritesRefreshAt || now - item.lastFavoritesRefreshAt >= cooldownMs
+  )
+  const selected = [...pending]
+    .sort((a, b) => (a.lastFavoritesRefreshAt ?? 0) - (b.lastFavoritesRefreshAt ?? 0))
+    .slice(0, limit)
+
+  return {
+    selected,
+    skipped: favorites.length - pending.length,
+    remaining: pending.length - selected.length
   }
 }
 
@@ -580,6 +612,12 @@ export function combineSeries(current: Series, incoming: Series, base?: Series):
   const newer = incoming.updatedAt > current.updatedAt ? incoming : current
   const older = newer === incoming ? current : incoming
   const lastOpenedAt = Math.max(current.lastOpenedAt ?? 0, incoming.lastOpenedAt ?? 0)
+  // La marca del lote de favoritas se conserva aunque la copia ganadora no la
+  // traiga (por ejemplo, un archivo de Drive creado antes de que existiera).
+  const lastFavoritesRefreshAt = Math.max(
+    current.lastFavoritesRefreshAt ?? 0,
+    incoming.lastFavoritesRefreshAt ?? 0
+  )
   const removedParts = combineRemovedParts(current.removedParts, incoming.removedParts)
   const parts = filterRemovedParts(
     // Un vídeo quitado a mano no vuelve desde la copia que aún lo tiene: la
@@ -666,6 +704,7 @@ export function combineSeries(current: Series, incoming: Series, base?: Series):
     removedParts: keepPendingRemovals(removedParts, parts),
     updatedAt: Math.max(current.updatedAt, incoming.updatedAt),
     lastOpenedAt: lastOpenedAt > 0 ? lastOpenedAt : undefined,
+    lastFavoritesRefreshAt: lastFavoritesRefreshAt > 0 ? lastFavoritesRefreshAt : undefined,
     // El borrado es pegajoso: si una de las dos copias tiene lápida, la serie
     // queda borrada en ambas (no existe función para «desborrar»).
     deletedAt: earliest(current.deletedAt, incoming.deletedAt)

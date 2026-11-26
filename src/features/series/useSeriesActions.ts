@@ -2,8 +2,11 @@ import { useRef } from 'react'
 import type { ChapterCandidate, SeriesRefreshResult } from '../discovery/types'
 import { candidateToPart } from '../discovery/model/youtubeDrafts'
 import { discoverSeriesUpdates } from '../discovery/model/seriesUpdates'
-import { fetchVideosByIds } from '../discovery/model/youtubeApi'
-import { YOUTUBE_CHANNEL_FALLBACK } from '../discovery/model/constants'
+import { fetchVideosByIds, YouTubeError } from '../discovery/model/youtubeApi'
+import {
+  FAVORITES_MAX_GLOBAL_SEARCHES,
+  YOUTUBE_CHANNEL_FALLBACK
+} from '../discovery/model/constants'
 import { reorderParts, sortParts } from './model/parts'
 import { shouldRedetectOriginCountry } from './model/origin'
 import {
@@ -18,6 +21,7 @@ import {
   mergeParts,
   mergeSeries,
   reconcileCompletedStatus,
+  selectFavoritesForRefresh,
   setPlaybackPosition
 } from './model/series'
 import type {
@@ -432,9 +436,9 @@ export function useSeriesActions({
   }
 
   /**
-   * Actualiza todas las series favoritas de una vez. Devuelve los ids de las
-   * que tienen novedades (capítulos nuevos o candidatos) para revisarlas, y se
-   * sincroniza una sola vez al terminar.
+   * Actualiza un lote reducido de favoritas. Cada serie revisada se marca
+   * aunque no tenga novedades: esa marca es la que evita repetir la búsqueda en
+   * las próximas 48 h. Se sincroniza una sola vez al terminar.
    */
   async function handleRefreshFavorites(): Promise<RefreshFavoritesResult> {
     if (favoritesRunningRef.current) {
@@ -443,7 +447,9 @@ export function useSeriesActions({
         candidatesById: {},
         failed: 0,
         warnings: [],
-        syncFailed: false
+        syncFailed: false,
+        skipped: 0,
+        remaining: 0
       }
     }
 
@@ -463,22 +469,42 @@ export function useSeriesActions({
           candidatesById: {},
           failed: 0,
           warnings: [],
-          syncFailed: false
+          syncFailed: false,
+          skipped: 0,
+          remaining: 0
+        }
+      }
+
+      const { selected, skipped, remaining } = selectFavoritesForRefresh(favorites)
+      if (selected.length === 0) {
+        return {
+          updatedIds: [],
+          candidatesById: {},
+          failed: 0,
+          warnings: [],
+          syncFailed: false,
+          skipped,
+          remaining: 0
         }
       }
 
       let next = series
-      const updatedById = new Map<string, Series>()
+      const markedById = new Map<string, Series>()
       const updatedIds: string[] = []
       const candidatesById: Record<string, ChapterCandidate[]> = {}
       const warnings = new Set<string>()
       let failed = 0
+      let markedCount = 0
+      let quotaReached = false
 
-      for (const favorite of favorites) {
+      for (const favorite of selected) {
         const current = next.find((item) => item.id === favorite.id) ?? favorite
+        const refreshedAt = Date.now()
 
         try {
-          const update = await discoverSeriesUpdates(current, apiKey, semanticEndpoint)
+          const update = await discoverSeriesUpdates(current, apiKey, semanticEndpoint, {
+            maxGlobalSearches: FAVORITES_MAX_GLOBAL_SEARCHES
+          })
 
           for (const warning of update.warnings) warnings.add(warning)
 
@@ -492,65 +518,83 @@ export function useSeriesActions({
           const learnedOrigin =
             shouldRedetectOriginCountry(current.originCountry, current.originCountryManual) &&
             Boolean(update.originCountry && update.originCountry !== 'unknown')
+          const hasChanges =
+            hasNews || learnedFingerprint || learnedOrigin || update.titlesUpdated
+          const parts = hasChanges
+            ? // Igual que en la búsqueda individual: no se reintroduce un vídeo
+              // quitado a mano de la serie.
+              filterRemovedParts(mergeParts(current.parts, update.parts), current.removedParts)
+            : current.parts
 
-          if (
-            !hasNews &&
-            !learnedFingerprint &&
-            !learnedOrigin &&
-            !update.titlesUpdated
-          ) {
-            continue
-          }
-
-          // Igual que en la búsqueda individual: no se reintroduce un vídeo
-          // quitado a mano de la serie.
-          const parts = filterRemovedParts(
-            mergeParts(current.parts, update.parts),
-            current.removedParts
-          )
+          // Si la cuota se agotó, no se marca: la serie no ha podido buscarse
+          // y debe poder reintentarse cuando la cuota se reinicie. En los demás
+          // casos la marca se guarda siempre, aunque no haya cambios, para no
+          // repetir la búsqueda en 48 h. `updatedAt` solo cambia si hay cambios
+          // reales, para no alterar el orden de «Seguir viendo».
+          const shouldMark = !update.quotaExceeded
           const merged: Series = {
             ...current,
-            channelId: current.channelId ?? update.channelId,
-            channelTitle:
-              current.channelTitle === YOUTUBE_CHANNEL_FALLBACK && update.channelTitle
-                ? update.channelTitle
-                : current.channelTitle,
-            channelUrl: current.channelUrl ?? update.channelUrl,
-            parts,
-            originCountry: shouldRedetectOriginCountry(
-              current.originCountry,
-              current.originCountryManual
-            )
-              ? (update.originCountry ?? current.originCountry)
-              : current.originCountry,
-            status:
-              update.added.length > 0
-                ? reconcileCompletedStatus(current.status, current.watched, parts)
-                : current.status,
-            semanticFingerprint: update.semanticFingerprint ?? current.semanticFingerprint,
-            updatedAt: Date.now()
+            ...(hasChanges
+              ? {
+                  channelId: current.channelId ?? update.channelId,
+                  channelTitle:
+                    current.channelTitle === YOUTUBE_CHANNEL_FALLBACK && update.channelTitle
+                      ? update.channelTitle
+                      : current.channelTitle,
+                  channelUrl: current.channelUrl ?? update.channelUrl,
+                  parts,
+                  originCountry: shouldRedetectOriginCountry(
+                    current.originCountry,
+                    current.originCountryManual
+                  )
+                    ? (update.originCountry ?? current.originCountry)
+                    : current.originCountry,
+                  status:
+                    update.added.length > 0
+                      ? reconcileCompletedStatus(current.status, current.watched, parts)
+                      : current.status,
+                  semanticFingerprint:
+                    update.semanticFingerprint ?? current.semanticFingerprint,
+                  updatedAt: Date.now()
+                }
+              : {}),
+            ...(shouldMark ? { lastFavoritesRefreshAt: refreshedAt } : {})
           }
 
-          next = next.map((item) => (item.id === current.id ? merged : item))
-          updatedById.set(current.id, merged)
+          if (hasChanges || shouldMark) {
+            next = next.map((item) => (item.id === current.id ? merged : item))
+            markedById.set(current.id, merged)
+          }
+          if (shouldMark) markedCount += 1
 
           if (hasNews) {
             updatedIds.push(current.id)
             candidatesById[current.id] = update.candidates
           }
-        } catch {
+          if (update.quotaExceeded) quotaReached = true
+        } catch (caught) {
           failed += 1
+          if (caught instanceof YouTubeError && caught.reason === 'quotaExceeded') {
+            quotaReached = true
+            warnings.add(
+              'Cuota diaria de búsquedas de YouTube agotada; se reinicia a medianoche (hora del Pacífico).'
+            )
+          }
+          // Un fallo no cuenta como búsqueda realizada: no se marca para poder
+          // reintentarlo cuando el servicio vuelva a estar disponible.
         }
+
+        if (quotaReached) break
       }
 
       let syncFailed = false
 
-      if (updatedById.size > 0) {
-        // Se aplican solo las series actualizadas sobre el estado más reciente,
+      if (markedById.size > 0) {
+        // Se aplican solo las series revisadas sobre el estado más reciente,
         // no se reemplaza toda la lista con el snapshot inicial del lote.
         let nextSeries: Series[] = series
         updateSeries((current) => {
-          nextSeries = current.map((item) => updatedById.get(item.id) ?? item)
+          nextSeries = current.map((item) => markedById.get(item.id) ?? item)
           return nextSeries
         })
         // Una sola sincronización al terminar, no una por cada serie.
@@ -564,7 +608,11 @@ export function useSeriesActions({
         candidatesById,
         failed,
         warnings: [...warnings],
-        syncFailed
+        syncFailed,
+        skipped,
+        // Si la cuota se agotó a mitad de lote, las series no marcadas (las que
+        // no llegaron a buscarse o fallaron) siguen pendientes.
+        remaining: remaining + (selected.length - markedCount)
       }
     } finally {
       favoritesRunningRef.current = false

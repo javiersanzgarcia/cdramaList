@@ -93,6 +93,8 @@ export interface SeriesUpdate {
   semanticFingerprint?: SemanticFingerprint
   originCountry?: SeriesOriginCountry
   warnings: string[]
+  /** La búsqueda global se detuvo por haberse agotado la cuota diaria. */
+  quotaExceeded?: boolean
 }
 
 /** Resultado que consume la ficha al actualizar una serie. */

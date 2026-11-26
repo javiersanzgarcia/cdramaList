@@ -1,8 +1,12 @@
 import type { Part, Series } from '../types'
+import { FAVORITES_REFRESH_COOLDOWN_MS } from './constants'
 import {
+  combineSeries,
   normalizePlaybackPosition,
+  normalizeSeries,
   pickPlaybackPosition,
   progressPercent,
+  selectFavoritesForRefresh,
   seriesStatus,
   watchedCount
 } from './series'
@@ -67,5 +71,36 @@ describe('series model', () => {
     expect(pickPlaybackPosition(newer, older)).toEqual(newer)
     expect(pickPlaybackPosition(older, tieAhead)).toEqual(tieAhead)
     expect(pickPlaybackPosition(undefined, older)).toEqual(older)
+  })
+
+  it('selecciona favoritas por antigüedad, respetando cooldown y límite', () => {
+    const now = 2_000_000_000
+    const favorites = [
+      makeSeries({ id: 'reciente', favorite: true, lastFavoritesRefreshAt: now - 1_000 }),
+      makeSeries({
+        id: 'antigua',
+        favorite: true,
+        lastFavoritesRefreshAt: now - FAVORITES_REFRESH_COOLDOWN_MS - 1
+      }),
+      makeSeries({ id: 'nunca', favorite: true }),
+      makeSeries({ id: 'reciente-2', favorite: true, lastFavoritesRefreshAt: now - 10_000 }),
+      makeSeries({ id: 'pendiente', favorite: true })
+    ]
+
+    const result = selectFavoritesForRefresh(favorites, now, 2)
+
+    expect(result.selected.map((item) => item.id)).toEqual(['nunca', 'pendiente'])
+    expect(result.skipped).toBe(2)
+    expect(result.remaining).toBe(1)
+  })
+
+  it('conserva la marca del lote de favoritas al normalizar y sincronizar', () => {
+    const markedAt = 987_654
+    const local = makeSeries({ lastFavoritesRefreshAt: markedAt, updatedAt: 10 })
+    const incoming = makeSeries({ updatedAt: 20 })
+
+    expect(normalizeSeries(local).lastFavoritesRefreshAt).toBe(markedAt)
+    expect(combineSeries(local, incoming).lastFavoritesRefreshAt).toBe(markedAt)
+    expect(combineSeries(incoming, local).lastFavoritesRefreshAt).toBe(markedAt)
   })
 })

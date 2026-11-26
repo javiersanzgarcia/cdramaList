@@ -3,6 +3,14 @@ import { DAY_MS } from '../../../shared/lib/constants'
 /** Cuánto se conserva la lápida de una serie borrada para propagar el borrado. */
 export const DELETED_SERIES_TTL = 30 * DAY_MS
 
+/**
+ * Tiempo mínimo entre búsquedas de una misma favorita desde «Actualizar todas
+ * las favoritas». Cada búsqueda global cuesta 100 unidades de cuota.
+ */
+export const FAVORITES_REFRESH_COOLDOWN_MS = 2 * DAY_MS
+/** Favoritas revisadas como máximo en cada pulsación del botón masivo. */
+export const FAVORITES_REFRESH_MAX_SERIES = 12
+
 /** Límite de alias por serie (editor manual y aprendizaje automático). */
 export const MAX_SERIES_ALIASES = 12
 
