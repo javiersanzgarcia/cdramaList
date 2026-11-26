@@ -99,6 +99,52 @@ export function pickSearchQueries(
   return queries
 }
 
+/** Datos necesarios para construir las consultas globales de una serie. */
+export interface SeriesSearchQueryInput {
+  title: string
+  manualAliases?: string[]
+  descriptionTitles?: string[]
+  descriptionReference?: string
+  /** Títulos originales que ya trajo `videos.list`; no cuestan cuota extra. */
+  originalTitles?: Array<string | undefined>
+  partTitles?: string[]
+  synonyms?: Map<string, string[]>
+  maxSearches?: number
+}
+
+/**
+ * Decide qué búsquedas globales se hacen. El título original va justo después
+ * del de la serie: si YouTube tradujo el título, buena parte de los capítulos
+ * puede estar subida solo con el original, y ya lo tenemos sin pedir nada más.
+ * Se mantiene el límite de consultas para no cambiar el coste de cuota.
+ */
+export function buildSeriesUpdateQueries(input: SeriesSearchQueryInput): string[] {
+  const synonyms = input.synonyms ?? new Map<string, string[]>()
+  const baseQuery = buildGlobalSearchQuery(input.title)
+  const identityQuery = combineSearchTerms([
+    baseQuery,
+    ...expandQueryWithSynonyms(baseQuery, synonyms).split('|')
+  ])
+  const originalQueries = uniqueTitles(input.originalTitles ?? []).map((title) =>
+    buildGlobalSearchQuery(title)
+  )
+  const descriptionQueries = (input.descriptionTitles ?? []).map((title) =>
+    buildGlobalSearchQuery(title)
+  )
+  const referenceQueries = [
+    ...originalQueries.slice(0, 1),
+    ...(input.manualAliases ?? []).map((alias) => buildGlobalSearchQuery(alias)),
+    ...descriptionQueries,
+    input.descriptionReference
+      ? buildGlobalSearchQuery(input.descriptionReference)
+      : undefined,
+    ...originalQueries.slice(1),
+    ...(input.partTitles ?? []).map((title) => buildGlobalSearchQuery(title))
+  ]
+
+  return pickSearchQueries([identityQuery, ...referenceQueries], input.maxSearches)
+}
+
 /** Busca capítulos de la serie en las subidas del canal y en todo YouTube. */
 export async function discoverSeriesUpdates(
   series: Series,
@@ -179,24 +225,21 @@ export async function discoverSeriesUpdates(
     ])
   )
   const aliases = buildSynonymAliases(synonyms)
-  const baseQuery = buildGlobalSearchQuery(series.title)
-  // Cada referencia se busca por separado: YouTube no trata bien las consultas
-  // largas unidas con «|», así que un alias o el título real de la descripción
-  // puede encontrar capítulos que la consulta combinada no devuelve.
-  const identityQuery = combineSearchTerms([
-    baseQuery,
-    ...expandQueryWithSynonyms(baseQuery, synonyms).split('|')
-  ])
-  const referenceQueries = [
-    ...manualAliases.map((alias) => buildGlobalSearchQuery(alias)),
-    ...descriptionTitles.map((title) => buildGlobalSearchQuery(title)),
-    descriptionReference ? buildGlobalSearchQuery(descriptionReference) : undefined,
-    ...series.parts.map((part) => buildGlobalSearchQuery(part.title))
-  ]
-  const queries = pickSearchQueries(
-    [identityQuery, ...referenceQueries],
-    options.maxGlobalSearches
+  // `videos.list` ya trae el título original junto al localizado: se usa como
+  // una de las consultas del límite existente, sin gastar cuota adicional.
+  const originalTitles = [...referenceVideos.values(), ...uploads].map(
+    (video) => video.originalTitle
   )
+  const queries = buildSeriesUpdateQueries({
+    title: series.title,
+    manualAliases,
+    descriptionTitles,
+    descriptionReference,
+    originalTitles,
+    partTitles: series.parts.map((part) => part.title),
+    synonyms,
+    maxSearches: options.maxGlobalSearches
+  })
 
   const searchOutcomes = await Promise.allSettled(
     queries.map((query) => searchYouTubeVideos(query, apiKey))

@@ -6,6 +6,10 @@ PWA para reunir las partes de una historia de YouTube, guardar el progreso y ver
 
 **Fire TV:** se puede usar con el navegador TV Bro; consulta [Instalar en Fire TV](#instalar-en-fire-tv-tv-bro).
 
+## Novedades de la 1.11.1
+
+- **La búsqueda de capítulos también usa el título original del vídeo.** Al actualizar una serie, `videos.list` ya trae el título original junto al traducido al español; ahora ese original se incluye como una de las consultas del límite existente (justo después del título de la serie). Esto ayuda cuando YouTube tiene el título localizado pero los capítulos están subidos solo con el título en coreano, chino, etc. **No aumenta el gasto de cuota**: sigue habiendo como máximo 4 búsquedas al actualizar una serie y 2 por favorita en el botón masivo.
+
 ## Novedades de la 1.11.0
 
 - **«Actualizar todas las favoritas» ya no agota la cuota diaria de YouTube.** Cada favorita buscada por este botón queda marcada durante 48 horas, así que no se vuelve a repetir en las siguientes pasadas. Además, el lote revisa como máximo **12 favoritas por pulsación** y usa solo **2 búsquedas globales por serie** (en lugar de 4): con 31 favoritas el gasto baja de ~12 400 a ~2 400 unidades por pasada. La app avisa de las favoritas omitidas y de las que quedan pendientes.
